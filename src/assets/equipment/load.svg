@@ -1,0 +1,64 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 110 84" width="110" height="84">
+  <!--
+    Layer conventions (see README.md in this folder):
+      data-scope="pole"    drawn once per pole, tile is the viewBox
+      data-scope="device"  drawn once (default)
+      data-stretch="x"     device layer scaled horizontally over all poles (use fills only)
+      data-show="..."      visibility expression, e.g. on,!tripped  pole-n  kind==lamp
+      data-center-x="true" text centred across the whole device
+      data-terminal="..."  connection point (top/bottom per pole, or a name for device terminals)
+      {{token}}            replaced by parameters, e.g. {{In}} {{curve}} {{Icn#label}} {{color#hex}}
+  -->
+  <g data-layer="body">
+    <rect x="0.5" y="14" width="109" height="69" rx="3" fill="#f1f3f6" stroke="#4c5a6b" stroke-width="0.8"/>
+  </g>
+  <g data-show="true">
+    <circle data-terminal="L1" data-dir="up" cx="20" cy="8" r="3.4" fill="#7a4a21" stroke="#2a3138" stroke-width="0.6"/>
+    <text x="20" y="19" font-size="3.4" text-anchor="middle" fill="#2a3138" font-family="Helvetica, Arial, sans-serif">L1</text>
+  </g>
+  <g data-show="phases>=3">
+    <circle data-terminal="L2" data-dir="up" cx="38" cy="8" r="3.4" fill="#1f2328" stroke="#2a3138" stroke-width="0.6"/>
+    <text x="38" y="19" font-size="3.4" text-anchor="middle" fill="#2a3138" font-family="Helvetica, Arial, sans-serif">L2</text>
+  </g>
+  <g data-show="phases>=3">
+    <circle data-terminal="L3" data-dir="up" cx="56" cy="8" r="3.4" fill="#8a9099" stroke="#2a3138" stroke-width="0.6"/>
+    <text x="56" y="19" font-size="3.4" text-anchor="middle" fill="#2a3138" font-family="Helvetica, Arial, sans-serif">L3</text>
+  </g>
+  <g data-show="true">
+    <circle data-terminal="N" data-dir="up" cx="74" cy="8" r="3.4" fill="#1f6fd1" stroke="#2a3138" stroke-width="0.6"/>
+    <text x="74" y="19" font-size="3.4" text-anchor="middle" fill="#2a3138" font-family="Helvetica, Arial, sans-serif">N</text>
+  </g>
+  <g data-show="true">
+    <circle data-terminal="PE" data-dir="up" cx="92" cy="8" r="3.4" fill="#2e9e44" stroke="#2a3138" stroke-width="0.6"/>
+    <text x="92" y="19" font-size="3.4" text-anchor="middle" fill="#2a3138" font-family="Helvetica, Arial, sans-serif">PE</text>
+  </g>
+  <g data-layer="icon-lamp" data-show="kind==lamp">
+    <circle cx="55" cy="52" r="13" fill="#ffffff" stroke="#4c5a6b" stroke-width="1.2"/>
+    <path d="M47 44 63 60M63 44 47 60" stroke="#4c5a6b" stroke-width="1.2"/>
+    <g data-show="powered"><circle cx="55" cy="52" r="20" fill="#ffd84a" fill-opacity="0.45" class="anim-pulse"/><circle cx="55" cy="52" r="13" fill="#ffe27a"/><path d="M47 44 63 60M63 44 47 60" stroke="#8a6a00" stroke-width="1.2"/></g>
+  </g>
+  <g data-layer="icon-heater" data-show="kind==heater">
+    <rect x="28" y="38" width="54" height="28" rx="3" fill="#ffffff" stroke="#4c5a6b" stroke-width="1.2"/>
+    <path d="M34 46h42M34 52h42M34 58h42" stroke="#4c5a6b" stroke-width="1.6" stroke-linecap="round"/>
+    <g data-show="powered"><rect x="28" y="38" width="54" height="28" rx="3" fill="#ff7a2f" fill-opacity="0.45" class="anim-pulse"/><path d="M34 46h42M34 52h42M34 58h42" stroke="#c2410c" stroke-width="1.8" stroke-linecap="round"/></g>
+  </g>
+  <g data-layer="icon-motor" data-show="kind==motor">
+    <circle cx="55" cy="52" r="15" fill="#ffffff" stroke="#4c5a6b" stroke-width="1.2"/>
+    <text x="55" y="57" font-size="14" text-anchor="middle" fill="#4c5a6b" font-family="Helvetica, Arial, sans-serif" font-weight="bold">M</text>
+    <g data-show="powered"><circle cx="55" cy="52" r="15" fill="#2e9e44" fill-opacity="0.25"/><g class="anim-spin" style="transform-origin: 55px 52px"><path d="M55 38v6M55 60v6M41 52h6M63 52h6" stroke="#2e9e44" stroke-width="2.4" stroke-linecap="round"/></g></g>
+  </g>
+  <g data-layer="icon-socket" data-show="kind==socket">
+    <rect x="35" y="38" width="40" height="28" rx="3" fill="#ffffff" stroke="#4c5a6b" stroke-width="1.2"/>
+    <circle cx="55" cy="52" r="9" fill="#e3e7ec" stroke="#4c5a6b" stroke-width="0.8"/>
+    <circle cx="51" cy="52" r="1.6" fill="#2b333d"/><circle cx="59" cy="52" r="1.6" fill="#2b333d"/>
+    <g data-show="powered"><circle cx="70" cy="43" r="2.2" fill="#2e9e44"/></g>
+  </g>
+  <g data-layer="icon-generic" data-show="kind==generic">
+    <rect x="35" y="38" width="40" height="28" rx="2" fill="#ffffff" stroke="#4c5a6b" stroke-width="1.2"/>
+    <path d="M41 52h28" stroke="#4c5a6b" stroke-width="1.2"/>
+    <g data-show="powered"><rect x="35" y="38" width="40" height="28" rx="2" fill="#2e9e44" fill-opacity="0.3"/></g>
+  </g>
+  <g data-layer="labels">
+    <text x="55" y="77" font-size="4.2" text-anchor="middle" fill="#2a3138" font-family="Helvetica, Arial, sans-serif" font-weight="bold">{{P}} W  {{phases}}~</text>
+  </g>
+</svg>

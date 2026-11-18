@@ -1,0 +1,68 @@
+{
+  "id": "meter",
+  "name": "Energy meter",
+  "description": "DIN energy meter, shows the simulated line current.",
+  "category": "indication",
+  "role": "meter",
+  "designation": "P",
+  "icon": "meter",
+  "asset": "meter.svg",
+  "mount": "din",
+  "poleMode": "config",
+  "poleConfigs": [
+    "1P+N",
+    "3P+N"
+  ],
+  "summary": "kWh {In}A",
+  "params": [
+    {
+      "key": "In",
+      "label": "Max. current",
+      "type": "select",
+      "options": [
+        {
+          "value": 40,
+          "label": "40 A"
+        },
+        {
+          "value": 63,
+          "label": "63 A"
+        },
+        {
+          "value": 80,
+          "label": "80 A"
+        },
+        {
+          "value": 100,
+          "label": "100 A"
+        }
+      ],
+      "default": 63,
+      "group": "rating"
+    },
+    {
+      "key": "class",
+      "label": "Accuracy class",
+      "type": "select",
+      "options": [
+        "1",
+        "B",
+        "0.5"
+      ],
+      "default": "1",
+      "group": "rating"
+    },
+    {
+      "key": "Un",
+      "label": "Rated voltage",
+      "type": "select",
+      "options": [
+        230,
+        400
+      ],
+      "default": 230,
+      "unit": "V",
+      "group": "rating"
+    }
+  ]
+}

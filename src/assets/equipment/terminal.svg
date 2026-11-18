@@ -1,0 +1,19 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 9 50" width="9" height="50">
+  <!--
+    Layer conventions (see README.md in this folder):
+      data-scope="pole"    drawn once per pole, tile is the viewBox
+      data-scope="device"  drawn once (default)
+      data-stretch="x"     device layer scaled horizontally over all poles (use fills only)
+      data-show="..."      visibility expression, e.g. on,!tripped  pole-n  kind==lamp
+      data-center-x="true" text centred across the whole device
+      data-terminal="..."  connection point (top/bottom per pole, or a name for device terminals)
+      {{token}}            replaced by parameters, e.g. {{In}} {{curve}} {{Icn#label}} {{color#hex}}
+  -->
+  <g data-scope="pole" data-layer="body">
+    <rect x="0.3" y="0.3" width="8.4" height="49.4" rx="1" fill="{{role#hex}}" stroke="#4c5560" stroke-width="0.5"/>
+    <rect x="1.2" y="14" width="6.6" height="22" rx="0.8" fill="#ffffff" fill-opacity="0.35"/>
+    <circle data-terminal="top" cx="4.5" cy="6" r="2.2" fill="#9aa4af" stroke="#4c5560" stroke-width="0.5"/><path d="M3.1799999999999997 6h2.64" stroke="#3b444d" stroke-width="0.7"/>
+    <circle data-terminal="bottom" cx="4.5" cy="44" r="2.2" fill="#9aa4af" stroke="#4c5560" stroke-width="0.5"/><path d="M3.1799999999999997 44h2.64" stroke="#3b444d" stroke-width="0.7"/>
+  </g>
+  <g data-scope="pole" data-layer="pe-stripe" data-show="role==PE"><rect x="0.3" y="20" width="8.4" height="10" fill="#f2d21b"/></g>
+</svg>

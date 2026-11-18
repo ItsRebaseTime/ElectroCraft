@@ -1,0 +1,72 @@
+{
+  "id": "switch",
+  "name": "Modular load switch",
+  "description": "Rotary on/off switch for a group of circuits (lighting, heating ...).",
+  "category": "switching",
+  "role": "switch",
+  "designation": "S",
+  "icon": "switch",
+  "asset": "switch.svg",
+  "mount": "din",
+  "poleMode": "config",
+  "poleConfigs": [
+    "1P",
+    "1P+N",
+    "2P",
+    "3P",
+    "3P+N"
+  ],
+  "stateful": true,
+  "summary": "{In}A",
+  "params": [
+    {
+      "key": "In",
+      "label": "Rated current",
+      "type": "select",
+      "options": [
+        {
+          "value": 10,
+          "label": "10 A"
+        },
+        {
+          "value": 16,
+          "label": "16 A"
+        },
+        {
+          "value": 20,
+          "label": "20 A"
+        },
+        {
+          "value": 25,
+          "label": "25 A"
+        },
+        {
+          "value": 32,
+          "label": "32 A"
+        },
+        {
+          "value": 40,
+          "label": "40 A"
+        },
+        {
+          "value": 63,
+          "label": "63 A"
+        }
+      ],
+      "default": 16,
+      "group": "rating"
+    },
+    {
+      "key": "Un",
+      "label": "Rated voltage",
+      "type": "select",
+      "options": [
+        230,
+        400
+      ],
+      "default": 230,
+      "unit": "V",
+      "group": "rating"
+    }
+  ]
+}

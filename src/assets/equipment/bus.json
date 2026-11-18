@@ -1,0 +1,80 @@
+{
+  "id": "bus",
+  "name": "Busbar / distribution block",
+  "description": "All terminals are bonded together. Typical N and PE bars.",
+  "category": "connection",
+  "role": "bus",
+  "designation": "X",
+  "icon": "busbar",
+  "asset": "bus.svg",
+  "mount": "din",
+  "poleMode": "count",
+  "count": {
+    "min": 2,
+    "max": 24,
+    "default": 12,
+    "label": "Terminals"
+  },
+  "summary": "{role} {In}A",
+  "params": [
+    {
+      "key": "role",
+      "label": "Function",
+      "type": "select",
+      "options": [
+        {
+          "value": "N",
+          "label": "Neutral bar",
+          "hex": "#4f8ee0"
+        },
+        {
+          "value": "PE",
+          "label": "Earth bar",
+          "hex": "#4fae5e"
+        },
+        {
+          "value": "L1",
+          "label": "Phase L1",
+          "hex": "#b08060"
+        },
+        {
+          "value": "L2",
+          "label": "Phase L2",
+          "hex": "#5c5f66"
+        },
+        {
+          "value": "L3",
+          "label": "Phase L3",
+          "hex": "#a8adb5"
+        }
+      ],
+      "default": "N",
+      "group": "config"
+    },
+    {
+      "key": "In",
+      "label": "Rated current",
+      "type": "select",
+      "options": [
+        {
+          "value": 63,
+          "label": "63 A"
+        },
+        {
+          "value": 100,
+          "label": "100 A"
+        },
+        {
+          "value": 125,
+          "label": "125 A"
+        },
+        {
+          "value": 160,
+          "label": "160 A"
+        }
+      ],
+      "default": 100,
+      "group": "rating"
+    }
+  ]
+}

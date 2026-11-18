@@ -1,0 +1,150 @@
+{
+  "id": "rcbo",
+  "name": "RCBO (breaker + RCD)",
+  "description": "Combined overcurrent and residual-current protection in 1 or 2 modules.",
+  "category": "protection",
+  "role": "protection",
+  "designation": "F",
+  "icon": "rcd",
+  "asset": "rcbo.svg",
+  "mount": "din",
+  "poleMode": "config",
+  "poleConfigs": [
+    "1P+N",
+    "3P+N",
+    "2P"
+  ],
+  "stateful": true,
+  "tripsOnOverload": true,
+  "summary": "{curve}{In}/{IdN}mA {type}",
+  "params": [
+    {
+      "key": "In",
+      "label": "Rated current",
+      "type": "select",
+      "options": [
+        {
+          "value": 6,
+          "label": "6 A"
+        },
+        {
+          "value": 10,
+          "label": "10 A"
+        },
+        {
+          "value": 13,
+          "label": "13 A"
+        },
+        {
+          "value": 16,
+          "label": "16 A"
+        },
+        {
+          "value": 20,
+          "label": "20 A"
+        },
+        {
+          "value": 25,
+          "label": "25 A"
+        },
+        {
+          "value": 32,
+          "label": "32 A"
+        },
+        {
+          "value": 40,
+          "label": "40 A"
+        }
+      ],
+      "default": 16,
+      "group": "rating"
+    },
+    {
+      "key": "curve",
+      "label": "Trip curve",
+      "type": "select",
+      "options": [
+        "B",
+        "C",
+        "D"
+      ],
+      "default": "B",
+      "group": "rating"
+    },
+    {
+      "key": "IdN",
+      "label": "Sensitivity",
+      "type": "select",
+      "options": [
+        {
+          "value": 10,
+          "label": "10 mA"
+        },
+        {
+          "value": 30,
+          "label": "30 mA"
+        },
+        {
+          "value": 100,
+          "label": "100 mA"
+        },
+        {
+          "value": 300,
+          "label": "300 mA"
+        }
+      ],
+      "default": 30,
+      "group": "rating"
+    },
+    {
+      "key": "type",
+      "label": "Type",
+      "type": "select",
+      "options": [
+        "AC",
+        "A",
+        "F",
+        "B"
+      ],
+      "default": "A",
+      "group": "rating"
+    },
+    {
+      "key": "Icn",
+      "label": "Breaking capacity",
+      "type": "select",
+      "options": [
+        {
+          "value": 3000,
+          "label": "3 kA"
+        },
+        {
+          "value": 4500,
+          "label": "4.5 kA"
+        },
+        {
+          "value": 6000,
+          "label": "6 kA"
+        },
+        {
+          "value": 10000,
+          "label": "10 kA"
+        }
+      ],
+      "default": 6000,
+      "group": "rating"
+    },
+    {
+      "key": "Un",
+      "label": "Rated voltage",
+      "type": "select",
+      "options": [
+        230,
+        400
+      ],
+      "default": 230,
+      "unit": "V",
+      "group": "rating"
+    }
+  ]
+}
