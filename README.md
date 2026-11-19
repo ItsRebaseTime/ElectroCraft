@@ -25,7 +25,8 @@ Terminal blocks take **comb bridges**: click between two terminals to bridge the
 ### Wire it up
 
 Drag from terminal to terminal. Wire colours follow the conductor automatically (L1 brown, L2 black, L3 grey,
-neutral blue, earth green/yellow), or pick any colour yourself. Routing is automatic and tidy; drag a segment or add
+neutral blue, earth green/yellow; black/red/blue/white/green in US panels), or pick any colour yourself. Per conductor you
+can show, **fade** or hide wires, to see the phases without the neutral and earth clutter. Routing is automatic and tidy; drag a segment or add
 bend points to take control.
 
 ![Editing a wire](docs/images/wire-editing.png)
@@ -44,6 +45,37 @@ and 3 phase supplies.
 
 A project holds any number of panels, grouped by **floor and room**. Every device gets an automatic **IEC 81346**
 marking (`-F1`, `-Q1`, `-X2`...), or your own text. Projects are saved as small, readable `.ec` files.
+
+### Design your own modules
+
+Missing a device? Open the **module designer**: choose the width, the number of connection rows and columns on the top
+and the bottom (they can differ), the current and voltage rating, the connection markings and the colours, and draw the
+face with rectangles, circles and text. Give it **several internal switches**, each with a normally-open and/or
+normally-closed contact (or both, as a changeover) joining the terminals you choose. Shapes can follow a switch, the trip or
+the current state, and a switch can be hidden, so a module can show indicator lights. **Inputs** (relay coils) operate the switches when energised,
+following, toggling or latching them, so you can build relays, contactors and impulse relays that react in the simulation. Modules are saved inside the project and can be exported to a `.ecm` file and imported into any
+other project.
+
+![Module designer](docs/images/module-designer.png)
+
+### European and US panels
+
+Add a **DIN-rail panel (EU)** or a **load center (US)** to the same project. US panels have two columns of breaker
+spaces on either side of the bus, plug-on 1-, 2- and 3-pole breakers (standard, AFCI, GFCI), a main breaker, neutral and
+ground bars, 120/240 V split-phase or 208Y/120 V service, black/red/blue/white/green conductors in AWG sizes, NEC circuit
+numbers, and a **panel schedule** in the PDF.
+
+![US load center](docs/images/us-panel.png)
+
+### Works on your phone
+
+On a phone the editor switches to a touch layout: pinch to zoom, drag to pan, tap to select, with the equipment, panels
+and properties in slide-up sheets. On a desktop, drag with the right mouse button to move the view.
+
+<p>
+  <img src="docs/images/mobile.png" alt="Phone layout" width="260">
+  <img src="docs/images/mobile-properties.png" alt="Phone properties sheet" width="260">
+</p>
 
 ### Print the documentation
 
@@ -67,7 +99,7 @@ npm run dev
 ```
 
 Open **http://localhost:5173**. The app starts with a sample project: a small flat on the ground floor and a 3-phase
-workshop upstairs. Press **Simulate** and click the main switch to see the panel go dead.
+workshop upstairs (the toolbar's download menu also has a US house). Press **Simulate** and click the main switch to see the panel go dead.
 
 **Host it as a website:** `npm run build`, then upload the `dist/` folder to any static web host. No server needed.
 This repository publishes itself to GitHub Pages on every push to `main` (see `.github/workflows/pages.yml`).

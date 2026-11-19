@@ -19,6 +19,9 @@ mkdirSync(OUT, { recursive: true });
 
 const sample = readFileSync(join(ROOT, 'docs/examples/sample-house.ec'), 'utf8');
 const catalogue = readFileSync(join(ROOT, 'docs/examples/equipment-catalogue.ec'), 'utf8');
+const usSample = readFileSync(join(ROOT, 'docs/examples/us-sample-house.ec'), 'utf8');
+const moduleExample = readFileSync(join(ROOT, 'docs/examples/custom-module.ec'), 'utf8');
+const IPHONE = 'Mozilla/5.0 (iPhone; CPU iPhone OS 17_4 like Mac OS X) AppleWebKit/605.1.15 (KHTML, like Gecko) Version/17.4 Mobile/15E148 Safari/604.1';
 
 const opts = new firefox.Options().addArguments('-headless').windowSize({ width: 1600, height: 1000 });
 opts.setPreference('layout.css.prefers-color-scheme.content-override', 1); // light
@@ -55,6 +58,13 @@ try {
   await shot('equipment');
   await open(catalogue, '#select=item:23&z=3&x=-250&y=-1350');
   await shot('comb-bridges');
+  await open(usSample, '#sim&z=1.5&x=318&y=-47');
+  await shot('us-panel');
+  await open(moduleExample, '#z=2&x=170&y=40');
+  await driver.findElement(By.css('button[aria-label^="Edit Fused"]')).click();
+  await driver.wait(until.elementLocated(By.css('.module-editor')), 5000);
+  await sleep(500);
+  await shot('module-designer');
   await open(sample, '#export');
   await sleep(500);
   await shot('export-dialog');
@@ -71,4 +81,27 @@ try {
   console.log('wrote pdf-export');
 } finally {
   await driver.quit();
+}
+
+// phone layout (user agent selects it)
+{
+  const o = new firefox.Options().addArguments('-headless').windowSize({ width: 390, height: 844 });
+  o.setPreference('layout.css.prefers-color-scheme.content-override', 1);
+  o.setPreference('general.useragent.override', IPHONE);
+  const phone = await new Builder().forBrowser('firefox').setFirefoxOptions(o).build();
+  try {
+    await phone.get(BASE);
+    await phone.executeScript('localStorage.setItem("electrocraft.autosave", arguments[0])', sample);
+    await phone.get(BASE + '#sim&select=item:5&z=1.1&x=120&y=-10');
+    await phone.navigate().refresh();
+    await phone.wait(until.elementLocated(By.css('.canvas g[data-hit^="i:"]')), 15000);
+    await sleep(1500);
+    writeFileSync(join(OUT, 'mobile.png'), await phone.takeScreenshot(), 'base64');
+    await phone.findElement(By.css('.selbar button')).click();
+    await sleep(600);
+    writeFileSync(join(OUT, 'mobile-properties.png'), await phone.takeScreenshot(), 'base64');
+    console.log('wrote mobile');
+  } finally {
+    await phone.quit();
+  }
 }

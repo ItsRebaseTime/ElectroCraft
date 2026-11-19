@@ -1,5 +1,6 @@
 import { floorsOf } from '../model/project';
-import { addPanel, duplicatePanel } from '../store/actions';
+import { useState } from 'react';
+import { addPanel, addUsPanel, duplicatePanel } from '../store/actions';
 import { selectActivePanel, useStore } from '../store/store';
 import { Icon } from './Icon';
 import { ask } from './dialogs';
@@ -9,12 +10,14 @@ export function ProjectTree() {
   const active = useStore(selectActivePanel);
   const { setActivePanel, mutate, notify } = useStore.getState();
 
-  const newPanel = (floor?: string) => {
+  const [menu, setMenu] = useState(false);
+  const newPanel = (floor?: string, us = false) => {
     let id = '';
     mutate((p) => {
-      id = addPanel(p, floor ? { floor } : {}).id;
+      id = (us ? addUsPanel(p, floor ? { floor } : {}) : addPanel(p, floor ? { floor } : {})).id;
     });
     setActivePanel(id);
+    setMenu(false);
   };
 
   const remove = async (id: string, name: string) => {
@@ -41,9 +44,21 @@ export function ProjectTree() {
       <div className="panel-head">
         <h3>Project</h3>
         <div className="row">
-          <button className="icon-btn" title="Add panel on this floor" onClick={() => newPanel(active.floor)}>
-            <Icon name="plus" />
-          </button>
+          <span className="menu">
+            <button className={`icon-btn ${menu ? 'on' : ''}`} title="Add a panel" aria-expanded={menu} onClick={() => setMenu(!menu)}>
+              <Icon name="plus" />
+            </button>
+            {menu && (
+              <div className="menu-pop tree-menu" onMouseLeave={() => setMenu(false)}>
+                <button className="menu-btn" onClick={() => newPanel(active.floor)}>
+                  <Icon name="grid" size={18} /> DIN-rail panel (EU) on this floor
+                </button>
+                <button className="menu-btn" onClick={() => newPanel(active.floor, true)}>
+                  <Icon name="grid" size={18} /> Load center (US) on this floor
+                </button>
+              </div>
+            )}
+          </span>
           <button className="icon-btn" title="Add panel on a new floor" onClick={() => newPanel(`Floor ${floorsOf(project).length + 1}`)}>
             <Icon name="folder" />
           </button>
@@ -61,7 +76,7 @@ export function ProjectTree() {
                 <div key={p.id} className={`panel-row ${p.id === active.id ? 'active' : ''}`} onClick={() => setActivePanel(p.id)}>
                   <Icon name="grid" size={16} />
                   <span className="panel-name">
-                    {p.code && <b>{p.code}</b>} {p.name}
+                    {p.code && <b>{p.code}</b>} {p.name}{p.region === 'us' && <span className="badge">US</span>}
                     {p.room && <em> - {p.room}</em>}
                   </span>
                   <span className="row-actions">

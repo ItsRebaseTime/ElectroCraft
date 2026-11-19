@@ -6,6 +6,7 @@ import type { RenderOptions } from '../model/types';
 import { panelSvg } from '../render/exportSvg';
 import { selectActivePanel, useStore } from '../store/store';
 import { Icon } from './Icon';
+import { WireVisibilityControls } from './ViewOptions';
 
 type Row = [keyof RenderOptions, string];
 const LABEL_ROWS: Row[] = [
@@ -52,11 +53,11 @@ export function ExportDialog() {
 
   if (!open) return null;
   const ids = scope === 'all' ? project.panels.map((p) => p.id) : scope === 'current' ? [active.id] : chosen;
-  const toggle = (k: keyof RenderOptions) => setRender({ ...render, [k]: !render[k] });
+  const toggle = (k: keyof RenderOptions) => setRender({ ...render, [k]: !render[k as keyof RenderOptions] });
   const rows = (list: Row[]) =>
     list.map(([k, label]) => (
       <label key={k} className="check">
-        <input type="checkbox" checked={render[k]} onChange={() => toggle(k)} /> {label}
+        <input type="checkbox" checked={Boolean(render[k])} onChange={() => toggle(k)} /> {label}
       </label>
     ));
 
@@ -142,6 +143,8 @@ export function ExportDialog() {
             <fieldset>
               <legend>Drawing</legend>
               {rows(DRAW_ROWS)}
+              <div className="menu-heading">Wire visibility</div>
+              <WireVisibilityControls value={render.wireVisibility} onChange={(v) => setRender({ ...render, wireVisibility: v })} />
             </fieldset>
             <fieldset>
               <legend>Document</legend>
@@ -153,6 +156,9 @@ export function ExportDialog() {
               </label>
               <label className="check">
                 <input type="checkbox" checked={pdf.legend} onChange={(e) => setPdf({ ...pdf, legend: e.target.checked })} /> Conductor colour legend
+              </label>
+              <label className="check" title="US load centers: circuit, breaker, description, wire gauge and load">
+                <input type="checkbox" checked={pdf.panelSchedule} onChange={(e) => setPdf({ ...pdf, panelSchedule: e.target.checked })} /> Panel schedule (US panels)
               </label>
               <label className="check">
                 <input type="checkbox" checked={pdf.equipmentList} onChange={(e) => setPdf({ ...pdf, equipmentList: e.target.checked })} /> Equipment list

@@ -74,6 +74,13 @@ For wires with hand-placed bends, switch to the **wire tool** (`W`): click a ter
 * Or pick any of twelve colours for a single wire. Select the wire to do this.
 * A wire that joins two different potentials is drawn red with a dashed overlay, and a short-circuit warning appears.
 
+### Showing and hiding conductors
+
+In **View** (toolbar, or the menu on a phone) the **Wire visibility** section sets, per conductor (L1, L2, L3, neutral,
+earth, other), whether its wires are **shown**, **faded** (reduced opacity) or **hidden**. The presets *Phases only*,
+*Neutral only* and *Earth only* fade everything else. The same control is in the export dialog, so a printed diagram can
+leave the earth wiring out. A selected wire is always drawn.
+
 ### Routing
 
 Routes are automatic and orthogonal. Wires leave a terminal straight up or down, run in the channels between the
@@ -97,6 +104,9 @@ Press **Simulate**. Now:
 * click a **breaker, switch, fuse holder or the supply** to flip it, and watch the rest of the panel react;
 * breakers and fuses **trip on overload** (about 1.45 x In, fuses 1.6 x In). Re-arm a device from its properties,
   or all at once with the reset button in the toolbar. Untick **Auto-trip** to see overloads without tripping;
+* **module inputs** (relay coils) act: energise a coil by closing the switch that feeds it and its contacts change. Toggling and
+  latching inputs remember their position; the toolbar's reset button (next to Auto-trip) clears them and re-arms tripped
+  devices. Starting the simulation always begins from the switch positions stored in the project;
 * **warnings** appear at the top left of the canvas: short circuits, overloads, tripped devices. Click one to select
   the device or wire.
 
@@ -158,7 +168,7 @@ The PDF is vector, so it stays sharp when zoomed or printed. Fonts are embedded 
 | | |
 | --- | --- |
 | Zoom | mouse wheel (at the cursor), toolbar buttons |
-| Pan | drag empty canvas, middle mouse, or hold `Space` and drag |
+| Pan | drag empty canvas, **drag with the right mouse button**, middle mouse, or hold `Space` and drag |
 | Fit panel to window | `F` |
 | Tools | `V` select, `W` wire tool, `H` pan |
 | Undo / redo | `Ctrl+Z`, `Ctrl+Shift+Z` or `Ctrl+Y` |
@@ -167,11 +177,112 @@ The PDF is vector, so it stays sharp when zoomed or printed. Fonts are embedded 
 | Cancel | `Esc` |
 | Save / open | `Ctrl+S`, `Ctrl+O` (macOS: `Cmd`) |
 
+## Phones and tablets
+
+The app picks its layout from the browser's user agent: **phones get the touch layout**, everything else the desktop
+layout (tablets included; the canvas supports touch there too). A window narrower than 700 px also gets the phone
+layout. Override it with **View > Layout** (Auto, Desktop, Mobile), the *Use desktop layout* entry of the phone menu, or
+`?layout=mobile` / `?layout=desktop` in the address.
+
+In the phone layout:
+
+* the bottom bar opens **Panels**, **Add** (equipment), **Edit** (properties of the selection) and **PDF**; the ☰ menu has
+  files, view options, modules and the layout switch,
+* **pinch** to zoom, **drag** the background to pan, **tap** to select, **double-tap** a wire to add a bend,
+* to wire: **tap a terminal, then tap the target terminal** (use the wire tool for bends); terminals and handles are
+  larger on touch screens,
+* a bar above the bottom navigation shows the selection with **Edit**, **Duplicate** and **Delete**.
+
+## Custom modules
+
+**Modules > Design a new module...** opens the designer (full screen on a phone, with *Module* and *Design* tabs).
+
+![Module designer](images/module-designer.png)
+
+* **General:** name, description and the marking letter used for automatic markings (an `X` gives `-X1`, `-X2`).
+* **Size and look:** width in modules (steps of half a module), height, body and outline colour.
+* **Ratings:** current and voltage (they become editable parameters of every placed copy). Tick **Has an on/off switch**
+  for a lever (open modules do not conduct) and **Trips on overload** for breaker or fuse behaviour.
+* **Connections:** rows (0-3) and columns (0-24) for the **top** and the **bottom** separately, so a module can have, say,
+  four terminals on top and two rows of two below. Each connection has an editable **marking**; *Renumber* numbers them
+  from the top row.
+* **Switches:** a module can have any number of internal **switches** (*Add switch*). Each switch has a name and a
+  **changeover contact** made of two lists of terminals, which you tick from the module's connections:
+  the **NO contact** (normally open) joins its terminals while the switch is **actuated**, the **NC contact** (normally
+  closed) joins its terminals while the switch is **released**. Fill only one list for a plain NO or NC contact (the badge
+  shows **NO**, **NC**, or **CO** when both are used). Put the same terminal in both lists to get a **common terminal**:
+  actuating then switches it from the NC terminal to the NO terminal. Lists can hold more than two terminals, like a
+  multi-pole contact, and every switch is independent. A switch is drawn as a small widget on the module face; drag it, or
+  type x and y. **Untick "Show the switch on the module face"** to hide the widget: a hidden switch still works, and its state
+  can drive other shapes (below), which is how you imitate indicator lights. The *master on/off lever* option is separate: it
+  cuts the always-on connections chosen under *Inside the module*.
+* **Inputs:** an input is a terminal that **operates switches when it is energised**, like the coil of a relay or contactor.
+  *Add input* (needs at least one switch) and choose the **input terminal**, an optional **return terminal** (the other coil
+  terminal) and the **switches it operates**. An input is energised when its terminal carries a live phase; with a return
+  terminal it also needs the neutral (or another phase) there, so a coil only pulls in when it is wired both ways. The mode
+  decides what energising does:
+  * **Follow the input:** the switch is actuated for as long as the input is energised (a relay or contactor),
+  * **Toggle on each rising edge:** every time the input becomes energised the switch changes position and stays there (an
+    impulse relay or latching contactor),
+  * **Set** / **Reset:** becoming energised actuates / releases the switch and it stays (the two coils of a latching relay).
+
+  An input can drive several switches and a switch can be driven by several inputs. Input terminals are ringed in blue on the
+  canvas. Shapes can follow an input (*energised* / *not energised*), so a lit lamp on the module can show the coil. The
+  *In ...* boxes above the canvas preview an energised input (the preview does not remember earlier pulses).
+* **Inside the module:** *Top joined to bottom, per column*, *All terminals joined* (a bar), *Nothing joined*, or *Custom
+  nets*, where terminals with the same net name are joined. The simulation follows these connections.
+* **Design:** draw with the **rectangle**, **circle** and **text** tools, drag to move, use the handle to resize, and set
+  colours, outline, opacity and the corner radius in the shape panel. Shapes can be reordered. Text may use tokens such as
+  `{{In}}`, `{{Un}}` and `{{marking}}`. Each shape can be shown **always**, with the master lever **on** or **off**, when
+  **tripped**, when **carrying current** or **not powered**, or by the state of one of the module's switches (*actuated*,
+  *released*, *contact closed*, *contact open*): these are the animation layers. The *On / Tripped / Current* boxes and one
+  box per switch above the canvas preview them.
+
+On a placed module, the properties panel lists every switch (including hidden ones) with a checkbox (actuated or released)
+and shows whether a contact is closed. In simulation mode you can also **click a visible switch widget on the module** to flip
+just that switch;
+clicking elsewhere on a module with a master lever flips the lever. A tripped module opens all of its contacts.
+
+**Save to project** stores the module inside the `.ec` file and adds it to the **Custom modules** group of the palette,
+where the pencil edits it and the bin deletes it (devices that use it are removed too). Changing a saved module updates
+every placed copy; wires to connections that no longer exist are dropped.
+
+**Export modules...** writes a `.ecm` file; **Import modules...** accepts a `.ecm` file or a whole `.ec` project and lets
+you choose which modules to add (ids and names are made unique). There is an example in
+[examples/fused-distribution-block.ecm](examples/fused-distribution-block.ecm), a pushbutton block with NO and NC contacts in
+[examples/pushbutton-contact-block.ecm](examples/pushbutton-contact-block.ecm), and a hidden changeover switch that drives two
+indicator lamps in [examples/changeover-selector.ecm](examples/changeover-selector.ecm), and a control relay and an impulse relay
+in [examples/relay-modules.ecm](examples/relay-modules.ecm), wired up in [examples/relay-circuits.ec](examples/relay-circuits.ec).
+
+## US load centers
+
+Add one with the **+** next to *Project* > **Load center (US)**. A project can mix DIN-rail and US panels; the palette
+shows the equipment that belongs to the open panel.
+
+![US load center](images/us-panel.png)
+
+* **Layout:** two columns of breaker spaces either side of the bus, numbered the NEC way (left column odd, right column
+  even, counting down). Bus phases alternate down the panel (A, B, A, B...), so a 2-pole breaker takes two spaces of one
+  column and gets both legs. Set the spaces per column and the bus (split-phase or three-phase) in the panel properties.
+* **Breakers:** plug-on 1-, 2- and 3-pole breakers with ratings from 15 to 100 A and the types Standard, AFCI, GFCI and
+  AFCI/GFCI. They sit in the spaces (drag between spaces and columns), take their line side from the bus automatically,
+  and you wire only the **load terminal**, which faces out of the panel.
+* **Main breaker** (2 or 3 pole): wire the **utility service** to its top lugs; it feeds the bus.
+* **Neutral and ground bars:** wire neutrals and equipment grounds to their terminals.
+* **Utility service:** split-phase 120/240 V or three-phase 208Y/120 V, 100 to 400 A.
+* **Loads:** 1 phase (120 V), **2 phase** (240 V line-to-line, e.g. ranges, dryers, air conditioners) or 3 phase (208 V).
+  The load's voltage is automatic per panel type; type a voltage to override it.
+* **Wires:** black (A), red (B), blue (C), white (neutral), green (ground); wire size in **AWG**. The colours of the phases
+  can be changed in the project properties.
+* **Markings:** breakers show their space numbers (`1`, `2,4`), the main shows `MAIN`, the bars `N` and `G`.
+* **PDF:** a **panel schedule** page lists circuit, poles, breaker, description, wire gauge and the simulated load as a
+  percentage of the breaker rating. Try [examples/us-sample-house.ec](examples/us-sample-house.ec).
+
 ## URL options
 
 Append these to the address to share or reproduce a view:
 `#sim` (simulation on), `#panel=2`, `#z=2&x=-300&y=-100` (zoom and pan), `#select=item:3` (or `wire:N`, `rail:N`),
-`#export` (open the export dialog). They can be combined with `&`.
+`#export` (open the export dialog), `?layout=mobile|desktop`. The hash options can be combined with `&`.
 
 ## Troubleshooting
 

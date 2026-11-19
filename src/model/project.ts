@@ -1,5 +1,6 @@
-import { defaultParams, defaultPoleConfig, getDef } from './defs';
-import { DEFAULT_PHASE_COLORS } from './colors';
+import { defaultParams, defaultPoleConfig, getDef, syncCustomModules } from './defs';
+import { sanitizeModule } from './customModule';
+import { DEFAULT_PHASE_COLORS, DEFAULT_US_PHASE_COLORS } from './colors';
 import type { Item, Panel, Project, Rail, Wire } from './types';
 
 export const uid = (prefix = '') => prefix + Math.random().toString(36).slice(2, 9);
@@ -23,6 +24,11 @@ export function createItem(defId: string, init: Partial<Item> = {}): Item {
 }
 
 export const createRail = (modules = 12): Rail => ({ id: uid('r'), modules });
+
+/** A US load center: two columns of breaker spaces (`rows` per column) either side of the bus. */
+export function createUsPanel(name = 'Load center', rows = 12, init: Partial<Panel> = {}): Panel {
+  return createPanel(name, { rails: [{ id: uid('r'), modules: rows }, { id: uid('r'), modules: rows }], region: 'us', usPhases: 2, floor: 'Ground floor', ...init });
+}
 
 export function createPanel(name = 'Panel', init: Partial<Panel> = {}): Panel {
   return {
@@ -49,8 +55,9 @@ export function createProject(name = 'New project'): Project {
     revision: 'A',
     created: now,
     modified: now,
-    settings: { markingStandard: 'iec81346', phaseColors: { ...DEFAULT_PHASE_COLORS } },
+    settings: { markingStandard: 'iec81346', phaseColors: { ...DEFAULT_PHASE_COLORS }, usPhaseColors: { ...DEFAULT_US_PHASE_COLORS } },
     panels: [createPanel('Main panel')],
+    modules: [],
   };
 }
 
@@ -97,6 +104,11 @@ export function parseProject(text: string): ParseResult {
   if (!Array.isArray(o.panels)) throw new Error('The project file has no panels.');
 
   const warnings: string[] = [];
+  // custom modules first: items that use them must resolve while the panels are read
+  const modules = (Array.isArray((o as Partial<Project>).modules) ? ((o as Partial<Project>).modules as unknown[]) : [])
+    .map(sanitizeModule)
+    .filter((m): m is NonNullable<typeof m> => m !== null);
+  syncCustomModules(modules);
   const base = createProject(typeof o.name === 'string' ? o.name : 'Imported project');
   const panels: Panel[] = o.panels.map((rp, n) => {
     const p = createPanel(typeof rp?.name === 'string' ? rp.name : `Panel ${n + 1}`, {
@@ -105,6 +117,8 @@ export function parseProject(text: string): ParseResult {
       room: typeof rp?.room === 'string' ? rp.room : '',
       code: typeof rp?.code === 'string' ? rp.code : '',
       notes: typeof rp?.notes === 'string' ? rp.notes : '',
+      region: rp?.region === 'us' ? 'us' : 'eu',
+      usPhases: rp?.usPhases === 3 ? 3 : 2,
       rails: Array.isArray(rp?.rails) && rp.rails.length ? rp.rails.map((r) => ({ id: String(r.id ?? uid('r')), modules: Math.max(1, Number(r.modules) || 12) })) : [createRail()],
       items: [],
       wires: [],
@@ -133,7 +147,7 @@ export function parseProject(text: string): ParseResult {
         warnings.push(`Panel "${p.name}": a wire to a missing device was skipped.`);
         continue;
       }
-      p.wires.push({ id: rw.id ?? uid('w'), from: rw.from, to: rw.to, color: rw.color ?? 'auto', nodes: Array.isArray(rw.nodes) ? rw.nodes : null, section: rw.section ?? 2.5, label: rw.label });
+      p.wires.push({ id: rw.id ?? uid('w'), from: rw.from, to: rw.to, color: rw.color ?? 'auto', nodes: Array.isArray(rw.nodes) ? rw.nodes : null, section: rw.section ?? 2.5, awg: typeof rw.awg === 'string' ? rw.awg : undefined, label: rw.label });
     }
     return p;
   });
@@ -146,8 +160,10 @@ export function parseProject(text: string): ParseResult {
     settings: {
       markingStandard: o.settings?.markingStandard === 'simple' ? 'simple' : 'iec81346',
       phaseColors: { ...DEFAULT_PHASE_COLORS, ...(o.settings?.phaseColors ?? {}) },
+      usPhaseColors: { ...DEFAULT_US_PHASE_COLORS, ...(o.settings?.usPhaseColors ?? {}) },
     },
     panels: panels.length ? panels : [createPanel('Main panel')],
+    modules,
   };
   return { project, warnings };
 }

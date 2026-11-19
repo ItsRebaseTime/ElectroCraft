@@ -46,7 +46,11 @@
       "options": [
         {
           "value": 1,
-          "label": "1 phase"
+          "label": "1 phase (line-neutral)"
+        },
+        {
+          "value": 2,
+          "label": "2 phases (line-line)"
         },
         {
           "value": 3,
@@ -77,6 +81,18 @@
       "max": 1,
       "step": 0.05,
       "group": "rating"
+    },
+    {
+      "key": "U",
+      "label": "Voltage (0 = automatic)",
+      "type": "number",
+      "unit": "V",
+      "min": 0,
+      "max": 1000,
+      "step": 1,
+      "default": 0,
+      "group": "rating"
     }
-  ]
+  ],
+  "region": "all"
 }

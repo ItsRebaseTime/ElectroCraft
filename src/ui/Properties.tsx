@@ -4,14 +4,17 @@ import { markingOf } from '../model/marking';
 import { colorByKey, potentialColorKey, WIRE_COLORS } from '../model/colors';
 import { floorsOf } from '../model/project';
 import { evalShow } from '../model/expr';
-import type { Item, Panel, ParamDef, ParamValue, TerminalRef, Wire } from '../model/types';
-import { addRail, duplicateItems, moveRail, removeItems, removeRail, removeWires, setBridges, setRailLength, toggleBridge, updateItem } from '../store/actions';
+import type { InputMode, Item, Panel, ParamDef, ParamValue, TerminalRef, Wire } from '../model/types';
+import { addRail, duplicateItems, moveRail, removeItems, removeRail, removeWires, setBridges, setInputMode, setRailLength, setUsPhases, setUsRows, toggleBridge, toggleSwitch, updateItem } from '../store/actions';
 import { selectActivePanel, useStore } from '../store/store';
 import { useDiagram } from './DiagramContext';
 import { Field, NumberField, TextField } from './fields';
 import { Icon } from './Icon';
+import { contactLabel, effectiveInputMode, INPUT_MODES } from '../model/customModule';
+import { duplicateModule, useModuleUI } from './modules/moduleState';
 
 const SECTIONS = [0.5, 0.75, 1, 1.5, 2.5, 4, 6, 10, 16, 25, 35, 50];
+const AWG = ['18', '16', '14', '12', '10', '8', '6', '4', '3', '2', '1', '1/0', '2/0', '3/0', '4/0'];
 
 function usePanelId() {
   return useStore(selectActivePanel).id;
@@ -42,6 +45,7 @@ function ItemProps({ itemId }: { itemId: string }) {
   const tripped = useStore((s) => s.sim.tripped);
   const simOn = useStore((s) => s.sim.enabled);
   const { sim, markings } = useDiagram();
+  const project = useStore((s) => s.project);
   const item = panel.items.find((i) => i.id === itemId);
   const def = item && getDef(item.defId);
   if (!item || !def) return null;
@@ -150,6 +154,72 @@ function ItemProps({ itemId }: { itemId: string }) {
         </>
       )}
 
+      {def.role === 'module' && (def.module?.switches?.length ?? 0) > 0 && (
+        <>
+          <h4>Switches</h4>
+          {(project.modules.find((m) => m.id === def.id)?.switches ?? [])
+            .filter((sw) => def.module?.switches?.some((x) => x.id === sw.id))
+            .map((sw) => {
+              const manual = Boolean(item.switchStates?.[sw.id]);
+              // with the simulation on, show where inputs have put the switch
+              const actuated = Boolean((simOn ? s?.switchStates?.[sw.id] : undefined) ?? manual);
+              const conducting = actuated ? sw.no.length > 1 : sw.nc.length > 1;
+              return (
+                <label key={sw.id} className="check sw-row">
+                  <input type="checkbox" checked={manual} onChange={() => mutate((d) => toggleSwitch(panelIn(d, panel.id), item.id, sw.id))} title="Position set by hand; inputs can override it while the simulation runs" />
+                  <span className="sw-name">{sw.name}</span>
+                  <span className="badge">{contactLabel(sw)}</span>
+                  <span className={`sw-state ${conducting ? 'closed' : ''}`}>{actuated ? 'actuated' : 'released'}, contact {conducting ? 'closed' : 'open'}</span>
+                </label>
+              );
+            })}
+        </>
+      )}
+      {def.role === 'module' && (def.module?.inputs?.length ?? 0) > 0 && (
+        <>
+          <h4>Inputs</h4>
+          {(project.modules.find((m) => m.id === def.id)?.inputs ?? [])
+            .filter((inp) => def.module?.inputs?.some((x) => x.id === inp.id))
+            .map((inp) => (
+              <div key={inp.id} className="sw-row">
+                <span className="sw-name">{inp.name}</span>
+                <span className={`sw-state ${s?.inputs?.[inp.id] ? 'closed' : ''}`}>{simOn ? (s?.inputs?.[inp.id] ? 'energised' : 'not energised') : 'simulate to see'}</span>
+                <select
+                  className="sw-mode"
+                  aria-label={`${inp.name} actuation`}
+                  title={item.inputModes?.[inp.id] ? 'Overridden for this device' : "Module default"}
+                  value={effectiveInputMode(item, inp)}
+                  onChange={(e) => mutate((d) => setInputMode(panelIn(d, panel.id), item.id, inp.id, e.target.value === inp.mode ? null : (e.target.value as InputMode)))}
+                >
+                  {INPUT_MODES.map((o) => (
+                    <option key={o.value} value={o.value}>
+                      {o.label}
+                      {o.value === inp.mode ? ' (default)' : ''}
+                    </option>
+                  ))}
+                </select>
+              </div>
+            ))}
+        </>
+      )}
+      {def.role === 'module' && (
+        <>
+          <h4>Custom module</h4>
+          <button onClick={() => useModuleUI.getState().openEditor(def.id)}>
+            <Icon name="module" size={16} /> Edit module design...
+          </button>
+          <button
+            title="Create a new module from this one to make a variation"
+            onClick={() => {
+              const id = duplicateModule(def.id);
+              if (id) useModuleUI.getState().openEditor(id);
+            }}
+          >
+            <Icon name="copy" size={16} /> Clone as new module...
+          </button>
+        </>
+      )}
+
       <h4>Product</h4>
       <Field label="Manufacturer">
         <TextField value={item.manufacturer} onCommit={(v) => patch({ manufacturer: v })} />
@@ -225,7 +295,7 @@ function WireProps({ wireId }: { wireId: string }) {
     const def = it && getDef(it.defId);
     return `${it ? markingOf(it, markings) || def?.name : '?'} : ${t?.label || r.terminal}`;
   };
-  const autoKey = ws?.potential === 'mixed' ? 'red' : ws?.potential ? potentialColorKey(ws.potential, project.settings) : 'black';
+  const autoKey = ws?.potential === 'mixed' ? 'red' : ws?.potential ? potentialColorKey(ws.potential, project.settings, panel.region ?? 'eu') : 'black';
   const route = routes.get(wire.id);
 
   return (
@@ -254,15 +324,27 @@ function WireProps({ wireId }: { wireId: string }) {
           </button>
         ))}
       </div>
-      <Field label="Cross-section">
-        <select value={wire.section} onChange={(e) => patch({ section: Number(e.target.value) })}>
-          {SECTIONS.map((s) => (
-            <option key={s} value={s}>
-              {s} mm²
-            </option>
-          ))}
-        </select>
-      </Field>
+      {panel.region === 'us' ? (
+        <Field label="Wire gauge">
+          <select value={wire.awg ?? '12'} onChange={(e) => patch({ awg: e.target.value })}>
+            {AWG.map((g) => (
+              <option key={g} value={g}>
+                {g} AWG
+              </option>
+            ))}
+          </select>
+        </Field>
+      ) : (
+        <Field label="Cross-section">
+          <select value={wire.section} onChange={(e) => patch({ section: Number(e.target.value) })}>
+            {SECTIONS.map((s) => (
+              <option key={s} value={s}>
+                {s} mm²
+              </option>
+            ))}
+          </select>
+        </Field>
+      )}
       <Field label="Label">
         <TextField value={wire.label ?? ''} placeholder="e.g. W1" onCommit={(v) => patch({ label: v || undefined })} />
       </Field>
@@ -357,8 +439,34 @@ function PanelProps() {
       <Field label="Notes">
         <TextField multiline value={panel.notes} onCommit={(v) => setPanel({ notes: v })} />
       </Field>
-      <h4>DIN rails</h4>
-      {panel.rails.map((r, i) => (
+      {panel.region === 'us' ? (
+        <>
+          <h4>Load center</h4>
+          <Field label="Spaces per column" hint={`${(panel.rails[0]?.modules ?? 0) * 2} circuit spaces in total`}>
+            <NumberField
+              value={panel.rails[0]?.modules ?? 12}
+              min={4}
+              max={30}
+              step={1}
+              onCommit={(v) =>
+                mutate((d) => {
+                  const m = setUsRows(panelIn(d, panel.id), v);
+                  if (m) notify(m, 'error');
+                })
+              }
+            />
+          </Field>
+          <Field label="Bus" hint="Phases alternate down each column">
+            <select value={panel.usPhases ?? 2} onChange={(e) => mutate((d) => setUsPhases(panelIn(d, panel.id), Number(e.target.value) as 2 | 3))}>
+              <option value={2}>Split-phase 120/240 V (A, B)</option>
+              <option value={3}>Three-phase 208Y/120 V (A, B, C)</option>
+            </select>
+          </Field>
+        </>
+      ) : (
+        <h4>DIN rails</h4>
+      )}
+      {panel.region !== 'us' && panel.rails.map((r, i) => (
         <div key={r.id} className="rail-row">
           <button className="link" onClick={() => select({ kind: 'rail', ids: [r.id] })}>
             Rail {i + 1}
@@ -378,9 +486,11 @@ function PanelProps() {
           />
         </div>
       ))}
-      <button onClick={() => mutate((d) => addRail(panelIn(d, panel.id)))}>
-        <Icon name="plus" size={16} /> Add rail
-      </button>
+      {panel.region !== 'us' && (
+        <button onClick={() => mutate((d) => addRail(panelIn(d, panel.id)))}>
+          <Icon name="plus" size={16} /> Add rail
+        </button>
+      )}
       <p className="meta">
         {panel.items.length} devices, {panel.wires.length} wires{load > 0 && `, connected load ${(load / 1000).toFixed(1)} kW`}
       </p>
@@ -404,14 +514,24 @@ function PanelProps() {
         </select>
       </Field>
       {(['L1', 'L2', 'L3'] as const).map((p) => (
-        <Field key={p} label={`Wire colour ${p}`}>
-          <select value={project.settings.phaseColors[p]} onChange={(e) => mutate((d) => void (d.settings.phaseColors[p] = e.target.value))}>
-            {WIRE_COLORS.filter((c) => !['blue', 'gnye'].includes(c.key)).map((c) => (
-              <option key={c.key} value={c.key}>
-                {c.name}
-              </option>
-            ))}
-          </select>
+        <Field key={p} label={`${panel.region === 'us' ? 'US ' : ''}wire colour ${p}`}>
+          {panel.region === 'us' ? (
+            <select value={project.settings.usPhaseColors?.[p] ?? ''} onChange={(e) => mutate((d) => void (d.settings.usPhaseColors[p] = e.target.value))}>
+              {WIRE_COLORS.filter((c) => !['white', 'green', 'gnye'].includes(c.key)).map((c) => (
+                <option key={c.key} value={c.key}>
+                  {c.name}
+                </option>
+              ))}
+            </select>
+          ) : (
+            <select value={project.settings.phaseColors[p]} onChange={(e) => mutate((d) => void (d.settings.phaseColors[p] = e.target.value))}>
+              {WIRE_COLORS.filter((c) => !['blue', 'gnye'].includes(c.key)).map((c) => (
+                <option key={c.key} value={c.key}>
+                  {c.name}
+                </option>
+              ))}
+            </select>
+          )}
         </Field>
       ))}
       <datalist id="floors">

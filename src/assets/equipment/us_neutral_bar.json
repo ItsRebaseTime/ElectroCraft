@@ -1,0 +1,21 @@
+{
+  "id": "us_neutral_bar",
+  "name": "Neutral bar (US)",
+  "description": "Neutral busbar: all terminals are one conductor. Neutral conductors of the circuits land here.",
+  "category": "connection",
+  "role": "bus",
+  "designation": "X",
+  "icon": "busbar",
+  "asset": "us_neutral_bar.svg",
+  "mount": "free",
+  "region": "us",
+  "noStrip": true,
+  "poleMode": "count",
+  "count": {
+    "min": 2,
+    "max": 24,
+    "default": 8,
+    "label": "Terminals"
+  },
+  "params": []
+}

@@ -1,9 +1,12 @@
 // Pure editing operations on a (draft) project. They mutate the objects passed in and return
 // either the created object or an error message, so the store can toast what went wrong.
-import { bridgesOf, getDef, poleKinds } from '../model/defs';
-import { ENCL_BOTTOM_PAD, ENCL_TOP, MODULE, RAIL_X0, STUB, findSlot, itemWidthModules, layoutPanel, nearestRail, railTop, termKey } from '../model/geometry';
-import { createItem, createPanel, createRail, uid } from '../model/project';
-import type { Item, Panel, Project, TerminalRef, Vec, Wire } from '../model/types';
+import { bridgesOf, getAsset, getDef, poleKinds } from '../model/defs';
+import {
+  ENCL_BOTTOM_PAD, ENCL_TOP, MODULE, RAIL_X0, STUB, US_BAR_TILE, US_MAIN_Y, US_SPACE_H, enclosureRect, findSlot, isRailMounted, isUs, itemWidthModules, layoutPanel,
+  nearestRail, nearestUsColumn, railTop, termKey, usRowTop,
+} from '../model/geometry';
+import { createItem, createPanel, createRail, createUsPanel, uid } from '../model/project';
+import type { InputMode, Item, Panel, Project, TerminalRef, Vec, Wire } from '../model/types';
 
 const snap = (v: number, step: number) => Math.round(v / step) * step;
 
@@ -12,7 +15,31 @@ export function addEquipment(panel: Panel, defId: string, at?: Vec, preferredRai
   const def = getDef(defId);
   if (!def) return `Unknown equipment ${defId}`;
   const item = createItem(defId);
+  const us = isUs(panel);
   if (def.mount === 'free') {
+    const encl = enclosureRect(panel);
+    const asset = getAsset(defId);
+    const width = asset ? (def.poleMode === 'none' || def.tileAxis === 'y' ? asset.width : Math.max(1, poleKinds(item, def).length) * asset.width) : 100;
+    if (us && !at) {
+      // US defaults: main breaker top centre, bars along the bottom inside the enclosure, supply above, loads below
+      if (def.role === 'us_main') {
+        item.x = snap((encl.w - width) / 2, 1);
+        item.y = US_MAIN_Y;
+      } else if (def.id === 'us_neutral_bar' || def.id === 'us_ground_bar') {
+        const barW = Number(item.params.count ?? 8) * US_BAR_TILE;
+        item.x = def.id === 'us_neutral_bar' ? 20 : encl.w - 20 - barW;
+        item.y = encl.h - 46;
+      } else if (def.role === 'source') {
+        item.x = 60;
+        item.y = -240;
+      } else {
+        const sameRole = panel.items.filter((i) => getDef(i.defId)?.role === def.role).length;
+        item.x = snap(-60 + sameRole * 130, 5);
+        item.y = encl.h + 90;
+      }
+      panel.items.push(item);
+      return item;
+    }
     const maxIdx = Math.max(0, panel.rails.length - 1);
     const defaultY = def.role === 'source' ? ENCL_TOP - 140 : railTop(maxIdx) + ENCL_BOTTOM_PAD + 60;
     const sameRole = panel.items.filter((i) => getDef(i.defId)?.role === def.role).length;
@@ -23,13 +50,22 @@ export function addEquipment(panel: Panel, defId: string, at?: Vec, preferredRai
   }
   const width = itemWidthModules(item, def);
   const order: string[] = [];
-  if (at) {
-    const near = nearestRail(panel, at.y);
-    if (near) order.push(near.railId);
+  let desired = 0;
+  if (def.mount === 'us') {
+    if (at) {
+      const col = nearestUsColumn(panel, at.x);
+      if (col) order.push(col.railId);
+      desired = Math.round((at.y - usRowTop(0) - (width * US_SPACE_H) / 2) / US_SPACE_H);
+    }
+  } else {
+    if (at) {
+      const near = nearestRail(panel, at.y);
+      if (near) order.push(near.railId);
+    }
+    desired = at ? (at.x - RAIL_X0) / MODULE - width / 2 : 0;
   }
   if (preferredRail) order.push(preferredRail);
   for (const r of panel.rails) order.push(r.id);
-  const desired = at ? (at.x - RAIL_X0) / MODULE - width / 2 : 0;
   for (const railId of new Set(order)) {
     const slot = findSlot(panel, railId, desired, width);
     if (slot !== null) {
@@ -39,7 +75,7 @@ export function addEquipment(panel: Panel, defId: string, at?: Vec, preferredRai
       return item;
     }
   }
-  return 'No free space on the DIN rails. Add a rail or lengthen one.';
+  return us ? 'No free breaker space. Add spaces to the panel or remove a breaker.' : 'No free space on the DIN rails. Add a rail or lengthen one.';
 }
 
 export function removeWires(panel: Panel, ids: string[]) {
@@ -68,7 +104,7 @@ export function updateItem(panel: Panel, id: string, patch: Partial<Item>): stri
   const def = getDef(item.defId);
   if (!def) return 'Unknown device type.';
   const next: Item = { ...item, ...patch, params: { ...item.params, ...(patch.params ?? {}) } };
-  if (def.mount === 'din') {
+  if (isRailMounted(def)) {
     const kinds = poleKinds(next, def);
     if (def.poleMode !== 'none' && kinds.length === 0) return 'A device needs at least one pole.';
     const slot = findSlot(panel, next.railId ?? '', next.slot ?? 0, itemWidthModules(next, def), item.id);
@@ -87,7 +123,7 @@ export function duplicateItems(panel: Panel, ids: string[]): string[] {
     const def = src && getDef(src.defId);
     if (!src || !def) continue;
     const copy: Item = { ...structuredClone(src), id: uid('i'), marking: undefined };
-    if (def.mount === 'din') {
+    if (isRailMounted(def)) {
       const w = itemWidthModules(src, def);
       const slot = findSlot(panel, src.railId ?? '', (src.slot ?? 0) + w, w);
       if (slot === null) continue;
@@ -139,7 +175,7 @@ export function addWire(panel: Panel, from: TerminalRef, to: TerminalRef, nodes:
     const tb = layout.terminals.get(termKey(to.item, to.terminal))!;
     route = orthogonalize({ x: ta.x + ta.dir.x * STUB, y: ta.y + ta.dir.y * STUB }, nodes, { x: tb.x + tb.dir.x * STUB, y: tb.y + tb.dir.y * STUB });
   }
-  const wire: Wire = { id: uid('w'), from, to, color: 'auto', nodes: route, section: 2.5 };
+  const wire: Wire = { id: uid('w'), from, to, color: 'auto', nodes: route, section: 2.5, ...(isUs(panel) ? { awg: '12' } : {}) };
   panel.wires.push(wire);
   return wire;
 }
@@ -230,4 +266,44 @@ export function setBridges(panel: Panel, itemId: string, all: boolean) {
   if (!item || !def || def.role !== 'terminal') return;
   const n = poleKinds(item, def).length;
   item.params.bridges = all ? Array.from({ length: Math.max(0, n - 1) }, (_v, i) => i).join(',') : '';
+}
+
+export function addUsPanel(project: Project, init: Partial<Panel> = {}): Panel {
+  const last = project.panels[project.panels.length - 1];
+  const panel = createUsPanel(init.name ?? `Load center ${project.panels.length + 1}`, 12, { floor: last?.floor ?? 'Ground floor', ...init });
+  project.panels.push(panel);
+  return panel;
+}
+
+/** US: change the number of breaker spaces per column (both columns stay equal). */
+export function setUsRows(panel: Panel, rows: number): string | null {
+  const r = Math.max(4, Math.min(30, Math.round(rows)));
+  for (const it of panel.items) {
+    const def = getDef(it.defId);
+    if (def?.mount === 'us' && (it.slot ?? 0) + itemWidthModules(it, def) > r) return 'Breakers occupy the spaces you are removing. Move them first.';
+  }
+  for (const rail of panel.rails) rail.modules = r;
+  return null;
+}
+
+export function setUsPhases(panel: Panel, phases: 2 | 3) {
+  panel.usPhases = phases;
+}
+
+/** Actuate or release one internal switch of a custom module. */
+export function toggleSwitch(panel: Panel, itemId: string, switchId: string, value?: boolean) {
+  const item = panel.items.find((i) => i.id === itemId);
+  if (!item) return;
+  const cur = Boolean(item.switchStates?.[switchId]);
+  item.switchStates = { ...(item.switchStates ?? {}), [switchId]: value ?? !cur };
+}
+
+/** Override how one input of a placed custom module actuates its switches (null = back to the module's own mode). */
+export function setInputMode(panel: Panel, itemId: string, inputId: string, mode: InputMode | null) {
+  const item = panel.items.find((i) => i.id === itemId);
+  if (!item) return;
+  const next = { ...(item.inputModes ?? {}) };
+  if (mode) next[inputId] = mode;
+  else delete next[inputId];
+  item.inputModes = Object.keys(next).length ? next : undefined;
 }

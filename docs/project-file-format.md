@@ -14,9 +14,11 @@ A project is one plain JSON document, so it diffs well in version control. Open 
   "modified": "2026-11-18T20:10:00.000Z",
   "settings": {
     "markingStandard": "iec81346",              // or "simple"
-    "phaseColors": { "L1": "brown", "L2": "black", "L3": "grey" }
+    "phaseColors": { "L1": "brown", "L2": "black", "L3": "grey" },        // EU conductor colours
+    "usPhaseColors": { "L1": "black", "L2": "red", "L3": "blue" }         // US panels
   },
-  "panels": [ /* Panel */ ]
+  "panels": [ /* Panel */ ],
+  "modules": [ /* CustomModule, see below */ ]
 }
 ```
 
@@ -25,7 +27,9 @@ A project is one plain JSON document, so it diffs well in version control. Open 
 ```jsonc
 {
   "id": "p1abc", "name": "Flat board", "floor": "Ground floor", "room": "Hallway", "code": "DB1", "notes": "",
-  "rails": [ { "id": "r1", "modules": 12 } ],    // length in modules of 18 mm
+  "region": "eu",                                // "eu" (DIN rails, default) or "us" (load center)
+  "usPhases": 2,                                 // US only: 2 = split-phase bus, 3 = three-phase bus
+  "rails": [ { "id": "r1", "modules": 12 } ],    // EU: DIN rail length in modules of 18 mm. US: two rails = the two columns, "modules" = spaces per column
   "items": [ /* Item */ ],
   "wires": [ /* Wire */ ]
 }
@@ -36,7 +40,7 @@ A project is one plain JSON document, so it diffs well in version control. Open 
 ```jsonc
 {
   "id": "i123", "defId": "mcb",                 // defId = id of an equipment definition
-  "railId": "r1", "slot": 2,                    // DIN items: rail and position in modules (multiples of 0.5)
+  "railId": "r1", "slot": 2,                    // rail items: rail and position. DIN: modules (multiples of 0.5). US: breaker space row (whole numbers)
   "x": 0, "y": 0,                               // free items (supply, loads): position in mm
   "poleConfig": "1P+N",
   "params": { "In": 16, "curve": "B", "Icn": 6000, "Un": 230 },   // parameters defined by the equipment
@@ -58,13 +62,48 @@ Terminal blocks use `params.count` (number of terminals) and `params.bridges` (`
   "color": "auto",                               // or brown, black, grey, blue, gnye, red, white, orange, yellow, violet, pink, turquoise
   "nodes": null,                                 // null = automatic route, otherwise [{ "x": 120, "y": 80 }, ...] bend points in mm
   "section": 2.5,                                // mm²
+  "awg": "12",                                   // US panels: wire gauge
   "label": "W1"                                  // optional
 }
 ```
+
+## Custom module
+
+```jsonc
+{
+  "id": "mod-k3j2h1", "name": "Fused distribution block", "description": "", "designation": "Q",
+  "widthModules": 4, "heightMm": 90, "color": "#dfe6ee", "stroke": "#69747f",
+  "rating": { "In": 40, "Un": 400 },
+  "behaviour": "columns",                        // isolated | columns | bus | custom
+  "switchable": true, "trips": true,              // master lever / trips on overload
+  "switches": [ { "id": "ksel", "name": "SEL", "no": ["T0_0", "B0_0"], "nc": ["T0_0", "B0_1"], "visible": false, "x": 18, "y": 62 } ],
+  "inputs": [ { "id": "kcoil", "name": "COIL", "terminal": "T0_1", "ref": "B0_2", "mode": "momentary", "targets": ["ksel"] } ],
+  "top": { "rows": 1, "cols": 4 }, "bottom": { "rows": 2, "cols": 2 },
+  "terminals": [ { "id": "T0_0", "side": "top", "row": 0, "col": 0, "label": "1", "net": "c0" } ],
+  "shapes": [ { "id": "s1", "type": "rect", "name": "Label plate", "x": 6, "y": 15, "w": 60, "h": 12, "fill": "#2a3340",
+                "stroke": "none", "strokeWidth": 0.3, "opacity": 1, "show": "always" } ]
+}
+```
+
+`show` is `always`, `on`, `off`, `tripped`, `powered` or `unpowered`, or follows a switch: `sw:<id>` (actuated), `rel:<id>`
+(released), `closed:<id>` (a contact of the switch is conducting), `open:<id>`, or an input: `in:<id>` (energised), `nin:<id>`.
+
+An input has a `terminal`, an optional `ref` (return terminal, empty = none), a `mode` (`momentary` = follow, `toggle`, `set`,
+`reset`) and the `targets` (switch ids) it operates. A switch has a changeover contact: while it is actuated the `no` terminals are joined, while it is released the `nc` terminals
+are joined (either list may be empty; a terminal in both is a common terminal). `visible: false` hides its widget on the module
+face; it keeps working. Files from the first version, with one `contact` (`NO` / `NC`) and a `terminals` list, are read as a `no` or
+`nc` list. Placed copies are ordinary items whose `defId` is the
+module's `id`. Their `switchStates` (`{ "ksta": true }`) tell which switches are actuated (default: released). Terminal ids are `T<row>_<col>` (top) and `B<row>_<col>` (bottom).
+
+### Module files (`.ecm`)
+
+`{ "format": "electrocraft-modules", "version": 1, "modules": [ CustomModule, ... ] }`. Importing also accepts a whole
+`.ec` project and takes its `modules`.
 
 ## Compatibility
 
 * Files with a newer `version` than the app understands are refused with a message.
 * Equipment ids the app does not know are skipped with a warning; wires to missing devices are dropped.
-* Missing optional fields get defaults, so hand-written files can be short.
+* Missing optional fields get defaults, so hand-written files can be short. Older files without `region`, `modules` or
+  `usPhaseColors` open as EU panels without modules.
 * Coordinates are millimetres: `x = 0` is the enclosure's left edge, `y = 0` the top of the first rail row, and `y` grows downward.

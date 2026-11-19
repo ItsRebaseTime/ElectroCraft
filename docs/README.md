@@ -3,7 +3,7 @@
 | For users | |
 | --- | --- |
 | [User guide](user-guide.md) | everything the app can do: equipment, wiring, simulation, markings, export |
-| [Examples](examples) | open these `.ec` files in the app: a sample house (1 and 3 phase) and a catalogue of every device |
+| [Examples](examples) | open these in the app: sample houses (EU 1/3 phase, US split-phase), a catalogue of every device, a project with a custom module, and `.ecm` modules to import (a fused block, a pushbutton block with NO and NC contacts, a hidden changeover switch driving indicator lamps, and relay modules with a wired demo circuit) |
 
 | For developers and contributors | |
 | --- | --- |

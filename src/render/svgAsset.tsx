@@ -54,16 +54,31 @@ export interface DeviceViewProps {
 
 /** One device drawn from its SVG asset: pole tiles repeated, layers shown or hidden by state. */
 export function DeviceView({ placed, sim, marking }: DeviceViewProps) {
-  const { item, def, asset, kinds, poleW, w } = placed;
-  const poles = def.mount === 'din' && def.poleMode !== 'none' ? kinds.length : 1;
-  const base = {
+  const { item, def, asset, kinds, poleW, poleH, w } = placed;
+  const poles = Math.max(1, def.poleMode === 'none' ? 0 : kinds.length);
+  const axisY = def.tileAxis === 'y';
+  const base: Record<string, boolean> = {
     on: item.on,
     tripped: sim?.tripped ?? false,
     powered: sim?.powered ?? false,
     lit: sim?.lit.some(Boolean) ?? false,
     live: sim?.poleLive.some(Boolean) ?? false,
+    'side-left': !placed.mirrored,
+    'side-right': placed.mirrored,
   };
-  const vars = { current: formatAmps(sim?.maxCurrent ?? 0), marking };
+  // one pair of flags per module switch: sw-<id> = actuated, swc-<id> = contact conducting
+  const swFlags: Record<string, boolean> = {};
+  for (const inp of def.module?.inputs ?? []) swFlags[`in-${inp.id}`] = Boolean(sim?.inputs?.[inp.id]);
+  for (const sw of def.module?.switches ?? []) {
+    // the simulation's effective position (inputs, latches) wins over the stored one
+    const actuated = Boolean(sim?.switchStates?.[sw.id] ?? item.switchStates?.[sw.id]);
+    swFlags[`sw-${sw.id}`] = actuated;
+    // swc-<id>: a contact of this switch is conducting (the NO set while actuated, the NC set while released)
+    swFlags[`swc-${sw.id}`] = !(sim?.tripped ?? false) && (actuated ? sw.no.length > 1 : sw.nc.length > 1);
+  }
+  Object.assign(base, swFlags);
+  const desc = item.description.length > 11 ? `${item.description.slice(0, 10)}.` : item.description;
+  const vars = { current: formatAmps(sim?.maxCurrent ?? 0), marking, description: desc };
   const mkCtx = (pole: number): EvalContext => ({
     flags: {
       ...base,
@@ -82,7 +97,7 @@ export function DeviceView({ placed, sim, marking }: DeviceViewProps) {
     if (node.scope === 'pole') {
       for (let p = 0; p < poles; p++) {
         out.push(
-          <g key={`${ni}-${p}`} transform={p ? `translate(${p * poleW} 0)` : undefined}>
+          <g key={`${ni}-${p}`} transform={p ? (axisY ? `translate(0 ${p * poleH})` : `translate(${p * poleW} 0)`) : undefined}>
             {renderAssetNode(node.el, mkCtx(p), poleW / 2, 0)}
           </g>,
         );
@@ -91,7 +106,7 @@ export function DeviceView({ placed, sim, marking }: DeviceViewProps) {
       const inner = renderAssetNode(node.el, mkCtx(0), w / 2, 0);
       out.push(
         node.stretch && poles > 1 ? (
-          <g key={ni} transform={`scale(${poles} 1)`}>
+          <g key={ni} transform={node.stretch === 'y' ? `scale(1 ${poles})` : `scale(${poles} 1)`}>
             {inner}
           </g>
         ) : (

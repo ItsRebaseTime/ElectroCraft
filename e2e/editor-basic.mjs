@@ -211,7 +211,8 @@ try {
   await sleep(600);
   check('project tree switches panels', /Workshop board/.test(await css('.canvas').getText().catch(() => 'Workshop board')) || true);
   const nPanelsBefore = (await state()).panels.length;
-  await css('.tree .panel-head button[title="Add panel on this floor"]').click();
+  await css('.tree .panel-head .menu button').click();
+  await driver.findElement(By.xpath("//button[contains(., 'DIN-rail panel (EU)')]")).click();
   await settle();
   check('adding a panel works', (await state()).panels.length === nPanelsBefore + 1);
   await shot('05-new-panel');

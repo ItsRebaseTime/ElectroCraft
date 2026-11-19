@@ -16,7 +16,7 @@
     <circle data-terminal="L1" data-dir="up" cx="20" cy="8" r="3.4" fill="#7a4a21" stroke="#2a3138" stroke-width="0.6"/>
     <text x="20" y="19" font-size="3.4" text-anchor="middle" fill="#2a3138" font-family="Helvetica, Arial, sans-serif">L1</text>
   </g>
-  <g data-show="phases>=3">
+  <g data-show="phases>=2">
     <circle data-terminal="L2" data-dir="up" cx="38" cy="8" r="3.4" fill="#1f2328" stroke="#2a3138" stroke-width="0.6"/>
     <text x="38" y="19" font-size="3.4" text-anchor="middle" fill="#2a3138" font-family="Helvetica, Arial, sans-serif">L2</text>
   </g>
@@ -24,7 +24,7 @@
     <circle data-terminal="L3" data-dir="up" cx="56" cy="8" r="3.4" fill="#8a9099" stroke="#2a3138" stroke-width="0.6"/>
     <text x="56" y="19" font-size="3.4" text-anchor="middle" fill="#2a3138" font-family="Helvetica, Arial, sans-serif">L3</text>
   </g>
-  <g data-show="true">
+  <g data-show="phases!=2">
     <circle data-terminal="N" data-dir="up" cx="74" cy="8" r="3.4" fill="#1f6fd1" stroke="#2a3138" stroke-width="0.6"/>
     <text x="74" y="19" font-size="3.4" text-anchor="middle" fill="#2a3138" font-family="Helvetica, Arial, sans-serif">N</text>
   </g>

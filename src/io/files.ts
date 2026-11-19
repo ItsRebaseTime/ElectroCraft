@@ -18,6 +18,7 @@ export interface FileKind {
 }
 
 export const EC_FILE: FileKind = { name: 'ElectroCraft project', extension: 'ec', mime: 'application/json' };
+export const ECM_FILE: FileKind = { name: 'ElectroCraft module', extension: 'ecm', mime: 'application/json' };
 export const PDF_FILE: FileKind = { name: 'PDF document', extension: 'pdf', mime: 'application/pdf' };
 export const SVG_FILE: FileKind = { name: 'SVG image', extension: 'svg', mime: 'image/svg+xml' };
 
@@ -70,10 +71,11 @@ export async function saveFile(suggested: string, data: string | Uint8Array, kin
 }
 
 /** Let the user pick a text file. Returns null if cancelled. */
-export async function openTextFile(kind: FileKind): Promise<{ name: string; text: string } | null> {
+export async function openTextFile(kind: FileKind, alsoAccept: string[] = []): Promise<{ name: string; text: string } | null> {
+  const extensions = [kind.extension, ...alsoAccept];
   if (isTauri()) {
     const { open } = await import('@tauri-apps/plugin-dialog');
-    const path = await open({ multiple: false, filters: [{ name: kind.name, extensions: [kind.extension] }] });
+    const path = await open({ multiple: false, filters: [{ name: kind.name, extensions }] });
     if (!path || Array.isArray(path)) return null;
     const { readTextFile } = await import('@tauri-apps/plugin-fs');
     return { name: baseName(path), text: await readTextFile(path) };
@@ -81,7 +83,7 @@ export async function openTextFile(kind: FileKind): Promise<{ name: string; text
   const w = window as PickerWindow;
   if (w.showOpenFilePicker) {
     try {
-      const [handle] = await w.showOpenFilePicker({ types: [{ description: kind.name, accept: { [kind.mime]: [`.${kind.extension}`] } }] });
+      const [handle] = await w.showOpenFilePicker({ types: [{ description: kind.name, accept: { [kind.mime]: extensions.map((e) => `.${e}`) } }] });
       const file = await handle.getFile();
       if (kind === EC_FILE) lastHandle = handle;
       return { name: file.name, text: await file.text() };
@@ -93,7 +95,7 @@ export async function openTextFile(kind: FileKind): Promise<{ name: string; text
   return new Promise((resolve) => {
     const input = document.createElement('input');
     input.type = 'file';
-    input.accept = `.${kind.extension},${kind.mime}`;
+    input.accept = `${extensions.map((e) => `.${e}`).join(',')},${kind.mime}`;
     input.onchange = async () => {
       const f = input.files?.[0];
       resolve(f ? { name: f.name, text: await f.text() } : null);

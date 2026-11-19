@@ -1,7 +1,10 @@
 import type { ReactNode } from 'react';
 import { bridgesOf } from '../model/defs';
 import { colorByKey, potentialColorKey } from '../model/colors';
-import { DIN_H, MODULE, RAIL_X0, STUB, railTop, termKey, type Layout, type Placed } from '../model/geometry';
+import {
+  DIN_H, MODULE, RAIL_X0, STUB, US_BREAKER_W, US_BUS_W, US_SPACE_H, isUs, railIndex, railTop, termKey, usBusX, usColumnX, usPhaseOfRow, usRowTop, usRows, usSpaceNumber,
+  type Layout, type Placed,
+} from '../model/geometry';
 import { markingOf } from '../model/marking';
 import { simplify, type Route } from '../model/routing';
 import type { SimResult } from '../model/sim';
@@ -25,6 +28,8 @@ export interface PanelDiagramProps {
   selection?: Selection;
   hoverTerminal?: string | null;
   draft?: WireDraft | null;
+  /** Diagram units per screen pixel on touch devices (0 = mouse): enlarges terminals and handles so fingers can hit them. */
+  touchHit?: number;
 }
 
 const pathOf = (pts: Vec[]) => pts.map((p, i) => `${i ? 'L' : 'M'}${round(p.x)} ${round(p.y)}`).join('');
@@ -65,6 +70,43 @@ function CombBridges({ placed, showSlots, interactive }: { placed: Placed; showS
         )}
       </g>,
     );
+  }
+  return <g>{out}</g>;
+}
+
+/** Inside of a US load center: bus with phase tabs and the numbered breaker spaces (empty ones are outlined). */
+function UsInterior({ panel, project, placed }: { panel: Panel; project: Project; placed: Placed[] }) {
+  const rows = usRows(panel);
+  const bx = usBusX();
+  const taken = new Set<string>();
+  for (const pl of placed) {
+    if (pl.def.mount !== 'us') continue;
+    const col = Math.min(1, Math.max(0, railIndex(panel, pl.item.railId)));
+    for (let k = 0; k < Math.round(pl.h / US_SPACE_H); k++) taken.add(`${col}:${(pl.item.slot ?? 0) + k}`);
+  }
+  const out: ReactNode[] = [];
+  out.push(<rect key="bus" x={bx} y={usRowTop(0)} width={US_BUS_W} height={rows * US_SPACE_H} fill="#c3c9cf" stroke="#8f99a5" strokeWidth={0.6} />);
+  const letter = { L1: 'A', L2: 'B', L3: 'C' } as const;
+  for (let r = 0; r < rows; r++) {
+    const phase = usPhaseOfRow(panel, r);
+    const c = colorByKey(potentialColorKey(phase, project.settings, 'us'));
+    const top = usRowTop(r);
+    out.push(<rect key={`tab${r}`} x={bx + 5} y={top + 4} width={US_BUS_W - 10} height={US_SPACE_H - 8} rx={1.2} fill={c.hex} stroke="#2a3138" strokeWidth={0.4} />);
+    out.push(
+      <text key={`pl${r}`} x={bx + US_BUS_W / 2} y={top + US_SPACE_H / 2 + 1.6} fontSize={4.4} textAnchor="middle" fontWeight="bold" fill={c.key === 'white' ? '#2a3138' : '#ffffff'}>
+        {letter[phase]}
+      </text>,
+    );
+    for (const col of [0, 1]) {
+      if (taken.has(`${col}:${r}`)) continue;
+      const x = usColumnX(col);
+      out.push(<rect key={`sp${col}-${r}`} x={x + 0.5} y={top + 0.5} width={US_BREAKER_W - 1} height={US_SPACE_H - 1} rx={1.2} fill="#ffffff" fillOpacity={0.5} stroke="#b4bcc6" strokeWidth={0.5} strokeDasharray="2 1.5" />);
+      out.push(
+        <text key={`sn${col}-${r}`} x={x + US_BREAKER_W / 2} y={top + US_SPACE_H / 2 + 1.5} fontSize={4.2} textAnchor="middle" fill="#9aa4af">
+          {usSpaceNumber(col, r)}
+        </text>,
+      );
+    }
   }
   return <g>{out}</g>;
 }
@@ -111,13 +153,17 @@ function LabelStrip({ placed, lines, y }: { placed: Placed; lines: ReturnType<ty
   );
 }
 
-export function PanelDiagram({ project, panel, layout, routes, sim, markings, options, interactive, animate, selection, hoverTerminal, draft }: PanelDiagramProps) {
+export function PanelDiagram({ project, panel, layout, routes, sim, markings, options, interactive, animate, selection, hoverTerminal, draft, touchHit = 0 }: PanelDiagramProps) {
+  const hitR = Math.max(4, Math.min(8, 13 * touchHit));
+  const handleR = Math.max(2.6, Math.min(6, 8 * touchHit));
   const { encl } = layout;
   const selItems = new Set(selection?.kind === 'item' ? selection.ids : []);
   const selWire = selection?.kind === 'wire' ? selection.ids[0] : undefined;
   const selRail = selection?.kind === 'rail' ? selection.ids[0] : undefined;
   const hit = (v: string) => (interactive ? { 'data-hit': v } : {});
   const placedList = Array.from(layout.placed.values());
+  const us = isUs(panel);
+  const region = panel.region ?? 'eu';
 
   return (
     <g fontFamily={FONT}>
@@ -136,8 +182,11 @@ export function PanelDiagram({ project, panel, layout, routes, sim, markings, op
         </g>
       )}
 
+      {/* US breaker spaces and bus */}
+      {us && options.showRails && <UsInterior panel={panel} project={project} placed={placedList} />}
+
       {/* DIN rails */}
-      {options.showRails &&
+      {options.showRails && !us &&
         panel.rails.map((r, i) => {
           const y = railTop(i) + (DIN_H - 35) / 2;
           const w = r.modules * MODULE;
@@ -181,6 +230,11 @@ export function PanelDiagram({ project, panel, layout, routes, sim, markings, op
         panel.wires.map((w) => {
           const route = routes.get(w.id);
           if (!route) return null;
+          const wsv = sim.wires[w.id];
+          const cls = wsv?.potential && wsv.potential !== 'mixed' ? wsv.potential : 'other';
+          const vis = options.wireVisibility?.[cls] ?? 'show';
+          const picked = selWire === w.id;
+          if (vis === 'hide' && !picked) return null;
           const pts = simplify(route.pts);
           const d = pathOf(pts);
           const ws = sim.wires[w.id];
@@ -188,15 +242,15 @@ export function PanelDiagram({ project, panel, layout, routes, sim, markings, op
           let key = w.color;
           if (key === 'auto') {
             const pot = ws?.potential;
-            key = pot === 'mixed' ? 'red' : pot ? potentialColorKey(pot, project.settings) : 'black';
+            key = pot === 'mixed' ? 'red' : pot ? potentialColorKey(pot, project.settings, region) : 'black';
           }
           const c = colorByKey(key);
           const flowing = animate && ws && ws.current > 0.005;
           const dur = Math.max(0.3, 2.4 / (1 + (ws?.current ?? 0) / 3));
           const mid = midOfLongest(pts);
-          const text = [options.showWireLabels ? w.label : '', options.showWireSections ? `${w.section} mm²` : ''].filter(Boolean).join('  ');
+          const text = [options.showWireLabels ? w.label : '', options.showWireSections ? (us ? `${w.awg ?? '12'} AWG` : `${w.section} mm²`) : ''].filter(Boolean).join('  ');
           return (
-            <g key={w.id} {...hit(`w:${w.id}`)}>
+            <g key={w.id} {...hit(`w:${w.id}`)} opacity={vis === 'fade' && !picked ? 0.18 : undefined}>
               {selWire === w.id && <path d={d} fill="none" stroke={SEL} strokeWidth={6} strokeOpacity={0.35} strokeLinejoin="round" strokeLinecap="round" />}
               {animate && ws?.energized && <path d={d} fill="none" stroke="#ffe08a" strokeWidth={5} strokeOpacity={0.55} strokeLinejoin="round" strokeLinecap="round" />}
               <path d={d} fill="none" stroke="#1b2027" strokeWidth={3.3} strokeLinejoin="round" strokeLinecap="round" strokeOpacity={0.85} />
@@ -233,6 +287,7 @@ export function PanelDiagram({ project, panel, layout, routes, sim, markings, op
       {/* label strips */}
       {placedList.map((pl) => {
         if (pl.def.mount === 'free' && !options.showFreeItems) return null;
+        if (pl.def.noStrip) return null;
         const lines = labelLines(panel, pl.item, pl.def, markingOf(pl.item, markings), options);
         const ri = panel.rails.findIndex((r) => r.id === pl.item.railId);
         const y = pl.def.mount === 'din' ? railTop(Math.max(0, ri)) + DIN_H + 3 : pl.def.role === 'source' ? pl.y - 28 : pl.y + pl.h + 3;
@@ -256,11 +311,11 @@ export function PanelDiagram({ project, panel, layout, routes, sim, markings, op
             const b = pts[i + 1];
             const horiz = Math.abs(a.y - b.y) < 1e-6;
             out.push(
-              <rect key={`s${i}`} x={(a.x + b.x) / 2 - 2} y={(a.y + b.y) / 2 - 2} width={4} height={4} rx={1} fill="#ffffff" stroke={SEL} strokeWidth={0.9} data-hit={`s:${selWire}:${i}`} style={{ cursor: horiz ? 'ns-resize' : 'ew-resize' }} />,
+              <rect key={`s${i}`} x={(a.x + b.x) / 2 - handleR * 0.8} y={(a.y + b.y) / 2 - handleR * 0.8} width={handleR * 1.6} height={handleR * 1.6} rx={1} fill="#ffffff" stroke={SEL} strokeWidth={0.9} data-hit={`s:${selWire}:${i}`} style={{ cursor: horiz ? 'ns-resize' : 'ew-resize' }} />,
             );
           }
           for (let i = 2; i < pts.length - 2; i++) {
-            out.push(<circle key={`n${i}`} cx={pts[i].x} cy={pts[i].y} r={2.6} fill={SEL} stroke="#ffffff" strokeWidth={0.8} data-hit={`n:${selWire}:${i - 2}`} style={{ cursor: 'move' }} />);
+            out.push(<circle key={`n${i}`} cx={pts[i].x} cy={pts[i].y} r={handleR} fill={SEL} stroke="#ffffff" strokeWidth={0.8} data-hit={`n:${selWire}:${i - 2}`} style={{ cursor: 'move' }} />);
           }
           return <g>{out}</g>;
         })()}
@@ -274,7 +329,7 @@ export function PanelDiagram({ project, panel, layout, routes, sim, markings, op
               const hot = hoverTerminal === k;
               return (
                 <g key={t.id}>
-                  {options.showTerminalNumbers && t.label && pl.def.mount === 'din' && (
+                  {options.showTerminalNumbers && t.label && pl.def.mount === 'din' && pl.def.role !== 'module' && (
                     <text x={t.x + 3.6} y={t.y + (t.dir.y < 0 ? 3.4 : -2.2)} fontSize={2.6} fill="#374151">
                       {t.label}
                     </text>
@@ -282,7 +337,7 @@ export function PanelDiagram({ project, panel, layout, routes, sim, markings, op
                   {interactive && (
                     <>
                       {hot && <circle cx={t.x} cy={t.y} r={4.6} fill="#2563eb" fillOpacity={0.22} stroke={SEL} strokeWidth={0.9} />}
-                      <circle cx={t.x} cy={t.y} r={4} fill="transparent" data-hit={`t:${k}`} style={{ cursor: 'crosshair' }} />
+                      <circle cx={t.x} cy={t.y} r={hitR} fill="transparent" data-hit={`t:${k}`} style={{ cursor: 'crosshair' }} />
                     </>
                   )}
                 </g>

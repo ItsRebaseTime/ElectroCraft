@@ -1,10 +1,11 @@
 import { describe, expect, it } from 'vitest';
 import { allDefs, bridgesOf, getDef } from './defs';
-import { layoutPanel, termKey } from './geometry';
+import { findSlot, layoutPanel, termKey } from './geometry';
+import { potentialColorKey } from './colors';
 import { autoMarkings } from './marking';
-import { connect, createItem, parseProject, serializeProject } from './project';
+import { connect, createItem, createProject, parseProject, serializeProject } from './project';
 import { computeRoutes } from './routing';
-import { flatPanel, sampleProject, workshopPanel } from './sample';
+import { flatPanel, sampleProject, usPanel, workshopPanel } from './sample';
 import { simulate } from './sim';
 import { evalShow, resolveTokens } from './expr';
 import { orthogonalize } from '../store/actions';
@@ -202,5 +203,99 @@ describe('terminal block comb bridges', () => {
     const live2 = simulate(panel, layoutPanel(panel), { live: true, autoTrip: false, tripped: [] });
     expect(live2.items[lamp.id].powered).toBe(true);
     expect(live2.items[lamp.id].loadCurrent).toBeCloseTo(100 / 230, 3);
+  });
+});
+
+describe('US load center', () => {
+  const panel = usPanel();
+  const layout = layoutPanel(panel);
+  const byDesc = (d: string, def?: string) => panel.items.find((i) => i.description === d && (!def || i.defId === def))!;
+
+  it('resolves every wire terminal, mirroring breaker lugs to the outer side of each column', () => {
+    for (const w of panel.wires) {
+      expect(layout.terminals.has(termKey(w.from.item, w.from.terminal)), w.from.terminal).toBe(true);
+      expect(layout.terminals.has(termKey(w.to.item, w.to.terminal)), w.to.terminal).toBe(true);
+    }
+    const left = layout.terminals.get(termKey(byDesc('Bedroom lights', 'us_breaker').id, 'load0'))!;
+    const right = layout.terminals.get(termKey(byDesc('Range', 'us_breaker').id, 'load0'))!;
+    expect(left.dir.x).toBe(-1);
+    expect(right.dir.x).toBe(1);
+    expect(left.x).toBeLessThan(right.x);
+  });
+
+  it('numbers breakers by NEC space and colours conductors black / red / white / green', () => {
+    const m = autoMarkings(panel, 'iec81346');
+    expect(m[byDesc('Bedroom lights', 'us_breaker').id]).toBe('1');
+    expect(m[byDesc('Kitchen receptacles', 'us_breaker').id]).toBe('3');
+    expect(m[byDesc('Range', 'us_breaker').id]).toBe('2,4');
+    expect(m[panel.items.find((i) => i.defId === 'us_main')!.id]).toBe('MAIN');
+    const r = simulate(panel, layout, { live: false, autoTrip: false, tripped: [] });
+    expect(new Set(Object.values(r.wires).map((x) => x.potential))).toEqual(new Set(['L1', 'L2', 'N', 'PE']));
+    expect(r.warnings.filter((x) => x.level === 'error')).toEqual([]);
+    expect(potentialColorKey('L1', createProject().settings, 'us')).toBe('black');
+    expect(potentialColorKey('L2', createProject().settings, 'us')).toBe('red');
+    expect(potentialColorKey('N', createProject().settings, 'us')).toBe('white');
+    expect(potentialColorKey('PE', createProject().settings, 'us')).toBe('green');
+  });
+
+  it('feeds breakers from the bus by position and draws 120 V / 240 V currents', () => {
+    const r = simulate(panel, layout, live);
+    expect(r.items[byDesc('Bedroom lights', 'load').id].loadCurrent).toBeCloseTo(480 / 120, 3);
+    expect(r.items[byDesc('Range', 'load').id].loadCurrent).toBeCloseTo(8000 / 240, 3);
+    expect(r.items[byDesc('Range', 'us_breaker').id].maxCurrent).toBeCloseTo(8000 / 240, 3);
+    // single-pole breakers sit on alternating legs: lights on L1 (row 0), receptacles on L2 (row 1)
+    const svc = panel.wires.find((w) => w.to.terminal === 'line0')!;
+    const svc2 = panel.wires.find((w) => w.to.terminal === 'line1')!;
+    const ac = 3500 / (240 * 0.9); // power factor 0.9
+    const l1 = 480 / 120 + ac + 8000 / 240 + 5000 / 240;
+    const l2 = 1500 / 120 + ac + 8000 / 240 + 5000 / 240;
+    expect(r.wires[svc.id].current).toBeCloseTo(l1, 3);
+    expect(r.wires[svc2.id].current).toBeCloseTo(l2, 3);
+  });
+
+  it('the split-phase neutral carries only the difference between the two legs', () => {
+    const r = simulate(panel, layout, live);
+    const nw = panel.wires.find((w) => w.from.terminal === 'N')!;
+    expect(r.wires[nw.id].current).toBeCloseTo(Math.abs(480 / 120 - 1500 / 120), 3);
+  });
+
+  it('opening the main breaker or tripping an overloaded circuit de-energises the right loads', () => {
+    const p = usPanel();
+    p.items.find((i) => i.defId === 'us_main')!.on = false;
+    const dead = simulate(p, layoutPanel(p), live);
+    expect(p.items.filter((i) => i.defId === 'load').every((i) => !dead.items[i.id].powered)).toBe(true);
+    const q = usPanel();
+    q.items.find((i) => i.defId === 'load' && i.description === 'Range')!.params.P = 16000; // 67 A on a 40 A breaker (trips above 1.45 x In)
+    const r = simulate(q, layoutPanel(q), live);
+    const br = q.items.find((i) => i.defId === 'us_breaker' && i.description === 'Range')!;
+    expect(r.tripped).toContain(br.id);
+    expect(r.items[q.items.find((i) => i.defId === 'load' && i.description === 'Range')!.id].powered).toBe(false);
+    expect(r.items[q.items.find((i) => i.defId === 'load' && i.description === 'Dryer')!.id].powered).toBe(true);
+  });
+
+  it('routes every wire orthogonally, including the sideways exits of breakers', () => {
+    const routes = computeRoutes(panel, layout);
+    expect(routes.size).toBe(panel.wires.length);
+    for (const { pts } of routes.values()) {
+      for (let i = 1; i < pts.length; i++) {
+        expect(Math.min(Math.abs(pts[i].x - pts[i - 1].x), Math.abs(pts[i].y - pts[i - 1].y))).toBeLessThan(1e-6);
+      }
+    }
+  });
+
+  it('keeps breakers in their spaces and refuses overlaps', () => {
+    const left = panel.rails[0];
+    const slot = findSlot(panel, left.id, 0, 1);
+    expect(slot).not.toBe(0); // space 1 is taken, the nearest free one is elsewhere
+    expect(findSlot(panel, left.id, 11, 2)).toBeLessThanOrEqual(10);
+  });
+
+  it('survives a project round trip as a US panel', () => {
+    const project = createProject('us');
+    project.panels = [panel];
+    const back = parseProject(serializeProject(project)).project.panels[0];
+    expect(back.region).toBe('us');
+    expect(back.wires[0].awg).toBe('2/0');
+    expect(simulate(back, layoutPanel(back), live).items[back.items.find((i) => i.defId === 'load')!.id].powered).toBe(true);
   });
 });

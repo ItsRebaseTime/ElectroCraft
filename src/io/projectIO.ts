@@ -1,5 +1,5 @@
 import { createProject, parseProject, serializeProject } from '../model/project';
-import { sampleProject } from '../model/sample';
+import { sampleProject, sampleUsProject } from '../model/sample';
 import { useStore } from '../store/store';
 import { ask } from '../ui/dialogs';
 import { EC_FILE, forgetHandle, openTextFile, saveFile } from './files';
@@ -20,6 +20,12 @@ export async function loadSample() {
   if (!(await discardOk())) return;
   forgetHandle();
   useStore.getState().setProject(sampleProject(), null);
+}
+
+export async function loadUsSample() {
+  if (!(await discardOk())) return;
+  forgetHandle();
+  useStore.getState().setProject(sampleUsProject(), null);
 }
 
 export async function openProject() {

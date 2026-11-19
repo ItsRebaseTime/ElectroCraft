@@ -1,0 +1,11 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 10 16" width="10" height="16">
+  <!-- US load center art. data-show flags: side-left / side-right (which column the breaker is in), on, tripped,
+       and the device parameters (type==GFCI ...). Terminals marked data-terminal are mirrored for the right column. -->
+  <g data-scope="pole" data-layer="body">
+    <rect x="0.2" y="0.2" width="9.6" height="15.6" rx="0.8" fill="#cfe6d1" stroke="#6b7480" stroke-width="0.4"/>
+    <circle data-terminal="term" data-dir="down" cx="5" cy="11" r="2.7" fill="#8f99a4" stroke="#4c5560" stroke-width="0.5"/><path d="M3.38 11h3.24" stroke="#3b444d" stroke-width="0.7"/>
+  </g>
+  <g data-layer="label">
+    <text x="0" y="5.4" font-size="3.4" text-anchor="middle" fill="#2a3138" font-family="Helvetica, Arial, sans-serif" data-center-x="true" font-weight="bold">GROUND</text>
+  </g>
+</svg>

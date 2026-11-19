@@ -4,6 +4,7 @@ import App from './App';
 import { parseProject, serializeProject } from './model/project';
 import { sampleProject } from './model/sample';
 import { selectActivePanel, useStore } from './store/store';
+import { offerImport } from './ui/modules/moduleState';
 import './styles.css';
 
 const KEY = 'electrocraft.autosave';
@@ -45,6 +46,9 @@ function applyHash() {
   if (h.has('export')) st.setExportOpen(true);
 }
 applyHash();
+
+// browser tests have no native file picker: expose the import step when the page is opened with ?e2e
+if (new URLSearchParams(location.search).has('e2e')) (window as unknown as { __ec: unknown }).__ec = { offerImport };
 
 let timer: number | undefined;
 useStore.subscribe((s, prev) => {

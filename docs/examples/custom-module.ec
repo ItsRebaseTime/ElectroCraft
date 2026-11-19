@@ -1,0 +1,247 @@
+{
+  "format": "electrocraft",
+  "version": 1,
+  "name": "Custom module example",
+  "author": "",
+  "revision": "A",
+  "created": "2026-11-19T16:29:13.172Z",
+  "modified": "2026-11-19T16:29:13.173Z",
+  "settings": {
+    "markingStandard": "iec81346",
+    "phaseColors": {
+      "L1": "brown",
+      "L2": "black",
+      "L3": "grey"
+    },
+    "usPhaseColors": {
+      "L1": "black",
+      "L2": "red",
+      "L3": "blue"
+    }
+  },
+  "panels": [
+    {
+      "id": "pzsa3t2k",
+      "name": "Panel with a custom module",
+      "floor": "Ground floor",
+      "room": "",
+      "code": "DB9",
+      "rails": [
+        {
+          "id": "r1",
+          "modules": 12
+        },
+        {
+          "id": "r2",
+          "modules": 12
+        }
+      ],
+      "items": [
+        {
+          "id": "if0is9bq",
+          "defId": "mod-pie63os",
+          "x": 0,
+          "y": 0,
+          "poleConfig": "1P",
+          "params": {
+            "In": 40,
+            "Un": 400
+          },
+          "on": true,
+          "description": "Sub-distribution",
+          "manufacturer": "",
+          "model": "",
+          "railId": "r1",
+          "slot": 2
+        }
+      ],
+      "wires": [],
+      "notes": ""
+    }
+  ],
+  "modules": [
+    {
+      "id": "mod-pie63os",
+      "name": "Fused distribution block",
+      "description": "Switchable 4-way distribution block with a status lamp",
+      "designation": "Q",
+      "widthModules": 4,
+      "heightMm": 90,
+      "color": "#dfe6ee",
+      "stroke": "#69747f",
+      "rating": {
+        "In": 40,
+        "Un": 400
+      },
+      "behaviour": "columns",
+      "switchable": true,
+      "trips": true,
+      "top": {
+        "rows": 1,
+        "cols": 4
+      },
+      "bottom": {
+        "rows": 2,
+        "cols": 2
+      },
+      "terminals": [
+        {
+          "id": "T0_0",
+          "side": "top",
+          "row": 0,
+          "col": 0,
+          "label": "1",
+          "net": "c0"
+        },
+        {
+          "id": "T0_1",
+          "side": "top",
+          "row": 0,
+          "col": 1,
+          "label": "2",
+          "net": "c1"
+        },
+        {
+          "id": "T0_2",
+          "side": "top",
+          "row": 0,
+          "col": 2,
+          "label": "3",
+          "net": "c2"
+        },
+        {
+          "id": "T0_3",
+          "side": "top",
+          "row": 0,
+          "col": 3,
+          "label": "4",
+          "net": "c3"
+        },
+        {
+          "id": "B0_0",
+          "side": "bottom",
+          "row": 0,
+          "col": 0,
+          "label": "5",
+          "net": "c0"
+        },
+        {
+          "id": "B0_1",
+          "side": "bottom",
+          "row": 0,
+          "col": 1,
+          "label": "6",
+          "net": "c1"
+        },
+        {
+          "id": "B1_0",
+          "side": "bottom",
+          "row": 1,
+          "col": 0,
+          "label": "7",
+          "net": "c0"
+        },
+        {
+          "id": "B1_1",
+          "side": "bottom",
+          "row": 1,
+          "col": 1,
+          "label": "8",
+          "net": "c1"
+        }
+      ],
+      "shapes": [
+        {
+          "id": "sdbak3h6",
+          "name": "Label plate",
+          "type": "rect",
+          "x": 6,
+          "y": 15,
+          "w": 60,
+          "h": 12,
+          "r": 4,
+          "rx": 1.5,
+          "fill": "#2a3340",
+          "stroke": "#111a24",
+          "strokeWidth": 0.3,
+          "opacity": 1,
+          "text": "",
+          "fontSize": 4,
+          "show": "always"
+        },
+        {
+          "id": "swrq2goo",
+          "name": "Title",
+          "type": "text",
+          "x": 36,
+          "y": 24,
+          "w": 10,
+          "h": 8,
+          "r": 4,
+          "rx": 0.8,
+          "fill": "#ffffff",
+          "stroke": "none",
+          "strokeWidth": 0.3,
+          "opacity": 1,
+          "text": "FUSED  {{In}} A",
+          "fontSize": 6,
+          "show": "always"
+        },
+        {
+          "id": "sr9d8c4o",
+          "name": "Lamp (live)",
+          "type": "circle",
+          "x": 60,
+          "y": 46,
+          "w": 10,
+          "h": 8,
+          "r": 3,
+          "rx": 0.8,
+          "fill": "#2fbf4f",
+          "stroke": "#14631f",
+          "strokeWidth": 0.3,
+          "opacity": 1,
+          "text": "",
+          "fontSize": 4,
+          "show": "powered"
+        },
+        {
+          "id": "sb7eos2p",
+          "name": "Lamp (dead)",
+          "type": "circle",
+          "x": 60,
+          "y": 46,
+          "w": 10,
+          "h": 8,
+          "r": 3,
+          "rx": 0.8,
+          "fill": "#7a8794",
+          "stroke": "#4c5560",
+          "strokeWidth": 0.3,
+          "opacity": 1,
+          "text": "",
+          "fontSize": 4,
+          "show": "unpowered"
+        },
+        {
+          "id": "sl9lxj38",
+          "name": "Trip bar",
+          "type": "rect",
+          "x": 6,
+          "y": 60,
+          "w": 60,
+          "h": 3,
+          "r": 4,
+          "rx": 1,
+          "fill": "#c0261c",
+          "stroke": "none",
+          "strokeWidth": 0.3,
+          "opacity": 1,
+          "text": "",
+          "fontSize": 4,
+          "show": "tripped"
+        }
+      ]
+    }
+  ]
+}

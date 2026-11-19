@@ -1,6 +1,8 @@
 import { create } from 'zustand';
 import { DEFAULT_RENDER_OPTIONS, type Panel, type Project, type RenderOptions, type Selection } from '../model/types';
 import { createProject } from '../model/project';
+import { syncCustomModules } from '../model/defs';
+import { emptyRuntime, type SimRuntime } from '../model/sim';
 
 export type Tool = 'select' | 'wire' | 'pan';
 export interface Viewport {
@@ -22,7 +24,7 @@ interface State {
   selection: Selection;
   tool: Tool;
   viewports: Record<string, Viewport>;
-  sim: { enabled: boolean; autoTrip: boolean; tripped: string[] };
+  sim: { enabled: boolean; autoTrip: boolean; tripped: string[]; runtime: SimRuntime };
   options: RenderOptions;
   past: Project[];
   future: Project[];
@@ -56,14 +58,15 @@ export const useStore = create<State>((set, get) => ({
   selection: { kind: null, ids: [] },
   tool: 'select',
   viewports: {},
-  sim: { enabled: false, autoTrip: true, tripped: [] },
+  sim: { enabled: false, autoTrip: true, tripped: [], runtime: emptyRuntime() },
   options: { ...DEFAULT_RENDER_OPTIONS },
   past: [],
   future: [],
   toast: null,
   exportOpen: false,
 
-  setProject: (project, fileName, dirty = false) =>
+  setProject: (project, fileName, dirty = false) => {
+    syncCustomModules(project.modules ?? []);
     set({
       project,
       fileName,
@@ -73,13 +76,15 @@ export const useStore = create<State>((set, get) => ({
       past: [],
       future: [],
       viewports: {},
-      sim: { ...get().sim, tripped: [] },
-    }),
+      sim: { ...get().sim, tripped: [], runtime: emptyRuntime() },
+    });
+  },
 
   mutate: (fn, record = true) =>
     set((s) => {
       const draft = structuredClone(s.project);
       fn(draft);
+      syncCustomModules(draft.modules ?? []);
       const activeStillExists = draft.panels.some((p) => p.id === s.activePanelId);
       return {
         project: draft,
@@ -96,6 +101,7 @@ export const useStore = create<State>((set, get) => ({
     set((s) => {
       const prev = s.past[s.past.length - 1];
       if (!prev) return {};
+      syncCustomModules(prev.modules ?? []);
       return {
         project: prev,
         past: s.past.slice(0, -1),
@@ -110,6 +116,7 @@ export const useStore = create<State>((set, get) => ({
     set((s) => {
       const next = s.future[0];
       if (!next) return {};
+      syncCustomModules(next.modules ?? []);
       return {
         project: next,
         past: [...s.past, s.project],

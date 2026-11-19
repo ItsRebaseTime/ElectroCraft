@@ -1,21 +1,34 @@
 import { getAsset, getDef, poleKinds } from './defs';
 import type { Panel, Item, EquipmentDef, Vec } from './types';
-import type { ParsedAsset } from './asset';
+import type { AssetTerminal, ParsedAsset } from './asset';
 import { evalShow, type EvalContext } from './expr';
 
-export const MODULE = 18; // mm
+// ---- EU / DIN-rail layout (millimetres)
+export const MODULE = 18;
 export const DIN_H = 90;
 export const ROW_PITCH = 180;
 export const RAIL_X0 = 40;
 export const ENCL_TOP = -100;
 export const ENCL_BOTTOM_PAD = 170; // below the last row's top edge
+
+// ---- US load-center layout
+export const US_SPACE_H = 20; // height of one breaker pole space
+export const US_BREAKER_W = 70;
+export const US_BUS_W = 36;
+export const US_SIDE = 30; // enclosure margin left and right of the breakers
+export const US_TOP = 74; // y of the first breaker space (the main breaker sits above)
+export const US_BOTTOM = 64; // room below the last space for the neutral and ground bars
+export const US_MAIN_Y = 14;
+export const US_BAR_TILE = 10;
+
+// ---- shared
 export const LANE = 4;
 export const STUB = 5;
 export const MAX_LANES = 10;
 export const SNAP_MODULES = 0.5;
 
 export interface Terminal {
-  /** Terminal id inside its item: T0/B0 (pole terminals) or a name (L1, N, PE ...). */
+  /** Terminal id inside its item: T0/B0 (DIN pole terminals), load0/line0 (US) or a name (L1, N, PE ...). */
   id: string;
   item: string;
   x: number;
@@ -32,9 +45,13 @@ export interface Placed {
   y: number;
   w: number;
   h: number;
+  /** Size of one pole tile. */
   poleW: number;
+  poleH: number;
   kinds: ('L' | 'N')[];
   terminals: Terminal[];
+  /** Terminals are on the right-hand side (right US column or bar with side = right). */
+  mirrored: boolean;
 }
 
 export interface Layout {
@@ -44,67 +61,108 @@ export interface Layout {
   bounds: { x: number; y: number; w: number; h: number };
 }
 
+export const isUs = (panel: Panel) => panel.region === 'us';
 export const termKey = (item: string, terminal: string) => `${item}|${terminal}`;
 export const railTop = (index: number) => index * ROW_PITCH;
-/** Base y of the wire channel (gutter) below row g; g = -1 is the channel above the first row. */
-export const gutterY = (g: number) => (g < 0 ? railTop(0) - 90 : railTop(g) + 120);
 export const railIndex = (panel: Panel, railId: string | undefined) => panel.rails.findIndex((r) => r.id === railId);
 export const maxRailModules = (panel: Panel) => Math.max(6, ...panel.rails.map((r) => r.modules));
+export const isRailMounted = (def: EquipmentDef) => def.mount === 'din' || def.mount === 'us';
+
+// ---- US helpers
+export const usRows = (panel: Panel) => Math.max(1, panel.rails[0]?.modules ?? 12);
+export const usColumnX = (col: number) => US_SIDE + (col === 0 ? 0 : US_BREAKER_W + US_BUS_W);
+export const usRowTop = (row: number) => US_TOP + row * US_SPACE_H;
+export const usBusX = () => US_SIDE + US_BREAKER_W;
+/** NEC space number: left column odd, right column even, counting down the panel. */
+export const usSpaceNumber = (col: number, row: number) => 2 * row + col + 1;
+export const usPhaseOfRow = (panel: Panel, row: number): 'L1' | 'L2' | 'L3' => (['L1', 'L2', 'L3'] as const)[((row % (panel.usPhases ?? 2)) + (panel.usPhases ?? 2)) % (panel.usPhases ?? 2)];
+
+export function usEnclosure(panel: Panel) {
+  return { x: 0, y: 0, w: 2 * US_SIDE + 2 * US_BREAKER_W + US_BUS_W, h: US_TOP + usRows(panel) * US_SPACE_H + US_BOTTOM };
+}
+
+/** Base y of the wire channel (gutter) g. g = -1 is above the enclosure; EU: below row g; US: g = 0 below the enclosure. */
+export function gutterY(panel: Panel, g: number): number {
+  if (isUs(panel)) return g < 0 ? -90 : usEnclosure(panel).h + 12;
+  return g < 0 ? railTop(0) - 90 : railTop(g) + 120;
+}
+/** Number of gutters below the first (the highest index is gutterCount - 1). */
+export const gutterCount = (panel: Panel) => (isUs(panel) ? 1 : panel.rails.length);
 
 const UP: Vec = { x: 0, y: -1 };
 const DOWN: Vec = { x: 0, y: 1 };
+const LEFT: Vec = { x: -1, y: 0 };
+const RIGHT: Vec = { x: 1, y: 0 };
+const dirVec = (d: AssetTerminal['dir']) => (d === 'down' ? DOWN : d === 'left' ? LEFT : d === 'right' ? RIGHT : UP);
+const flip = (v: Vec): Vec => (v.x ? { x: -v.x, y: v.y } : v);
 
-/** Width of an item in modules (used for placement before a full layout exists). */
+/** How many pole tiles an item has (0 = fixed layout) and along which axis they repeat. */
+function tiling(item: Pick<Item, 'poleConfig' | 'params'>, def: EquipmentDef) {
+  const kinds = poleKinds(item, def);
+  const tiles = def.poleMode === 'none' ? 0 : kinds.length;
+  return { kinds, tiles, axis: def.tileAxis ?? 'x' };
+}
+
+/** Size of an item in modules (DIN: width in 18 mm modules, US: height in breaker spaces). */
 export function itemWidthModules(item: Item, def: EquipmentDef): number {
   const asset = getAsset(def.id);
   if (!asset) return 1;
-  const kinds = poleKinds(item, def);
-  const w = def.poleMode === 'none' ? asset.width : kinds.length * asset.width;
-  return w / MODULE;
+  const { tiles, axis } = tiling(item, def);
+  if (def.tileAxis === 'y') return Math.max(1, tiles);
+  return (tiles && axis === 'x' ? tiles * asset.width : asset.width) / MODULE;
 }
 
 export function placeItem(panel: Panel, item: Item): Placed | null {
   const def = getDef(item.defId);
   const asset = getAsset(item.defId);
   if (!def || !asset) return null;
-  const kinds = poleKinds(item, def);
+  const { kinds, tiles, axis } = tiling(item, def);
+  const ri = railIndex(panel, item.railId);
   let x = item.x;
   let y = item.y;
-  let w = asset.width;
-  const h = asset.height;
-  let poleW = asset.width;
   if (def.mount === 'din') {
-    const ri = railIndex(panel, item.railId);
     if (ri < 0) return null;
     x = RAIL_X0 + (item.slot ?? 0) * MODULE;
-    y = railTop(ri) + (DIN_H - h) / 2;
-    w = def.poleMode === 'none' ? asset.width : Math.max(1, kinds.length) * asset.width;
+    y = railTop(ri) + (DIN_H - asset.height) / 2;
+  } else if (def.mount === 'us') {
+    if (ri < 0) return null;
+    x = usColumnX(Math.min(1, ri));
+    y = usRowTop(item.slot ?? 0);
   }
+  const w = tiles && axis === 'x' ? tiles * asset.width : asset.width;
+  const h = tiles && axis === 'y' ? tiles * asset.height : asset.height;
+  const mirrored = Boolean(def.mirrorTerminals && ((def.mount === 'us' && ri === 1) || item.params.side === 'right'));
   const terminals: Terminal[] = [];
   const ctx: EvalContext = { flags: {}, params: item.params, vars: {}, paramDefs: def.params };
   for (const t of asset.terminals) {
-    if (t.scope === 'pole' && def.mount === 'din') {
-      kinds.forEach((kind, p) => {
+    if (t.scope === 'pole' && tiles) {
+      for (let p = 0; p < tiles; p++) {
+        const kind = kinds[p];
+        const din = t.name === 'top' || t.name === 'bottom';
         const top = t.name === 'top';
-        const label = def.poleMode === 'config' ? (kind === 'N' ? 'N' : String(2 * p + (top ? 1 : 2))) : '';
+        const id = din ? `${top ? 'T' : 'B'}${p}` : `${t.name}${p}`;
+        const label = din ? (def.poleMode === 'config' ? (kind === 'N' ? 'N' : String(2 * p + (top ? 1 : 2))) : '') : (t.label ?? '');
+        const tx = mirrored ? asset.width - t.x : t.x;
         terminals.push({
-          id: `${top ? 'T' : 'B'}${p}`,
+          id,
           item: item.id,
-          x: x + p * poleW + t.x,
-          y: y + t.y,
-          dir: t.dir === 'down' ? DOWN : UP,
+          x: x + (axis === 'x' ? p * asset.width : 0) + tx,
+          y: y + (axis === 'y' ? p * asset.height : 0) + t.y,
+          dir: mirrored ? flip(dirVec(t.dir)) : dirVec(t.dir),
           label,
         });
-      });
+      }
     } else {
       if (!evalShow(t.show, ctx)) continue;
-      terminals.push({ id: t.name, item: item.id, x: x + t.x, y: y + t.y, dir: t.dir === 'down' ? DOWN : UP, label: t.name });
+      const tx = mirrored ? w - t.x : t.x;
+      terminals.push({ id: t.name, item: item.id, x: x + tx, y: y + t.y, dir: mirrored ? flip(dirVec(t.dir)) : dirVec(t.dir), label: t.label ?? t.name });
     }
   }
-  return { item, def, asset, x, y, w, h, poleW, kinds, terminals };
+  return { item, def, asset, x, y, w, h, poleW: asset.width, poleH: asset.height, kinds, terminals, mirrored };
 }
 
 export function enclosureRect(panel: Panel) {
+  if (isUs(panel)) return usEnclosure(panel);
   const n = panel.rails.length;
   const w = maxRailModules(panel) * MODULE + 2 * RAIL_X0;
   const bottom = railTop(Math.max(0, n - 1)) + ENCL_BOTTOM_PAD;
@@ -126,21 +184,27 @@ export function layoutPanel(panel: Panel): Layout {
   let maxX = encl.x + encl.w;
   let maxY = encl.y + encl.h;
   for (const p of placed.values()) {
-    // free items carry their label strip above (supply) or below (loads)
-    const strip = p.def.mount === 'free' ? 31 : 0;
+    // free items with a label strip carry it above (supply) or below (loads)
+    const strip = p.def.mount === 'free' && !p.def.noStrip ? 31 : 0;
     const above = p.def.role === 'source' ? strip : 0;
     minX = Math.min(minX, p.x);
     minY = Math.min(minY, p.y - above);
     maxX = Math.max(maxX, p.x + p.w);
     maxY = Math.max(maxY, p.y + p.h + (strip - above));
   }
+  // US breakers send their wires out of the sides: keep the channels in view
+  if (isUs(panel)) {
+    minX = Math.min(minX, encl.x - 60);
+    maxX = Math.max(maxX, encl.x + encl.w + 60);
+  }
   return { placed, terminals, encl, bounds: { x: minX, y: minY, w: maxX - minX, h: maxY - minY } };
 }
 
-/** Nearest free slot (multiple of 0.5 module) on a rail, or null if the device does not fit. */
+/** Nearest free position on a rail or US column (DIN: multiples of 0.5 module, US: whole spaces), or null if it does not fit. */
 export function findSlot(panel: Panel, railId: string, desired: number, widthModules: number, ignoreItem?: string): number | null {
   const rail = panel.rails.find((r) => r.id === railId);
   if (!rail) return null;
+  const step = isUs(panel) ? 1 : SNAP_MODULES;
   const occupied: [number, number][] = [];
   for (const it of panel.items) {
     if (it.id === ignoreItem || it.railId !== railId) continue;
@@ -151,7 +215,7 @@ export function findSlot(panel: Panel, railId: string, desired: number, widthMod
   }
   const eps = 1e-6;
   let best: number | null = null;
-  for (let s = 0; s + widthModules <= rail.modules + eps; s += SNAP_MODULES) {
+  for (let s = 0; s + widthModules <= rail.modules + eps; s += step) {
     if (occupied.some(([a, b]) => s < b - eps && s + widthModules > a + eps)) continue;
     if (best === null || Math.abs(s - desired) < Math.abs(best - desired)) best = s;
   }
@@ -166,4 +230,11 @@ export function nearestRail(panel: Panel, y: number): { railId: string; index: n
     if (!best || d < best.dist) best = { railId: r.id, index: i, dist: d };
   });
   return best;
+}
+
+/** US: the column (rail) whose breakers are closest to an x coordinate. */
+export function nearestUsColumn(panel: Panel, x: number): { railId: string; index: number } | null {
+  if (!panel.rails.length) return null;
+  const idx = x < usBusX() + US_BUS_W / 2 ? 0 : Math.min(1, panel.rails.length - 1);
+  return { railId: panel.rails[idx].id, index: idx };
 }

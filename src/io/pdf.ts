@@ -1,4 +1,6 @@
 import { getDef } from '../model/defs';
+import { layoutPanel } from '../model/geometry';
+import { simulate } from '../model/sim';
 import { autoMarkings, markingOf, readingOrder } from '../model/marking';
 import { colorByKey, potentialColorKey } from '../model/colors';
 import type { Panel, Project, RenderOptions } from '../model/types';
@@ -14,6 +16,8 @@ export interface PdfOptions {
   coverPage: boolean;
   titleBlock: boolean;
   equipmentList: boolean;
+  /** US panels: circuit schedule (circuit, breaker, description, wire, load). */
+  panelSchedule: boolean;
   legend: boolean;
   pageNumbers: boolean;
 }
@@ -24,6 +28,7 @@ export const DEFAULT_PDF_OPTIONS: Omit<PdfOptions, 'panelIds' | 'render'> = {
   coverPage: false,
   titleBlock: true,
   equipmentList: true,
+  panelSchedule: true,
   legend: true,
   pageNumbers: true,
 };
@@ -102,7 +107,7 @@ function drawLegend(doc: Doc, project: Project, panel: Panel, x: number, y: numb
   cx += 19;
   for (const pot of layoutKinds) {
     if (!used.has(pot)) continue;
-    const c = colorByKey(potentialColorKey(pot, project.settings));
+    const c = colorByKey(potentialColorKey(pot, project.settings, panel.region ?? 'eu'));
     doc.setFillColor(c.hex);
     doc.setDrawColor(40);
     doc.setLineWidth(0.2);
@@ -260,6 +265,81 @@ const pageDims = (size: 'a4' | 'a3', o: Orientation) => {
   return o === 'landscape' ? { pw: long, ph: short } : { pw: short, ph: long };
 };
 
+/** US circuit schedule: one row per breaker with its spaces, rating, description, wire gauge and the simulated load. */
+function scheduleTable(doc: Doc, project: Project, panel: Panel, pw: number, ph: number, addPage: () => void) {
+  const auto = autoMarkings(panel, project.settings.markingStandard);
+  const layout = layoutPanel(panel);
+  const sim = simulate(panel, layout, { live: true, autoTrip: false, tripped: [] });
+  const rows = readingOrder(panel)
+    .filter((i) => getDef(i.defId)?.role === 'us_breaker' || getDef(i.defId)?.role === 'us_main')
+    .map((i) => {
+      const def = getDef(i.defId)!;
+      const main = def.role === 'us_main';
+      const wire = panel.wires.find((w) => (w.from.item === i.id && w.from.terminal === 'load0') || (w.to.item === i.id && w.to.terminal === 'load0'));
+      const amps = sim.items[i.id]?.maxCurrent ?? 0;
+      const rating = Number(i.params.In ?? 0);
+      return [
+        markingOf(i, auto),
+        String(i.poleConfig ?? '').replace('P', ' pole'),
+        `${rating} A${i.params.type && i.params.type !== 'STD' ? ` ${i.params.type === 'DF' ? 'AFCI/GFCI' : i.params.type}` : ''}`,
+        main ? i.description || 'Main breaker' : i.description,
+        main ? '' : wire?.awg ? `${wire.awg} AWG` : '',
+        amps > 0 ? `${amps.toFixed(1)} A${rating ? ` (${Math.round((amps / rating) * 100)}%)` : ''}` : '-',
+      ];
+    });
+  const heads = ['Circuit', 'Poles', 'Breaker', 'Description', 'Wire', 'Load'];
+  const weights = [1, 1, 1.4, 3.2, 1.1, 1.8];
+  const tw = pw - 2 * M;
+  const total = weights.reduce((a, b) => a + b, 0);
+  const widths = weights.map((w) => (w / total) * tw);
+  const head = (y: number, cont: boolean) => {
+    doc.setFont(FONT, 'bold');
+    doc.setFontSize(13);
+    doc.setTextColor(20);
+    doc.text(`Panel schedule - ${panel.code ? panel.code + ' ' : ''}${panel.name}${cont ? ' (cont.)' : ''}`, M, y);
+    y += 6;
+    doc.setFillColor(226, 230, 235);
+    doc.rect(M, y, tw, 6.5, 'F');
+    doc.setFontSize(8);
+    let x = M;
+    heads.forEach((h, i) => {
+      doc.text(h, x + 1.5, y + 4.5);
+      x += widths[i];
+    });
+    return y + 6.5;
+  };
+  addPage();
+  let y = head(M + 4, false);
+  doc.setFont(FONT, 'normal');
+  doc.setFontSize(9);
+  rows.forEach((row, ri) => {
+    if (y + 7 > ph - M - 8) {
+      addPage();
+      y = head(M + 4, true);
+      doc.setFont(FONT, 'normal');
+      doc.setFontSize(9);
+    }
+    if (ri % 2 === 1) {
+      doc.setFillColor(246, 247, 249);
+      doc.rect(M, y, tw, 7, 'F');
+    }
+    doc.setTextColor(30);
+    let x = M;
+    row.forEach((cell, i) => {
+      doc.text((doc.splitTextToSize(cell || '', widths[i] - 3) as string[])[0] ?? '', x + 1.5, y + 4.8);
+      x += widths[i];
+    });
+    y += 7;
+  });
+  doc.setDrawColor(190);
+  doc.setLineWidth(0.2);
+  doc.line(M, y, M + tw, y);
+  if (!rows.length) {
+    doc.setTextColor(120);
+    doc.text('This panel has no breakers.', M + 1.5, y + 6);
+  }
+}
+
 /** Build a PDF of the chosen panels. Vector output: diagrams are drawn from the same SVG the editor uses. */
 export async function buildPdf(project: Project, opts: PdfOptions): Promise<Uint8Array> {
   const [{ jsPDF }, { svg2pdf }, regular, bold] = await Promise.all([import('jspdf'), import('svg2pdf.js'), fontBase64('LiberationSans-Regular.ttf'), fontBase64('LiberationSans-Bold.ttf')]);
@@ -319,6 +399,10 @@ export async function buildPdf(project: Project, opts: PdfOptions): Promise<Uint
     }
     if (opts.legend) drawLegend(doc, project, panel, M, ph - M - (opts.titleBlock ? 16 + 3 : 0) - 5);
     if (opts.titleBlock) drawTitleBlock(doc, project, panel, pw, ph, scale);
+    if (opts.panelSchedule && panel.region === 'us') {
+      const d = pageDims(opts.pageSize, textOrientation);
+      scheduleTable(doc, project, panel, d.pw, d.ph, () => void addPage(textOrientation));
+    }
     if (opts.equipmentList) {
       const d = pageDims(opts.pageSize, textOrientation);
       equipmentList(doc, project, panel, opts.render, d.pw, d.ph, () => void addPage(textOrientation));

@@ -1,4 +1,5 @@
-import type { EquipmentDef, Item, ParamDef, ParamValue } from './types';
+import type { CustomModule, EquipmentDef, Item, ParamDef, ParamValue } from './types';
+import { buildModuleDef } from './customModule';
 import { parseAsset, type ParsedAsset } from './asset';
 
 /** Pole layout per configuration: L = switched phase pole, N = switched neutral pole. */
@@ -28,8 +29,9 @@ export const CATEGORY_LABELS: Record<string, string> = {
   sockets: 'Sockets',
   sources: 'Supply',
   loads: 'Loads',
+  custom: 'Custom modules',
 };
-export const CATEGORY_ORDER = ['sources', 'protection', 'switching', 'connection', 'indication', 'sockets', 'loads'];
+export const CATEGORY_ORDER = ['sources', 'protection', 'switching', 'connection', 'indication', 'sockets', 'loads', 'custom'];
 
 const jsonMods = import.meta.glob('../assets/equipment/*.json', { eager: true, import: 'default' }) as Record<string, EquipmentDef>;
 const svgMods = import.meta.glob('../assets/equipment/*.svg', { eager: true, query: '?raw', import: 'default' }) as Record<string, string>;
@@ -51,6 +53,32 @@ for (const [path, def] of Object.entries(jsonMods)) {
   }
   registerEquipment(def, svg);
 }
+
+const customIds = new Set<string>();
+let customSig = '';
+
+/** Make the registry match the modules of the open project (they are removed again when another project is opened). */
+export function syncCustomModules(modules: CustomModule[]) {
+  const sig = JSON.stringify(modules);
+  if (sig === customSig) return;
+  customSig = sig;
+  for (const id of customIds) {
+    defs.delete(id);
+    assets.delete(id);
+  }
+  customIds.clear();
+  for (const m of modules) {
+    try {
+      const { def, svg } = buildModuleDef(m);
+      registerEquipment(def, svg);
+      customIds.add(def.id);
+    } catch (e) {
+      console.warn(`Module ${m.id} could not be built`, e);
+    }
+  }
+}
+
+export const isCustomDef = (id: string) => customIds.has(id);
 
 export const getDef = (id: string): EquipmentDef | undefined => defs.get(id);
 export const getAsset = (id: string): ParsedAsset | undefined => assets.get(id);

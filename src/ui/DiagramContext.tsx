@@ -2,7 +2,7 @@ import { createContext, useContext, useEffect, useMemo, type ReactNode } from 'r
 import { layoutPanel, type Layout } from '../model/geometry';
 import { autoMarkings } from '../model/marking';
 import { computeRoutes, type Route } from '../model/routing';
-import { simulate, type SimResult } from '../model/sim';
+import { emptyRuntime, simulate, type SimResult } from '../model/sim';
 import { selectActivePanel, useStore } from '../store/store';
 
 interface DiagramData {
@@ -23,14 +23,20 @@ export function DiagramProvider({ children }: { children: ReactNode }) {
 
   const layout = useMemo(() => layoutPanel(panel), [panel]);
   const routes = useMemo(() => computeRoutes(panel, layout), [panel, layout]);
-  const sim = useMemo(() => simulate(panel, layout, { live: simState.enabled, autoTrip: simState.autoTrip, tripped: simState.tripped }), [panel, layout, simState]);
+  const sim = useMemo(() => simulate(panel, layout, { live: simState.enabled, autoTrip: simState.autoTrip, tripped: simState.tripped, runtime: simState.runtime }), [panel, layout, simState]);
   const markings = useMemo(() => autoMarkings(panel, project.settings.markingStandard), [panel, project.settings.markingStandard]);
 
   // keep the stored trip list in step with what the simulator decided
   useEffect(() => {
-    if (!simState.enabled) return;
+    if (!simState.enabled) {
+      // switching the simulation off forgets latched inputs; the next start begins from the stored switch positions
+      if (Object.keys(simState.runtime.latched).length || Object.keys(simState.runtime.prev).length || Object.keys(simState.runtime.momentary ?? {}).length) setSim({ runtime: emptyRuntime() });
+      return;
+    }
     const a = new Set(simState.tripped);
     if (sim.tripped.length !== a.size || sim.tripped.some((t) => !a.has(t))) setSim({ tripped: sim.tripped });
+    // inputs that latched or changed state are kept for the next evaluation (it settles after one more pass)
+    if (JSON.stringify(sim.runtime) !== JSON.stringify(simState.runtime)) setSim({ runtime: sim.runtime });
   }, [sim, simState, setSim]);
 
   const value = useMemo(() => ({ layout, routes, sim, markings }), [layout, routes, sim, markings]);

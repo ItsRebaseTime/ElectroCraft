@@ -6,6 +6,8 @@ import {
   mdiMagnifyMinusOutline, mdiMagnifyPlusOutline, mdiMeterElectricOutline, mdiMinusThick, mdiPencilOutline, mdiPlus, mdiPower,
   mdiPowerSocketEu, mdiRedo, mdiRestore, mdiShieldAlertOutline, mdiSineWave, mdiSwapHorizontal, mdiToggleSwitchOutline, mdiTransmissionTower,
   mdiUndo, mdiVectorPolyline, mdiViewGridOutline, mdiConnection, mdiEyeOutline, mdiDownload,
+  mdiMenu, mdiTune, mdiPuzzleOutline, mdiShapePlusOutline, mdiRectangleOutline, mdiCircleOutline, mdiFormatText, mdiCursorMove,
+  mdiLayersOutline, mdiMonitor, mdiCellphone, mdiExport, mdiImport,
 } from '@mdi/js';
 
 /** Material Design Icons (Apache-2.0, pictogrammers.com/library/mdi). Only the paths in use are bundled. */
@@ -22,6 +24,10 @@ const PATHS: Record<string, string> = {
   socket: mdiPowerSocketEu, gridsupply: mdiTransmissionTower, load: mdiLightbulbOnOutline, flash: mdiFlash, flashOutline: mdiFlashOutline,
 };
 PATHS.grid_supply = mdiTransmissionTower;
+Object.assign(PATHS, {
+  menu: mdiMenu, tune: mdiTune, module: mdiPuzzleOutline, newModule: mdiShapePlusOutline, rect: mdiRectangleOutline, circle: mdiCircleOutline,
+  text: mdiFormatText, move: mdiCursorMove, layers: mdiLayersOutline, desktop: mdiMonitor, phone: mdiCellphone, exportFile: mdiExport, importFile: mdiImport,
+});
 
 export function Icon({ name, size = 18, title }: { name: string; size?: number; title?: string }) {
   const d = PATHS[name] ?? PATHS.flashOutline;

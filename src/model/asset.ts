@@ -5,16 +5,18 @@ export type Scope = 'pole' | 'device';
 export interface AssetNode {
   el: Element;
   scope: Scope;
-  stretch: boolean;
+  stretch: 'x' | 'y' | null;
 }
 
 export interface AssetTerminal {
   name: string;
   x: number;
   y: number;
-  dir: 'up' | 'down';
+  dir: 'up' | 'down' | 'left' | 'right';
   scope: Scope;
   show?: string;
+  /** Marking printed for this connection (data-label); falls back to the terminal name. */
+  label?: string;
 }
 
 export interface ParsedAsset {
@@ -54,14 +56,15 @@ export function parseAsset(svgText: string): ParsedAsset {
   for (const child of Array.from(root.children)) {
     if (child.nodeName === 'title' || child.nodeName === 'desc' || child.nodeName === 'metadata') continue;
     const scope: Scope = child.getAttribute('data-scope') === 'pole' ? 'pole' : 'device';
-    nodes.push({ el: child, scope, stretch: child.getAttribute('data-stretch') === 'x' });
+    const st = child.getAttribute('data-stretch');
+    nodes.push({ el: child, scope, stretch: st === 'x' || st === 'y' ? st : null });
     const marks = child.hasAttribute('data-terminal') ? [child] : Array.from(child.querySelectorAll('[data-terminal]'));
     for (const t of marks) {
       const name = t.getAttribute('data-terminal')!;
       const c = terminalCentre(t);
       const dirAttr = t.getAttribute('data-dir');
-      const dir: 'up' | 'down' = dirAttr === 'down' || (dirAttr === null && name === 'bottom') ? 'down' : 'up';
-      terminals.push({ name, x: c.x, y: c.y, dir, scope, show: inheritedShow(t, root) });
+      const dir: AssetTerminal['dir'] = dirAttr === 'left' || dirAttr === 'right' || dirAttr === 'down' ? dirAttr : dirAttr === 'up' ? 'up' : name === 'bottom' ? 'down' : 'up';
+      terminals.push({ name, x: c.x, y: c.y, dir, scope, show: inheritedShow(t, root), label: t.getAttribute('data-label') ?? undefined });
     }
   }
   return { width: vb[2], height: vb[3], nodes, terminals };

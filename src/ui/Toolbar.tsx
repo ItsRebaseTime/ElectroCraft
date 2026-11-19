@@ -1,25 +1,11 @@
 import { useEffect, useRef, useState } from 'react';
-import { loadSample, newProject, openProject, saveProject } from '../io/projectIO';
-import type { RenderOptions } from '../model/types';
+import { loadSample, loadUsSample, newProject, openProject, saveProject } from '../io/projectIO';
+import { emptyRuntime } from '../model/sim';
 import { useStore, type Tool } from '../store/store';
 import { Icon } from './Icon';
-
-const VIEW_TOGGLES: [keyof RenderOptions, string][] = [
-  ['showMarkings', 'Markings (-F1 ...)'],
-  ['showDescriptions', 'Descriptions'],
-  ['showCurrent', 'Rated current'],
-  ['showProtection', 'Curve / RCD / breaking cap.'],
-  ['showVoltage', 'Voltage'],
-  ['showPower', 'Power'],
-  ['showManufacturer', 'Manufacturer'],
-  ['showModel', 'Model'],
-  ['showTerminalNumbers', 'Terminal numbers'],
-  ['showWireLabels', 'Wire labels'],
-  ['showWireSections', 'Wire cross-sections'],
-  ['showRails', 'DIN rails'],
-  ['showEnclosure', 'Enclosure'],
-  ['showFreeItems', 'Supply and loads'],
-];
+import { useLayoutMode } from './layout';
+import { ModulesMenuItems } from './modules/ModulesMenu';
+import { ViewOptionsList } from './ViewOptions';
 
 function Menu({ icon, label, children }: { icon: string; label: string; children: React.ReactNode }) {
   const [open, setOpen] = useState(false);
@@ -56,16 +42,29 @@ function Menu({ icon, label, children }: { icon: string; label: string; children
   );
 }
 
+function LayoutSwitch() {
+  const mode = useLayoutMode((st) => st.mode);
+  const setMode = useLayoutMode((st) => st.setMode);
+  return (
+    <span className="seg small">
+      {(['auto', 'desktop', 'mobile'] as const).map((m) => (
+        <button key={m} className={mode === m ? 'on' : ''} aria-pressed={mode === m} onClick={() => setMode(m)}>
+          {m === 'auto' ? 'Auto' : m === 'desktop' ? 'Desktop' : 'Mobile'}
+        </button>
+      ))}
+    </span>
+  );
+}
+
 export function Toolbar() {
   const tool = useStore((s) => s.tool);
   const sim = useStore((s) => s.sim);
-  const options = useStore((s) => s.options);
   const past = useStore((s) => s.past.length);
   const future = useStore((s) => s.future.length);
   const dirty = useStore((s) => s.dirty);
   const fileName = useStore((s) => s.fileName);
   const project = useStore((s) => s.project);
-  const { setTool, setSim, setOptions, undo, redo, setExportOpen } = useStore.getState();
+  const { setTool, setSim, undo, redo, setExportOpen } = useStore.getState();
 
   const toolBtn = (t: Tool, icon: string, label: string, key: string) => (
     <button className={`tool ${tool === t ? 'on' : ''}`} title={`${label} (${key})`} aria-pressed={tool === t} onClick={() => setTool(t)}>
@@ -102,9 +101,14 @@ export function Toolbar() {
         <button title="Save as..." onClick={() => saveProject(true)}>
           <Icon name="saveAs" />
         </button>
-        <button title="Load sample project" onClick={loadSample}>
-          <Icon name="download" />
-        </button>
+        <Menu icon="download" label="">
+          <button className="menu-btn" onClick={() => (document.body.dispatchEvent(new MouseEvent('mousedown', { bubbles: true })), void loadSample())}>
+            <Icon name="download" size={18} /> Sample: EU house (1- and 3-phase)
+          </button>
+          <button className="menu-btn" onClick={() => (document.body.dispatchEvent(new MouseEvent('mousedown', { bubbles: true })), void loadUsSample())}>
+            <Icon name="download" size={18} /> Sample: US house (200 A load center)
+          </button>
+        </Menu>
       </div>
 
       <div className="group">
@@ -143,7 +147,11 @@ export function Toolbar() {
             <label className="check" title="Breakers and fuses open when current exceeds about 1.45 x In">
               <input type="checkbox" checked={sim.autoTrip} onChange={(e) => setSim({ autoTrip: e.target.checked })} /> Auto-trip
             </label>
-            <button title="Re-arm all tripped devices" disabled={!sim.tripped.length} onClick={() => setSim({ tripped: [] })}>
+            <button
+              title="Re-arm all tripped devices and reset latched module inputs"
+              disabled={!sim.tripped.length && !Object.keys(sim.runtime.latched).length && !Object.values(sim.runtime.momentary ?? {}).some(Boolean)}
+              onClick={() => setSim({ tripped: [], runtime: emptyRuntime() })}
+            >
               <Icon name="reset" /> {sim.tripped.length || ''}
             </button>
           </>
@@ -152,12 +160,15 @@ export function Toolbar() {
 
       <div className="spacer" />
 
+      <Menu icon="module" label="Modules">
+        <ModulesMenuItems variant="menu" onDone={() => document.body.dispatchEvent(new MouseEvent('mousedown', { bubbles: true }))} />
+      </Menu>
       <Menu icon="eye" label="View">
-        {VIEW_TOGGLES.map(([key, label]) => (
-          <label key={key} className="menu-item">
-            <input type="checkbox" checked={options[key]} onChange={(e) => setOptions({ [key]: e.target.checked })} /> {label}
-          </label>
-        ))}
+        <ViewOptionsList />
+        <div className="menu-heading">Layout</div>
+        <div className="menu-pad">
+          <LayoutSwitch />
+        </div>
       </Menu>
       <button className="primary" onClick={() => setExportOpen(true)}>
         <Icon name="pdf" /> Export PDF

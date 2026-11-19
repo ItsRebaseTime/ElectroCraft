@@ -35,9 +35,15 @@ Keep the working copy on a local disk: `node_modules` is slow and fragile on net
 * project files (round trip, validation, unknown devices),
 * PDF generation (builds a multi-page PDF in a simulated DOM; text measurement is approximated there).
 
-**Browser tests** (`e2e/`) drive the real app in headless Firefox with Selenium: selecting and editing devices,
-undo / redo, dragging with snapping, wiring by drag and by click, bend editing, the palette, the simulation, saving and
-real PDF export.
+**Browser tests** (`e2e/`) drive the real app in headless Firefox with Selenium:
+
+* `editor-basic`, `editor-advanced`: selecting and editing devices, undo / redo, dragging with snapping, wiring by drag and
+  by click, bend editing, the palette, the simulation, saving and real PDF export,
+* `layout-and-views`: panel deletion, right-click panning, wire visibility, and the phone layout (user agent, pinch zoom,
+  sheets),
+* `modules`: designing, drawing, saving, placing, exporting and importing custom modules, desktop and phone,
+* `relays`: wired relay circuits (control relay follows its coil, impulse relay toggles and latches, reset),
+* `us-panel`: the US load center (sample, simulation, dragging between spaces and columns, AWG, creating a panel, PDF).
 
 ```bash
 npm run build && npx vite preview --port 4173 &
@@ -45,7 +51,8 @@ npm i --no-save selenium-webdriver     # not saved to package.json
 npm run test:e2e
 ```
 
-`node e2e/screenshots.mjs` regenerates the images in [images/](images) (it also needs `pdftoppm` from poppler).
+`node e2e/screenshots.mjs` regenerates the images in [images/](images), including the phone and module designer shots (it also
+needs `pdftoppm` from poppler).
 The example projects in [examples/](examples) are the inputs for those screenshots.
 
 ## Adding a device

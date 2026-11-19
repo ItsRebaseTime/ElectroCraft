@@ -1,10 +1,10 @@
 import { useCallback, useEffect, useRef, useState, type DragEvent, type PointerEvent as RPointerEvent } from 'react';
 import { getDef } from '../model/defs';
-import { MODULE, RAIL_X0, STUB, findSlot, itemWidthModules, nearestRail, termKey } from '../model/geometry';
+import { MODULE, RAIL_X0, STUB, US_SPACE_H, findSlot, itemWidthModules, nearestRail, nearestUsColumn, termKey, usRowTop } from '../model/geometry';
 import { nodesFromRoute } from '../model/routing';
 import type { Panel, Vec, WireDraft } from '../model/types';
 import { PanelDiagram } from '../render/PanelDiagram';
-import { addEquipment, addWire, duplicateItems, removeItems, removeWires, toggleBridge, updateItem } from '../store/actions';
+import { addEquipment, addWire, duplicateItems, removeItems, removeWires, toggleBridge, toggleSwitch, updateItem } from '../store/actions';
 import { selectActivePanel, useStore, type Viewport } from '../store/store';
 import { useDiagram } from './DiagramContext';
 import { Icon } from './Icon';
@@ -15,7 +15,7 @@ interface Hit {
 }
 
 type Drag =
-  | { type: 'pan'; sx: number; sy: number; vx: number; vy: number }
+  | { type: 'pan'; sx: number; sy: number; vx: number; vy: number; right?: boolean; moved?: boolean }
   | { type: 'item'; id: string; gx: number; gy: number; sx: number; sy: number; started: boolean }
   | { type: 'wire'; sx: number; sy: number; moved: boolean }
   | { type: 'node'; wire: string; idx: number; orig: Vec[]; started: boolean; sx: number; sy: number }
@@ -72,6 +72,20 @@ export function Editor() {
   const svgRef = useRef<SVGSVGElement>(null);
   const wrapRef = useRef<HTMLDivElement>(null);
   const dragRef = useRef<Drag | null>(null);
+  // active pointers (for two-finger pinch/pan), pinch start state, and double-tap tracking
+  const pointers = useRef(new Map<number, { x: number; y: number }>());
+  const pinch = useRef<{ d0: number; mid0: { x: number; y: number }; vp0: Viewport } | null>(null);
+  const tapRef = useRef<{ t: number; x: number; y: number } | null>(null);
+  const downRef = useRef<{ t: number; x: number; y: number } | null>(null);
+  const lastDouble = useRef(0);
+  const [coarse, setCoarse] = useState(() => typeof window !== 'undefined' && window.matchMedia?.('(pointer: coarse)').matches);
+  useEffect(() => {
+    const mq = window.matchMedia?.('(pointer: coarse)');
+    if (!mq) return;
+    const h = () => setCoarse(mq.matches);
+    mq.addEventListener('change', h);
+    return () => mq.removeEventListener('change', h);
+  }, []);
   const [size, setSize] = useState({ w: 0, h: 0 });
   const [hover, setHover] = useState<string | null>(null);
   const [draft, setDraft] = useState<WireDraft | null>(null);
@@ -231,7 +245,18 @@ export function Editor() {
             const def = it && getDef(it.defId);
             if (!it || !def) continue;
             if (def.mount === 'free') updateItem(pn, id, { x: it.x + dx * 5, y: it.y + dy * 5 });
-            else if (dx) {
+            else if (def.mount === 'us') {
+              // up/down: one breaker space; left/right: the other column
+              const w = itemWidthModules(it, def);
+              let railId = it.railId ?? '';
+              if (dx) railId = pn.rails[dx < 0 ? 0 : Math.min(1, pn.rails.length - 1)].id;
+              const want = (it.slot ?? 0) + dy;
+              const slot = findSlot(pn, railId, want, w, it.id);
+              if (slot !== null && slot === want) {
+                it.railId = railId;
+                it.slot = slot;
+              } else if (dx || dy) err = 'Blocked by a neighbouring breaker.';
+            } else if (dx) {
               const w = itemWidthModules(it, def);
               const slot = findSlot(pn, it.railId ?? '', (it.slot ?? 0) + dx * 0.5, w, it.id);
               if (slot !== null && Math.abs(slot - ((it.slot ?? 0) + dx * 0.5)) < 1e-6) it.slot = slot;
@@ -254,21 +279,40 @@ export function Editor() {
   }, [deleteSelection, fit, mutate, notify, panel.id, select, setTool]);
 
   // ---------------------------------------------------------------- pointer handling
+  /** Keep receiving events while a drag leaves the canvas. Can throw if the pointer is already gone: ignore. */
+  const capture = (e: RPointerEvent<SVGSVGElement>) => {
+    try {
+      svgRef.current?.setPointerCapture(e.pointerId);
+    } catch {
+      /* pointer no longer active */
+    }
+  };
   const onPointerDown = (e: RPointerEvent<SVGSVGElement>) => {
-    const svg = svgRef.current!;
+    pointers.current.set(e.pointerId, { x: e.clientX, y: e.clientY });
+    downRef.current = { t: Date.now(), x: e.clientX, y: e.clientY };
+    if (pointers.current.size === 2) {
+      // second finger: switch to pinch zoom + two-finger pan, dropping whatever one finger had started
+      const [a, b] = Array.from(pointers.current.values());
+      pinch.current = { d0: Math.max(1, Math.hypot(a.x - b.x, a.y - b.y)), mid0: { x: (a.x + b.x) / 2, y: (a.y + b.y) / 2 }, vp0: vpRef.current };
+      dragRef.current = null;
+      return;
+    }
+    if (pointers.current.size > 2) return;
     if (e.button === 2) {
-      setDraft(null);
+      // right button drags the view (desktop); a plain right click still cancels a wire in progress
+      capture(e);
+      dragRef.current = { type: 'pan', sx: e.clientX, sy: e.clientY, vx: vp.x, vy: vp.y, right: true, moved: false };
       return;
     }
     const pt = toDiagram(e.clientX, e.clientY);
     const hit = hitOf(e.target);
     if (e.button === 1 || (e.button === 0 && (tool === 'pan' || space))) {
-      svg.setPointerCapture(e.pointerId);
+      capture(e);
       dragRef.current = { type: 'pan', sx: e.clientX, sy: e.clientY, vx: vp.x, vy: vp.y };
       return;
     }
     if (e.button !== 0) return;
-    svg.setPointerCapture(e.pointerId);
+    capture(e);
 
     if (draftRef.current) {
       // click-click wiring: second click on a terminal finishes, empty clicks add bends (wire tool)
@@ -320,6 +364,15 @@ export function Editor() {
         const it = panel.items.find((x) => x.id === hit.id);
         const def = it && getDef(it.defId);
         if (!it || !def) return;
+        // a custom module's own switch widget: flip that switch (simulation mode)
+        // (the invisible hit area over the device is the event target, so look through the stack under the pointer)
+        const swEl = document.elementsFromPoint(e.clientX, e.clientY).find((el) => el.closest('[data-switch]'))?.closest('[data-switch]') ?? null;
+        if (simState.enabled && swEl && def.module?.switches?.length) {
+          const swId = swEl.getAttribute('data-switch')!;
+          mutate((p) => toggleSwitch(panelOf(p, panel.id), it.id, swId));
+          select({ kind: 'item', ids: [it.id] });
+          return;
+        }
         if (simState.enabled && def.stateful) {
           mutate((p) => {
             const t = panelOf(p, panel.id).items.find((x) => x.id === it.id)!;
@@ -351,9 +404,22 @@ export function Editor() {
   };
 
   const onPointerMove = (e: RPointerEvent<SVGSVGElement>) => {
+    if (pointers.current.has(e.pointerId)) pointers.current.set(e.pointerId, { x: e.clientX, y: e.clientY });
+    if (pinch.current && pointers.current.size >= 2) {
+      const [a, b] = Array.from(pointers.current.values());
+      const { d0, mid0, vp0 } = pinch.current;
+      const r = svgRef.current!.getBoundingClientRect();
+      const z = Math.min(MAX_Z, Math.max(MIN_Z, (vp0.z * Math.hypot(a.x - b.x, a.y - b.y)) / d0));
+      const mid = { x: (a.x + b.x) / 2, y: (a.y + b.y) / 2 };
+      const wx = (mid0.x - r.left - vp0.x) / vp0.z;
+      const wy = (mid0.y - r.top - vp0.y) / vp0.z;
+      setViewport(panel.id, { z, x: mid.x - r.left - wx * z, y: mid.y - r.top - wy * z });
+      return;
+    }
     const d = dragRef.current;
     const pt = toDiagram(e.clientX, e.clientY);
     if (d?.type === 'pan') {
+      if (!d.moved && Math.hypot(e.clientX - d.sx, e.clientY - d.sy) > 4) d.moved = true;
       setViewport(panel.id, { ...vpRef.current, x: d.vx + (e.clientX - d.sx), y: d.vy + (e.clientY - d.sy) });
       return;
     }
@@ -379,6 +445,16 @@ export function Editor() {
         if (def.mount === 'free') {
           it.x = snap(pt.x - d.gx, 5);
           it.y = snap(pt.y - d.gy, 5);
+        } else if (def.mount === 'us') {
+          const col = nearestUsColumn(pn, pt.x);
+          if (!col) return;
+          const w = itemWidthModules(it, def);
+          const row = Math.round((pt.y - d.gy - usRowTop(0)) / US_SPACE_H);
+          const slot = findSlot(pn, col.railId, row, w, it.id);
+          if (slot !== null) {
+            it.railId = col.railId;
+            it.slot = slot;
+          }
         } else {
           const near = nearestRail(pn, pt.y);
           if (!near) return;
@@ -425,8 +501,26 @@ export function Editor() {
   };
 
   const onPointerUp = (e: RPointerEvent<SVGSVGElement>) => {
+    const wasPinching = pinch.current !== null;
+    pointers.current.delete(e.pointerId);
+    if (pointers.current.size < 2) pinch.current = null;
+    if (wasPinching) {
+      dragRef.current = null;
+      return;
+    }
     const d = dragRef.current;
     dragRef.current = null;
+    if (d?.type === 'pan' && d.right && !d.moved) setDraft(null); // plain right click cancels a wire in progress
+    // double tap (touch has no dblclick on every browser)
+    const down = downRef.current;
+    if (e.pointerType === 'touch' && down && Date.now() - down.t < 350 && Math.hypot(e.clientX - down.x, e.clientY - down.y) < 10) {
+      const last = tapRef.current;
+      if (last && Date.now() - last.t < 450 && Math.hypot(e.clientX - last.x, e.clientY - last.y) < 28) {
+        tapRef.current = null;
+        lastDouble.current = Date.now();
+        doubleAt(e.clientX, e.clientY);
+      } else tapRef.current = { t: Date.now(), x: e.clientX, y: e.clientY };
+    }
     try {
       svgRef.current?.releasePointerCapture(e.pointerId);
     } catch {
@@ -447,9 +541,14 @@ export function Editor() {
   };
 
   const onDoubleClick = (e: React.MouseEvent<SVGSVGElement>) => {
+    if (Date.now() - lastDouble.current < 700) return; // already handled as a double tap
+    doubleAt(e.clientX, e.clientY);
+  };
+
+  const doubleAt = (clientX: number, clientY: number) => {
     // pointer capture retargets click/dblclick to the <svg>, so look at what is actually under the cursor
-    const hit = hitOf(document.elementFromPoint(e.clientX, e.clientY));
-    const pt = toDiagram(e.clientX, e.clientY);
+    const hit = hitOf(document.elementFromPoint(clientX, clientY));
+    const pt = toDiagram(clientX, clientY);
     if (hit?.kind === 'n') {
       const [wire, idx] = hit.id.split(':');
       mutate((p) => {
@@ -508,6 +607,7 @@ export function Editor() {
         onPointerDown={onPointerDown}
         onPointerMove={onPointerMove}
         onPointerUp={onPointerUp}
+        onPointerCancel={onPointerUp}
         onDoubleClick={onDoubleClick}
         onContextMenu={(e) => e.preventDefault()}
       >
@@ -530,6 +630,7 @@ export function Editor() {
             animate={simState.enabled}
             selection={selection}
             hoverTerminal={hover && layout.terminals.has(hover) ? hover : null}
+            touchHit={coarse ? 1 / vp.z : 0}
             draft={draft}
           />
         </g>
@@ -555,7 +656,9 @@ export function Editor() {
             : 'Click a terminal to finish the wire. Esc cancels.'
           : simState.enabled
             ? 'Power simulation: click a breaker or switch to flip it.'
-            : 'Drag from a terminal to wire. Scroll to zoom, drag background to pan.'}
+            : coarse
+              ? 'Tap a terminal, then another terminal, to wire. Pinch to zoom, drag to pan.'
+              : 'Drag from a terminal to wire. Scroll to zoom, drag or right-drag to pan.'}
       </div>
       <span className="zoom">{Math.round(vp.z * 100)}%</span>
     </div>

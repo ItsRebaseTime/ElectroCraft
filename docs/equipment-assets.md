@@ -91,3 +91,29 @@ properties panel, `show` hides a parameter unless an expression holds (`"phases>
 **Terminal names.** On DIN devices the SVG marks one `top` and one `bottom` terminal per pole; the app names them
 `T0`, `B0`, `T1`, `B1`... Free devices and device-scope terminals use the names in the SVG (`L1`, `N`, `PE`...), which
 must match what the role expects (see the table).
+
+## US devices, tiling axis and mirroring
+
+DIN devices repeat their pole tile **along x**. US breakers repeat it **along y** (a 2-pole breaker is two 20 mm tiles
+stacked in two breaker spaces), which is set with `"tileAxis": "y"`; a stretched layer then uses `data-stretch="y"`.
+
+| definition field | meaning |
+| --- | --- |
+| `"mount": "us"` | the device sits in a breaker space of a US load center (`railId` = column, `slot` = row) |
+| `"region": "eu" \| "us" \| "all"` | which panel types offer the device in the palette (default `eu`) |
+| `"tileAxis": "x" \| "y"` | direction the pole tiles repeat |
+| `"mirrorTerminals": true` | terminals are drawn for the left column; the right column mirrors them (and `side-right` replaces `side-left`) |
+| `"noStrip": true` | the art carries its own text; no label strip is drawn |
+| `role: "us_breaker"` | load terminals `load0`, `load1`... are fed from the panel bus by the breaker's row |
+| `role: "us_main"` | line terminals `line0`... feed the bus |
+
+Extra visibility flags: `side-left` and `side-right`. Extra tokens: `{{description}}` (shortened) next to `{{marking}}`.
+Terminals may point `up`, `down`, `left` or `right` (`data-dir`). Pole-scope terminals other than `top` / `bottom` get the
+tile index appended to their name (`load` becomes `load0`, `load1`).
+
+## Custom modules
+
+User-designed modules are turned into the same two things: the app generates the SVG (body, your shapes as layers with
+`data-show`, switch lever layers, terminals with `data-label` markings) and a definition with `role: "module"`, then
+registers them next to the built-in devices. For each internal switch the art contains a clickable widget
+(`data-switch="<id>"`) whose layers use the per-switch flags `sw-<id>` (actuated) and `swc-<id>` (a contact of the switch is conducting). A switch marked hidden gets no widget but keeps its flags. Inputs add the flag `in-<id>` (the input is energised). Nothing is written to `src/assets`; the design lives in the project file.

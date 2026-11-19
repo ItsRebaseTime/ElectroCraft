@@ -1,5 +1,5 @@
-import { createItem, createPanel, createProject, connect } from './project';
-import { ENCL_BOTTOM_PAD, railTop } from './geometry';
+import { createItem, createPanel, createProject, createUsPanel, connect } from './project';
+import { ENCL_BOTTOM_PAD, enclosureRect, railTop } from './geometry';
 import type { Panel, Project } from './types';
 
 /** A small flat: main switch, RCD, three MCBs, N/PE bars, pilot light and three loads. */
@@ -83,5 +83,55 @@ export function sampleProject(): Project {
   const project = createProject('Sample house');
   project.author = '';
   project.panels = [flatPanel(), workshopPanel()];
+  return project;
+}
+
+/** A US 200 A split-phase load center: AFCI / GFCI 120 V circuits and three 240 V appliances. */
+export function usPanel(): Panel {
+  const p = createUsPanel('Main panel', 12, { code: 'MDP', room: 'Garage' });
+  const [left, right] = p.rails;
+  const encl = enclosureRect(p);
+  const loadY = encl.h + 90;
+  const supply = createItem('us_supply', { x: 60, y: -240, description: 'Utility service' });
+  const main = createItem('us_main', { x: (encl.w - 90) / 2, y: 14, poleConfig: '2P', params: { In: 200 } });
+  const nbar = createItem('us_neutral_bar', { x: 20, y: encl.h - 46, description: 'Neutral bar', params: { count: 8 } });
+  const gbar = createItem('us_ground_bar', { x: encl.w - 20 - 80, y: encl.h - 46, description: 'Ground bar', params: { count: 8 } });
+  const br = (rail: string, row: number, cfg: string, In: number, type: string, description: string) =>
+    createItem('us_breaker', { railId: rail, slot: row, poleConfig: cfg, description, params: { In, type, Icn: 10000 } });
+  const bLights = br(left.id, 0, '1P', 15, 'AFCI', 'Bedroom lights');
+  const bKitchen = br(left.id, 1, '1P', 20, 'GFCI', 'Kitchen receptacles');
+  const bAc = br(left.id, 2, '2P', 30, 'STD', 'Air conditioner');
+  const bRange = br(right.id, 0, '2P', 40, 'STD', 'Range');
+  const bDryer = br(right.id, 2, '2P', 30, 'STD', 'Dryer');
+  const ld = (i: number, description: string, params: Record<string, number | string>) =>
+    createItem('load', { x: -190 + i * 125, y: loadY, description, params: { cosphi: 1, ...params } });
+  const lLights = ld(0, 'Bedroom lights', { kind: 'lamp', phases: 1, P: 480 });
+  const lKitchen = ld(1, 'Kitchen receptacles', { kind: 'socket', phases: 1, P: 1500 });
+  const lAc = ld(2, 'Air conditioner', { kind: 'motor', phases: 2, P: 3500, cosphi: 0.9 });
+  const lRange = ld(3, 'Range', { kind: 'heater', phases: 2, P: 8000 });
+  const lDryer = ld(4, 'Dryer', { kind: 'heater', phases: 2, P: 5000 });
+  p.items.push(supply, main, nbar, gbar, bLights, bKitchen, bAc, bRange, bDryer, lLights, lKitchen, lAc, lRange, lDryer);
+  const w = (a: [typeof supply, string], b: [typeof supply, string], awg: string) => connect(p, a, b, { awg });
+  w([supply, 'L1'], [main, 'line0'], '2/0');
+  w([supply, 'L2'], [main, 'line1'], '2/0');
+  w([supply, 'N'], [nbar, 'term0'], '2/0');
+  w([supply, 'PE'], [gbar, 'term0'], '4');
+  w([bLights, 'load0'], [lLights, 'L1'], '14');
+  w([bKitchen, 'load0'], [lKitchen, 'L1'], '12');
+  w([bAc, 'load0'], [lAc, 'L1'], '10');
+  w([bAc, 'load1'], [lAc, 'L2'], '10');
+  w([bRange, 'load0'], [lRange, 'L1'], '8');
+  w([bRange, 'load1'], [lRange, 'L2'], '8');
+  w([bDryer, 'load0'], [lDryer, 'L1'], '10');
+  w([bDryer, 'load1'], [lDryer, 'L2'], '10');
+  w([nbar, 'term1'], [lLights, 'N'], '14');
+  w([nbar, 'term2'], [lKitchen, 'N'], '12');
+  [lLights, lKitchen, lAc, lRange, lDryer].forEach((l, i) => w([gbar, `term${i + 1}`], [l, 'PE'], i === 0 ? '14' : '12'));
+  return p;
+}
+
+export function sampleUsProject(): Project {
+  const project = createProject('US sample house');
+  project.panels = [usPanel()];
   return project;
 }

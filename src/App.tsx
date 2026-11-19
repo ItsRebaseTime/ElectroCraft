@@ -9,10 +9,15 @@ import { Palette } from './ui/Palette';
 import { ProjectTree } from './ui/ProjectTree';
 import { Properties } from './ui/Properties';
 import { Toolbar } from './ui/Toolbar';
+import { useResolvedLayout } from './ui/layout';
+import { MobileApp } from './ui/MobileApp';
+import { ModuleEditor } from './ui/modules/ModuleEditor';
+import { ModuleDialogs } from './ui/modules/ModulesMenu';
 
 export default function App() {
   const name = useStore((s) => s.project.name);
   const dirty = useStore((s) => s.dirty);
+  const layoutKind = useResolvedLayout();
 
   useEffect(() => {
     document.title = `${name}${dirty ? ' *' : ''} - ElectroCraft`;
@@ -50,22 +55,28 @@ export default function App() {
 
   return (
     <DiagramProvider>
-      <div className="app">
-        <Toolbar />
-        <div className="main">
-          <aside className="left">
-            <ProjectTree />
-            <Palette />
-          </aside>
-          <main>
-            <Editor />
-          </main>
-          <aside className="right">
-            <Properties />
-          </aside>
+      {layoutKind === 'mobile' ? (
+        <MobileApp onExport={() => useStore.getState().setExportOpen(true)} />
+      ) : (
+        <div className="app">
+          <Toolbar />
+          <div className="main">
+            <aside className="left">
+              <ProjectTree />
+              <Palette />
+            </aside>
+            <main>
+              <Editor />
+            </main>
+            <aside className="right">
+              <Properties />
+            </aside>
+          </div>
         </div>
-      </div>
+      )}
       <ExportDialog />
+      <ModuleEditor />
+      <ModuleDialogs />
       <ConfirmHost />
       <ToastHost />
     </DiagramProvider>

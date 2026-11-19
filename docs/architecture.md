@@ -28,6 +28,7 @@ src/
     sim.ts        conductor identity, energised wires, currents, trips
     marking.ts    automatic IEC 81346 / simple markings
     colors.ts     wire colours and the conductor colour convention
+    customModule.ts  custom modules: terminals, generated SVG + definition, validation, .ecm files
     project.ts    create / validate / migrate project files
     sample.ts     the built-in sample project
   render/       SVG drawing, shared by the editor and the exports
@@ -38,6 +39,9 @@ src/
   store/        zustand store + pure editing operations (actions.ts)
   io/           file open/save (browser or Tauri), PDF builder, project open/save commands
   ui/           React components: editor canvas, toolbar, palette, properties, dialogs
+    layout.ts       user-agent based choice between desktop and phone layout
+    MobileApp.tsx   phone layout: bottom navigation, sheets, selection bar
+    modules/        module designer, import/export dialogs, module operations
   assets/equipment/   the equipment definitions and artwork (see equipment-assets.md)
 ```
 
@@ -61,6 +65,29 @@ src/
 The key idea is that **`PanelDiagram` is the only place a panel is drawn**. The editor mounts it with interaction
 handlers and animation; the exports render the very same component to a static SVG string, so what you see is what is
 printed. All of `model/` is pure functions on plain data, which is why it is covered by fast unit tests.
+
+## Panel types
+
+`geometry.ts` lays out both panel types. **EU** panels have DIN rows (a row is 90 mm of device plus label strip, rows are
+180 mm apart, wires use the gutters between rows). **US** load centers (`panel.region === 'us'`) have two vertical columns of
+20 mm breaker spaces beside a central bus; breakers exit sideways, so `routing.ts` adds **side channels** outside the
+enclosure and a lane per wire, next to the gutters above and below the panel. Placement (`findSlot`), markings and the
+editor's drag logic branch on the panel type; the simulator treats the bus as nodes (see [simulation.md](simulation.md)).
+
+## Custom modules
+
+A module is plain data in `project.modules`. `buildModuleDef()` turns it into an SVG and an equipment definition, and
+`syncCustomModules()` registers them in the same registry as the built-in devices whenever the project changes (the store
+calls it on load, edit, undo and redo, and it only rebuilds when the modules actually changed). Everything downstream, the
+palette, layout, simulation, rendering and PDF, therefore needs no special case beyond the simulator's `module` role.
+
+## Layout detection and touch
+
+`ui/layout.ts` resolves the layout from an explicit choice (`?layout=`, saved setting), then the user agent
+(`navigator.userAgentData.mobile` or a phone pattern), then the window width. The editor canvas uses pointer events: one
+pointer is a mouse or one finger, two active pointers switch to pinch-zoom and pan, a right-button drag pans, and double taps
+are detected by hand because not every mobile browser sends `dblclick`. On coarse pointers, terminals and handles get larger
+hit areas (`touchHit`).
 
 ## Equipment assets
 
