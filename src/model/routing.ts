@@ -62,6 +62,11 @@ export function computeRoutes(panel: Panel, layout: Layout): Map<string, Route> 
   // channels beside the DIN rails (EU) or just outside the enclosure (US)
   const leftX = us ? encl.x - 16 : encl.x + RAIL_X0 - 22;
   const rightX = us ? encl.x + encl.w + 16 : encl.x + encl.w - RAIL_X0 + 22;
+  // EU: every section has a channel on each side of its rails; wires use the one closest to their ends
+  // (lanes fan out towards the enclosure wall, i.e. away from the rails)
+  const channels: { x: number; dir: -1 | 1 }[] = us
+    ? [{ x: leftX, dir: -1 }, { x: rightX, dir: 1 }]
+    : layout.sections.flatMap((g) => [{ x: g.x + RAIL_X0 - 22, dir: -1 as const }, { x: g.x + g.w - RAIL_X0 + 22, dir: 1 as const }]);
 
   const vertical: (Prepared & { ga: { g: number; y: number }; gb: { g: number; y: number } })[] = [];
   const sideways: Prepared[] = [];
@@ -118,8 +123,9 @@ export function computeRoutes(panel: Panel, layout: Layout): Map<string, Route> 
       const y = laneY(ga.g, wire.id);
       pts = [a, a1, { x: a1.x, y }, { x: b1.x, y }, b1, b];
     } else {
-      const toLeft = Math.abs(a1.x - leftX) + Math.abs(b1.x - leftX) <= Math.abs(a1.x - rightX) + Math.abs(b1.x - rightX);
-      const sx = toLeft ? leftX - (idx % 6) * LANE : rightX + (idx % 6) * LANE;
+      const cost = (c: { x: number }) => Math.abs(a1.x - c.x) + Math.abs(b1.x - c.x);
+      const ch = channels.reduce((best, c) => (cost(c) < cost(best) ? c : best), channels[0]);
+      const sx = ch.x + ch.dir * (idx % 6) * LANE;
       const ya = laneY(ga.g, wire.id);
       const yb = laneY(gb.g, wire.id);
       pts = [a, a1, { x: a1.x, y: ya }, { x: sx, y: ya }, { x: sx, y: yb }, { x: b1.x, y: yb }, b1, b];

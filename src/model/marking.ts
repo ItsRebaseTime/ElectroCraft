@@ -1,6 +1,6 @@
 import { getDef, poleKinds } from './defs';
 import type { Item, MarkingStandard, Panel } from './types';
-import { isRailMounted, isUs, railIndex, usSpaceNumber } from './geometry';
+import { isRailMounted, isUs, itemRailOrder, railIndex, usSpaceNumber } from './geometry';
 
 /** Order devices the way they are read: rail by rail, left to right (US: row by row, left column then right); free items afterwards. */
 export function readingOrder(panel: Panel): Item[] {
@@ -13,7 +13,7 @@ export function readingOrder(panel: Panel): Item[] {
     .sort((a, b) =>
       us
         ? (a.slot ?? 0) - (b.slot ?? 0) || railIndex(panel, a.railId) - railIndex(panel, b.railId)
-        : railIndex(panel, a.railId) - railIndex(panel, b.railId) || (a.slot ?? 0) - (b.slot ?? 0),
+        : itemRailOrder(panel, a) - itemRailOrder(panel, b) || (a.slot ?? 0) - (b.slot ?? 0),
     );
   const free = panel.items
     .filter((i) => {

@@ -1,11 +1,11 @@
 import { bridgesOf, getDef, optionList, POLE_CONFIG_LABELS, paramVisible, poleKinds } from '../model/defs';
-import { termKey } from '../model/geometry';
+import { sectionGeometry, termKey } from '../model/geometry';
 import { markingOf } from '../model/marking';
 import { colorByKey, potentialColorKey, WIRE_COLORS } from '../model/colors';
 import { floorsOf } from '../model/project';
 import { evalShow } from '../model/expr';
 import type { InputMode, Item, Panel, ParamDef, ParamValue, TerminalRef, Wire } from '../model/types';
-import { addRail, duplicateItems, moveRail, removeItems, removeRail, removeWires, setBridges, setInputMode, setRailLength, setUsPhases, setUsRows, toggleBridge, toggleSwitch, updateItem } from '../store/actions';
+import { addRail, addSection, duplicateItems, findSectionBar, removeSection, renameSection, setRailSection, setSectionBar, moveRail, removeItems, removeRail, removeWires, setBridges, setInputMode, setRailLength, setUsPhases, setUsRows, toggleBridge, toggleSwitch, updateItem } from '../store/actions';
 import { selectActivePanel, useStore } from '../store/store';
 import { useDiagram } from './DiagramContext';
 import { Field, NumberField, TextField } from './fields';
@@ -192,8 +192,8 @@ function ItemProps({ itemId }: { itemId: string }) {
                   onChange={(e) => mutate((d) => setInputMode(panelIn(d, panel.id), item.id, inp.id, e.target.value === inp.mode ? null : (e.target.value as InputMode)))}
                 >
                   {INPUT_MODES.map((o) => (
-                    <option key={o.value} value={o.value}>
-                      {o.label}
+                    <option key={o.value} value={o.value} title={o.label}>
+                      {SHORT_MODE[o.value]}
                       {o.value === inp.mode ? ' (default)' : ''}
                     </option>
                   ))}
@@ -375,11 +375,27 @@ function RailProps({ railId }: { railId: string }) {
   const { mutate, notify, select } = useStore.getState();
   const rail = panel.rails.find((r) => r.id === railId);
   if (!rail) return null;
-  const i = panel.rails.indexOf(rail);
+  const sections = sectionGeometry(panel);
+  const sec = sections.find((g) => g.rails.includes(rail)) ?? sections[0];
+  const i = sec.rails.indexOf(rail);
   const fail = (m: string | null) => m && notify(m, 'error');
   return (
     <div className="props">
-      <h3>DIN rail {i + 1}</h3>
+      <h3>
+        DIN rail {i + 1}
+        {sections.length > 1 ? ` of ${sec.name}` : ''}
+      </h3>
+      {sections.length > 1 && (
+        <Field label="Section">
+          <select value={sec.id} onChange={(e) => mutate((d) => fail(setRailSection(panelIn(d, panel.id), rail.id, e.target.value)))}>
+            {sections.map((g) => (
+              <option key={g.id} value={g.id}>
+                {g.name}
+              </option>
+            ))}
+          </select>
+        </Field>
+      )}
       <Field label="Length (modules)" hint={`${rail.modules * 18} mm`}>
         <NumberField value={rail.modules} min={1} max={60} step={1} onCommit={(v) => mutate((d) => fail(setRailLength(panelIn(d, panel.id), rail.id, v)))} />
       </Field>
@@ -387,7 +403,7 @@ function RailProps({ railId }: { railId: string }) {
         <button disabled={i === 0} onClick={() => mutate((d) => moveRail(panelIn(d, panel.id), rail.id, -1))}>
           <Icon name="up2" size={16} /> Up
         </button>
-        <button disabled={i === panel.rails.length - 1} onClick={() => mutate((d) => moveRail(panelIn(d, panel.id), rail.id, 1))}>
+        <button disabled={i === sec.rails.length - 1} onClick={() => mutate((d) => moveRail(panelIn(d, panel.id), rail.id, 1))}>
           <Icon name="down2" size={16} /> Down
         </button>
         <button
@@ -408,10 +424,74 @@ function RailProps({ railId }: { railId: string }) {
   );
 }
 
+/** Short names for the per-device input mode choice (the designer shows the long descriptions). */
+const SHORT_MODE: Record<InputMode, string> = { momentary: 'Follow input', toggle: 'Toggle', set: 'Set (latch)', reset: 'Reset (latch)' };
+
+const BAR_CHOICES: { edge: 'top' | 'bottom'; role: 'N' | 'PE' }[] = [
+  { edge: 'top', role: 'N' },
+  { edge: 'top', role: 'PE' },
+  { edge: 'bottom', role: 'N' },
+  { edge: 'bottom', role: 'PE' },
+];
+
+/** Enclosures side by side, each with its own rails and optional N / PE bars along its top and bottom edge. */
+function SectionsEditor({ panel }: { panel: Panel }) {
+  const { mutate, select, notify } = useStore.getState();
+  const geoms = sectionGeometry(panel);
+  const fail = (m: string | null) => m && notify(m, 'error');
+  return (
+    <>
+      <h4>{geoms.length > 1 ? 'Sections (side by side)' : 'DIN rails'}</h4>
+      {geoms.map((g) => (
+        <div key={g.id} className="section-box">
+          {geoms.length > 1 && (
+            <div className="row gap">
+              <TextField value={g.name} onCommit={(v) => mutate((d) => renameSection(panelIn(d, panel.id), g.id, v))} />
+              <button className="icon-btn" title="Delete section" aria-label={`Delete ${g.name}`} onClick={() => mutate((d) => fail(removeSection(panelIn(d, panel.id), g.id)))}>
+                <Icon name="trash" size={16} />
+              </button>
+            </div>
+          )}
+          {g.rails.map((r, i) => (
+            <div key={r.id} className="rail-row">
+              <button className="link" onClick={() => select({ kind: 'rail', ids: [r.id] })}>
+                Rail {i + 1}
+              </button>
+              <NumberField value={r.modules} min={1} max={60} step={1} unit="modules" onCommit={(v) => mutate((d) => fail(setRailLength(panelIn(d, panel.id), r.id, v)))} />
+            </div>
+          ))}
+          <button onClick={() => mutate((d) => addRail(panelIn(d, panel.id), 12, g.id))}>
+            <Icon name="plus" size={16} /> Add rail
+          </button>
+          <div className="bar-grid" role="group" aria-label={`Bus bars of ${g.name}`}>
+            <span className="meta">Bus bars</span>
+            {BAR_CHOICES.map(({ edge, role }) => {
+              const bar = findSectionBar(panel, g.id, edge, role);
+              return (
+                <label key={`${edge}${role}`} className="check" title={`${role === 'PE' ? 'Earth (PE)' : 'Neutral (N)'} bar along the ${edge} of the enclosure`}>
+                  <input type="checkbox" checked={!!bar} onChange={(e) => mutate((d) => setSectionBar(panelIn(d, panel.id), g.id, edge, role, e.target.checked))} /> {role} {edge}
+                  {bar && (
+                    <button className="link" onClick={(ev) => (ev.preventDefault(), select({ kind: 'item', ids: [bar.id] }))}>
+                      edit
+                    </button>
+                  )}
+                </label>
+              );
+            })}
+          </div>
+        </div>
+      ))}
+      <button onClick={() => mutate((d) => void addSection(panelIn(d, panel.id)))}>
+        <Icon name="plus" size={16} /> Add section
+      </button>
+    </>
+  );
+}
+
 function PanelProps() {
   const panel = useStore(selectActivePanel);
   const project = useStore((s) => s.project);
-  const { mutate, select, notify } = useStore.getState();
+  const { mutate, notify } = useStore.getState();
   const { sim } = useDiagram();
   const setPanel = (p: Partial<Panel>) =>
     mutate((d) => {
@@ -463,34 +543,8 @@ function PanelProps() {
             </select>
           </Field>
         </>
-      ) : (
-        <h4>DIN rails</h4>
-      )}
-      {panel.region !== 'us' && panel.rails.map((r, i) => (
-        <div key={r.id} className="rail-row">
-          <button className="link" onClick={() => select({ kind: 'rail', ids: [r.id] })}>
-            Rail {i + 1}
-          </button>
-          <NumberField
-            value={r.modules}
-            min={1}
-            max={60}
-            step={1}
-            unit="modules"
-            onCommit={(v) =>
-              mutate((d) => {
-                const m = setRailLength(panelIn(d, panel.id), r.id, v);
-                if (m) notify(m, 'error');
-              })
-            }
-          />
-        </div>
-      ))}
-      {panel.region !== 'us' && (
-        <button onClick={() => mutate((d) => addRail(panelIn(d, panel.id)))}>
-          <Icon name="plus" size={16} /> Add rail
-        </button>
-      )}
+      ) : null}
+      {panel.region !== 'us' && <SectionsEditor panel={panel} />}
       <p className="meta">
         {panel.items.length} devices, {panel.wires.length} wires{load > 0 && `, connected load ${(load / 1000).toFixed(1)} kW`}
       </p>

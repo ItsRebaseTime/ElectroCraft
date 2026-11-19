@@ -21,6 +21,8 @@ const sample = readFileSync(join(ROOT, 'docs/examples/sample-house.ec'), 'utf8')
 const catalogue = readFileSync(join(ROOT, 'docs/examples/equipment-catalogue.ec'), 'utf8');
 const usSample = readFileSync(join(ROOT, 'docs/examples/us-sample-house.ec'), 'utf8');
 const moduleExample = readFileSync(join(ROOT, 'docs/examples/custom-module.ec'), 'utf8');
+const sectionsExample = readFileSync(join(ROOT, 'docs/examples/multi-section-board.ec'), 'utf8');
+const indicatorExample = readFileSync(join(ROOT, 'docs/examples/relay-indicator.ec'), 'utf8');
 const IPHONE = 'Mozilla/5.0 (iPhone; CPU iPhone OS 17_4 like Mac OS X) AppleWebKit/605.1.15 (KHTML, like Gecko) Version/17.4 Mobile/15E148 Safari/604.1';
 
 const opts = new firefox.Options().addArguments('-headless').windowSize({ width: 1600, height: 1000 });
@@ -65,6 +67,19 @@ try {
   await driver.wait(until.elementLocated(By.css('.module-editor')), 5000);
   await sleep(500);
   await shot('module-designer');
+  // sections side by side, with N / PE bars along their top and bottom edges
+  await open(sectionsExample, '#sim');
+  await driver.executeScript("document.querySelectorAll('*').forEach((e) => { if (e.scrollHeight > e.clientHeight + 40 && /props|side|right/.test(String(e.className))) e.scrollTop = 0; })");
+  await shot('sections');
+  // a module with an indicator light, and the per-device input mode
+  await open(indicatorExample, '#sim&select=item:3');
+  await shot('module-instance');
+  await driver.findElement(By.css('button[aria-label^="Edit Control relay"]')).click();
+  await driver.wait(until.elementLocated(By.css('.module-editor')), 5000);
+  await sleep(500);
+  await driver.findElement(By.xpath("//div[contains(@class,'shape-row')][contains(., 'Coil lamp')]")).click();
+  await sleep(500);
+  await shot('indicator-light');
   await open(sample, '#export');
   await sleep(500);
   await shot('export-dialog');
@@ -101,6 +116,18 @@ try {
     await sleep(600);
     writeFileSync(join(OUT, 'mobile-properties.png'), await phone.takeScreenshot(), 'base64');
     console.log('wrote mobile');
+    await phone.get(BASE);
+    await phone.executeScript('localStorage.setItem("electrocraft.autosave", arguments[0])', sectionsExample);
+    await phone.get(BASE + '#z=0.5&x=20&y=300');
+    await phone.navigate().refresh();
+    await phone.wait(until.elementLocated(By.css('.canvas g[data-hit^="i:"], .m-canvas g[data-hit^="i:"]')), 15000);
+    await sleep(1200);
+    await phone.findElement(By.xpath("//nav[contains(@class,'m-nav')]//button[contains(., 'Edit')]")).click();
+    await sleep(600);
+    await phone.executeScript("document.querySelectorAll('.sheet *').forEach((e) => { if (e.scrollHeight > e.clientHeight + 50 && getComputedStyle(e).overflowY != 'visible') e.scrollTop = 300; })");
+    await sleep(300);
+    writeFileSync(join(OUT, 'mobile-sections.png'), await phone.takeScreenshot(), 'base64');
+    console.log('wrote mobile-sections');
   } finally {
     await phone.quit();
   }

@@ -225,6 +225,8 @@ export interface Item {
   switchStates?: Record<string, boolean>;
   /** Custom modules: per-device override of how an input (by id) actuates its switches; missing = the module's own mode. */
   inputModes?: Record<string, InputMode>;
+  /** Section bar (EU): a N or PE bar fixed along the top or bottom edge of a section instead of sitting on a rail. */
+  bar?: { section: string; edge: 'top' | 'bottom' };
   /** Manual marking. Empty/undefined = automatic. */
   marking?: string;
   description: string;
@@ -253,8 +255,16 @@ export interface Wire {
   label?: string;
 }
 
+/** An enclosure of a panel; sections stand side by side, each with its own rails. */
+export interface Section {
+  id: string;
+  name: string;
+}
+
 export interface Rail {
   id: string;
+  /** Section the rail belongs to; missing = the first section. */
+  section?: string;
   /** Usable length in modules (18 mm each). */
   modules: number;
 }
@@ -267,6 +277,8 @@ export interface Panel {
   /** Short location code used as marking prefix, e.g. DB1. */
   code: string;
   rails: Rail[];
+  /** EU: enclosures standing side by side. Missing = a single section. */
+  sections?: Section[];
   items: Item[];
   wires: Wire[];
   notes: string;

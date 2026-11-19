@@ -1,6 +1,6 @@
 import { useCallback, useEffect, useRef, useState, type DragEvent, type PointerEvent as RPointerEvent } from 'react';
 import { getDef } from '../model/defs';
-import { MODULE, RAIL_X0, STUB, US_SPACE_H, findSlot, itemWidthModules, nearestRail, nearestUsColumn, termKey, usRowTop } from '../model/geometry';
+import { MODULE, STUB, US_SPACE_H, findSlot, itemWidthModules, nearestRail, nearestUsColumn, termKey, usRowTop } from '../model/geometry';
 import { nodesFromRoute } from '../model/routing';
 import type { Panel, Vec, WireDraft } from '../model/types';
 import { PanelDiagram } from '../render/PanelDiagram';
@@ -243,7 +243,7 @@ export function Editor() {
           for (const id of st.selection.ids) {
             const it = pn.items.find((i) => i.id === id);
             const def = it && getDef(it.defId);
-            if (!it || !def) continue;
+            if (!it || !def || it.bar) continue;
             if (def.mount === 'free') updateItem(pn, id, { x: it.x + dx * 5, y: it.y + dy * 5 });
             else if (def.mount === 'us') {
               // up/down: one breaker space; left/right: the other column
@@ -441,7 +441,7 @@ export function Editor() {
         const pn = panelOf(p, panel.id);
         const it = pn.items.find((i) => i.id === d.id);
         const def = it && getDef(it.defId);
-        if (!it || !def) return;
+        if (!it || !def || it.bar) return; // section bars are fixed to their edge
         if (def.mount === 'free') {
           it.x = snap(pt.x - d.gx, 5);
           it.y = snap(pt.y - d.gy, 5);
@@ -456,10 +456,10 @@ export function Editor() {
             it.slot = slot;
           }
         } else {
-          const near = nearestRail(pn, pt.y);
+          const near = nearestRail(pn, pt.x, pt.y);
           if (!near) return;
           const w = itemWidthModules(it, def);
-          const desired = (pt.x - d.gx - RAIL_X0) / MODULE;
+          const desired = (pt.x - d.gx - near.x0) / MODULE;
           const slot = findSlot(pn, near.railId, snap(desired, 0.5), w, it.id);
           if (slot !== null) {
             it.railId = near.railId;

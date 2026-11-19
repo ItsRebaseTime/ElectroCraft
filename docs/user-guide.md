@@ -23,6 +23,19 @@ a **floor** and a **room**. The Project tree groups panels by floor.
 * Rename a panel, change its floor or room, or edit the DIN rails in the properties panel (click empty canvas to see it).
 * **Rails:** each panel starts with two 12-module rails. Add more, change their length, or reorder them there.
   A rail cannot be shortened below the devices on it.
+* **Sections:** *Add section* puts a second enclosure to the right of the first, with its own rails. Every section
+  has its own number of rails and its own rail lengths, and the enclosure is as wide as its longest rail. Select a rail
+  to move it to another section, or reorder it inside its section. A section can only be deleted while it holds no devices.
+* **Bus bars:** each section offers *N top*, *PE top*, *N bottom* and *PE bottom*. A ticked bar is a real bus bar
+  along that edge of the enclosure (N at the left, PE at the right); the enclosure grows to make room. Wire to it like
+  to any other device, and use *edit* beside the checkbox to change its number of terminals. Unticking removes the bar
+  and its wires.
+
+![Two sections side by side with N and PE bars](images/sections.png)
+
+  The example [examples/multi-section-board.ec](examples/multi-section-board.ec) shows a two-section board: a main switch and
+  RCD with N and PE bars along the top of the first section, and sixteen-module rails with bars along the bottom of the second.
+  Adding or removing bars, rails or sections moves the supply and loads outside the enclosure out of the way.
 
 ## Placing equipment
 
@@ -237,14 +250,28 @@ In the phone layout:
   **tripped**, when **carrying current** or **not powered**, or by the state of one of the module's switches (*actuated*,
   *released*, *contact closed*, *contact open*): these are the animation layers. The *On / Tripped / Current* boxes and one
   box per switch above the canvas preview them.
+* **Indicator lights:** below *Visible when*, **Change colour when** turns a shape into a light. It takes the same
+  conditions (switch on or off, tripped, carrying current, a switch actuated or a contact closed, an input energised ...);
+  while the condition holds, the shape is drawn with the **Active fill** (the **Active colour** for text) instead of its normal
+  fill. So a circle that is grey normally and green with *Input COIL: energised* is a coil lamp. Only the fill changes; use
+  *Visible when* as well if the shape should appear or disappear.
+
+![Change colour when, with the active fill](images/indicator-light.png)
 
 On a placed module, the properties panel lists every switch (including hidden ones) with a checkbox (actuated or released)
-and shows whether a contact is closed. In simulation mode you can also **click a visible switch widget on the module** to flip
+and shows whether a contact is closed. Every input has a drop-down for how **this device** reacts (follow, toggle, set,
+reset); the module's own mode is marked *(default)*. Pick another one to override it for this copy only, and pick the default
+again to clear the override, so two relays made from the same module can behave differently. **Clone as new module...**
+under *Custom module* makes a copy of the module and opens it in the designer.
+
+![A placed module with its input modes](images/module-instance.png)
+ In simulation mode you can also **click a visible switch widget on the module** to flip
 just that switch;
 clicking elsewhere on a module with a master lever flips the lever. A tripped module opens all of its contacts.
 
 **Save to project** stores the module inside the `.ec` file and adds it to the **Custom modules** group of the palette,
-where the pencil edits it and the bin deletes it (devices that use it are removed too). Changing a saved module updates
+where the pencil edits it, the clone button copies it as the base of a variation (the copy is named *X copy*, *X copy 2* ...
+and opens in the designer) and the bin deletes it (devices that use it are removed too). Changing a saved module updates
 every placed copy; wires to connections that no longer exist are dropped.
 
 **Export modules...** writes a `.ecm` file; **Import modules...** accepts a `.ecm` file or a whole `.ec` project and lets
@@ -253,6 +280,7 @@ you choose which modules to add (ids and names are made unique). There is an exa
 [examples/pushbutton-contact-block.ecm](examples/pushbutton-contact-block.ecm), and a hidden changeover switch that drives two
 indicator lamps in [examples/changeover-selector.ecm](examples/changeover-selector.ecm), and a control relay and an impulse relay
 in [examples/relay-modules.ecm](examples/relay-modules.ecm), wired up in [examples/relay-circuits.ec](examples/relay-circuits.ec).
+[examples/relay-indicator.ec](examples/relay-indicator.ec) has a relay whose lamp changes colour while its coil is energised.
 
 ## US load centers
 

@@ -29,6 +29,7 @@ A project is one plain JSON document, so it diffs well in version control. Open 
   "id": "p1abc", "name": "Flat board", "floor": "Ground floor", "room": "Hallway", "code": "DB1", "notes": "",
   "region": "eu",                                // "eu" (DIN rails, default) or "us" (load center)
   "usPhases": 2,                                 // US only: 2 = split-phase bus, 3 = three-phase bus
+  "sections": [ { "id": "main", "name": "Section 1" } ], // optional, EU: enclosures side by side. A rail picks one with "section"
   "rails": [ { "id": "r1", "modules": 12 } ],    // EU: DIN rail length in modules of 18 mm. US: two rails = the two columns, "modules" = spaces per column
   "items": [ /* Item */ ],
   "wires": [ /* Wire */ ]
@@ -45,6 +46,7 @@ A project is one plain JSON document, so it diffs well in version control. Open 
   "poleConfig": "1P+N",
   "params": { "In": 16, "curve": "B", "Icn": 6000, "Un": 230 },   // parameters defined by the equipment
   "on": true,                                   // lever / supply state
+  "bar": { "section": "main", "edge": "top" },    // optional: a N / PE bar fixed to the top or bottom edge of a section instead of a rail (then no railId / slot)
   "marking": "LIGHT-1",                         // optional; omit for an automatic marking
   "description": "Lighting", "manufacturer": "", "model": "", "note": ""
 }
@@ -86,14 +88,16 @@ Terminal blocks use `params.count` (number of terminals) and `params.bridges` (`
 ```
 
 `show` is `always`, `on`, `off`, `tripped`, `powered` or `unpowered`, or follows a switch: `sw:<id>` (actuated), `rel:<id>`
-(released), `closed:<id>` (a contact of the switch is conducting), `open:<id>`, or an input: `in:<id>` (energised), `nin:<id>`.
+(released), `closed:<id>` (a contact of the switch is conducting), `open:<id>`, or an input: `in:<id>` (energised), `nin:<id>`. A shape can also be an indicator light: `activeWhen` takes the same values
+(or `never`, the default) and `activeFill` is the fill (colour for text) used instead of `fill` while it holds.
 
 An input has a `terminal`, an optional `ref` (return terminal, empty = none), a `mode` (`momentary` = follow, `toggle`, `set`,
 `reset`) and the `targets` (switch ids) it operates. A switch has a changeover contact: while it is actuated the `no` terminals are joined, while it is released the `nc` terminals
 are joined (either list may be empty; a terminal in both is a common terminal). `visible: false` hides its widget on the module
 face; it keeps working. Files from the first version, with one `contact` (`NO` / `NC`) and a `terminals` list, are read as a `no` or
 `nc` list. Placed copies are ordinary items whose `defId` is the
-module's `id`. Their `switchStates` (`{ "ksta": true }`) tell which switches are actuated (default: released). Terminal ids are `T<row>_<col>` (top) and `B<row>_<col>` (bottom).
+module's `id`. Their `switchStates` (`{ "ksta": true }`) tell which switches are actuated (default: released). An optional `inputModes` (`{ "kcoil": "toggle" }`) overrides the
+`mode` of an input for that one placed copy. Terminal ids are `T<row>_<col>` (top) and `B<row>_<col>` (bottom).
 
 ### Module files (`.ecm`)
 

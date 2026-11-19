@@ -712,7 +712,11 @@ main {
   padding: 20px;
 }
 .modal.export {
-  width: min(860px, calc(100vw - 32px));
+  width: min(980px, calc(100vw - 32px));
+}
+.modal.export .field.inline select,
+.modal.export .field.inline input {
+  min-width: 0;
 }
 .modal-head {
   display: flex;
@@ -754,7 +758,7 @@ fieldset .check {
 }
 .cols {
   display: grid;
-  grid-template-columns: 1.15fr 1fr 1fr;
+  grid-template-columns: minmax(0, 1.1fr) minmax(0, 1fr) minmax(0, 1fr);
   gap: 12px;
 }
 .choose {
@@ -1441,4 +1445,37 @@ button.small {
 .sw-row .sw-mode {
   flex: 1 1 100%;
   min-width: 0;
+}
+.section-box {
+  display: flex;
+  flex-direction: column;
+  gap: 6px;
+  padding: 8px;
+  margin: 4px 0 8px;
+  border: 1px solid var(--border, #d5dae0);
+  border-radius: 6px;
+}
+.bar-grid {
+  display: grid;
+  grid-template-columns: 1fr 1fr;
+  gap: 4px 8px;
+}
+.bar-grid .meta {
+  grid-column: 1 / -1;
+}
+.section-box > .row.gap > :first-child {
+  flex: 1;
+  min-width: 0;
+}
+/* fieldsets default to min-content width, which let long labels run into the next column */
+.cols > fieldset {
+  min-width: 0;
+}
+.cols .check {
+  white-space: normal;
+  align-items: flex-start;
+}
+.cols .check input {
+  margin-top: 3px;
+  flex: none;
 }

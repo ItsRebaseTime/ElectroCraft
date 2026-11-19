@@ -22,6 +22,17 @@ file, so you can restyle or add your own.
 
 Terminal blocks take **comb bridges**: click between two terminals to bridge them, just like on the real thing.
 
+### Several enclosures side by side, with N and PE bars
+
+A panel can be made of **sections**: enclosures standing next to each other, each with its **own number of rails and its
+own rail lengths**. Wires run between the sections like inside one. Every section can also get **N and PE bus bars along
+its top and/or its bottom edge** with one tick each; the enclosure grows to make room, and the bars are wired like any
+other device.
+
+![Two sections side by side with N and PE bars](docs/images/sections.png)
+
+Try it with [multi-section-board.ec](docs/examples/multi-section-board.ec).
+
 ### Wire it up
 
 Drag from terminal to terminal. Wire colours follow the conductor automatically (L1 brown, L2 black, L3 grey,
@@ -52,11 +63,21 @@ Missing a device? Open the **module designer**: choose the width, the number of 
 and the bottom (they can differ), the current and voltage rating, the connection markings and the colours, and draw the
 face with rectangles, circles and text. Give it **several internal switches**, each with a normally-open and/or
 normally-closed contact (or both, as a changeover) joining the terminals you choose. Shapes can follow a switch, the trip or
-the current state, and a switch can be hidden, so a module can show indicator lights. **Inputs** (relay coils) operate the switches when energised,
+the current state, and a switch can be hidden, so a module can show indicator lights. A shape can also act as a **light**:
+it **changes its fill colour** to a second colour while a condition you pick holds (a coil is energised, a contact is closed,
+the module is tripped ...). **Inputs** (relay coils) operate the switches when energised,
 following, toggling or latching them, so you can build relays, contactors and impulse relays that react in the simulation. Modules are saved inside the project and can be exported to a `.ecm` file and imported into any
 other project.
 
 ![Module designer](docs/images/module-designer.png)
+
+![A shape that lights up while the coil is energised](docs/images/indicator-light.png)
+
+**Clone** any module (pencil, clone and bin buttons in the palette, or *Clone as new module...* on a placed one) to start
+a variation from it. How an input actuates its switches (follow, toggle, set, reset) is the module's default, and can be
+**overridden per placed device**, so two copies of the same relay can react differently.
+
+![A placed module: input mode per device, clone button](docs/images/module-instance.png)
 
 ### European and US panels
 
@@ -75,6 +96,7 @@ and properties in slide-up sheets. On a desktop, drag with the right mouse butto
 <p>
   <img src="docs/images/mobile.png" alt="Phone layout" width="260">
   <img src="docs/images/mobile-properties.png" alt="Phone properties sheet" width="260">
+  <img src="docs/images/mobile-sections.png" alt="Sections and bus bars on a phone" width="260">
 </p>
 
 ### Print the documentation

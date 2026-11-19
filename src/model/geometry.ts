@@ -1,5 +1,5 @@
 import { getAsset, getDef, poleKinds } from './defs';
-import type { Panel, Item, EquipmentDef, Vec } from './types';
+import type { Panel, Item, EquipmentDef, Rail, Section, Vec } from './types';
 import type { AssetTerminal, ParsedAsset } from './asset';
 import { evalShow, type EvalContext } from './expr';
 
@@ -10,6 +10,11 @@ export const ROW_PITCH = 180;
 export const RAIL_X0 = 40;
 export const ENCL_TOP = -100;
 export const ENCL_BOTTOM_PAD = 170; // below the last row's top edge
+
+// ---- sections (side-by-side enclosures) and their N / PE bars
+export const SECTION_GAP = 60;
+export const BAR_BAND_TOP = 56; // extra enclosure height above the first rail when the section has a top bar
+export const BAR_BAND_BOTTOM = 76; // ... below the last rail for a bottom bar and its label strip
 
 // ---- US load-center layout
 export const US_SPACE_H = 20; // height of one breaker pole space
@@ -58,14 +63,71 @@ export interface Layout {
   placed: Map<string, Placed>;
   terminals: Map<string, Terminal>;
   encl: { x: number; y: number; w: number; h: number };
+  /** EU: one rectangle per section (a single one for plain panels). */
+  sections: SectionGeom[];
   bounds: { x: number; y: number; w: number; h: number };
+}
+
+export interface SectionGeom {
+  id: string;
+  name: string;
+  index: number;
+  x: number;
+  y: number;
+  w: number;
+  h: number;
+  rails: Rail[];
+  top: boolean;
+  bottom: boolean;
+}
+
+/** The sections of a panel; never empty (a panel without sections has one). */
+export function sectionsOf(panel: Panel): Section[] {
+  return panel.sections?.length ? panel.sections : [{ id: 'main', name: panel.name }];
+}
+export function sectionIdOfRail(panel: Panel, rail: Rail): string {
+  const list = sectionsOf(panel);
+  return list.some((s) => s.id === rail.section) ? (rail.section as string) : list[0].id;
+}
+
+/** Rectangles of the sections, left to right. Rows (rails) of every section share one y grid. */
+export function sectionGeometry(panel: Panel): SectionGeom[] {
+  const list = sectionsOf(panel);
+  let x = 0;
+  return list.map((s, index) => {
+    const rails = panel.rails.filter((r) => sectionIdOfRail(panel, r) === s.id);
+    const bars = panel.items.filter((i) => i.bar && (list.some((q) => q.id === i.bar!.section) ? i.bar.section : list[0].id) === s.id);
+    const top = bars.some((i) => i.bar!.edge === 'top');
+    const bottom = bars.some((i) => i.bar!.edge === 'bottom');
+    const w = Math.max(6, ...rails.map((r) => r.modules)) * MODULE + 2 * RAIL_X0;
+    const y = ENCL_TOP - (top ? BAR_BAND_TOP : 0);
+    const bottomY = railTop(Math.max(0, rails.length - 1)) + ENCL_BOTTOM_PAD + (bottom ? BAR_BAND_BOTTOM : 0);
+    const g: SectionGeom = { id: s.id, name: s.name, index, x, y, w, h: bottomY - y, rails, top, bottom };
+    x += w + SECTION_GAP;
+    return g;
+  });
+}
+
+/** Where a DIN rail is: its section and row inside it. */
+export function railPos(panel: Panel, railId: string | undefined, geoms: SectionGeom[] = sectionGeometry(panel)) {
+  for (const g of geoms) {
+    const row = g.rails.findIndex((r) => r.id === railId);
+    if (row >= 0) return { section: g, row, x: g.x + RAIL_X0, top: railTop(row) };
+  }
+  return null;
+}
+
+/** Sort key giving reading order across sections: top bars first, then section by section, row by row, bottom bars last. */
+export function itemRailOrder(panel: Panel, item: Item): number {
+  if (item.bar) return item.bar.edge === 'top' ? -1 : 1e6;
+  const pos = railPos(panel, item.railId);
+  return pos ? pos.section.index * 1000 + pos.row : -2;
 }
 
 export const isUs = (panel: Panel) => panel.region === 'us';
 export const termKey = (item: string, terminal: string) => `${item}|${terminal}`;
 export const railTop = (index: number) => index * ROW_PITCH;
 export const railIndex = (panel: Panel, railId: string | undefined) => panel.rails.findIndex((r) => r.id === railId);
-export const maxRailModules = (panel: Panel) => Math.max(6, ...panel.rails.map((r) => r.modules));
 export const isRailMounted = (def: EquipmentDef) => def.mount === 'din' || def.mount === 'us';
 
 // ---- US helpers
@@ -87,7 +149,7 @@ export function gutterY(panel: Panel, g: number): number {
   return g < 0 ? railTop(0) - 90 : railTop(g) + 120;
 }
 /** Number of gutters below the first (the highest index is gutterCount - 1). */
-export const gutterCount = (panel: Panel) => (isUs(panel) ? 1 : panel.rails.length);
+export const gutterCount = (panel: Panel) => (isUs(panel) ? 1 : Math.max(1, ...sectionGeometry(panel).map((g) => g.rails.length)));
 
 const UP: Vec = { x: 0, y: -1 };
 const DOWN: Vec = { x: 0, y: 1 };
@@ -112,7 +174,7 @@ export function itemWidthModules(item: Item, def: EquipmentDef): number {
   return (tiles && axis === 'x' ? tiles * asset.width : asset.width) / MODULE;
 }
 
-export function placeItem(panel: Panel, item: Item): Placed | null {
+export function placeItem(panel: Panel, item: Item, geoms: SectionGeom[] = sectionGeometry(panel)): Placed | null {
   const def = getDef(item.defId);
   const asset = getAsset(item.defId);
   if (!def || !asset) return null;
@@ -120,10 +182,17 @@ export function placeItem(panel: Panel, item: Item): Placed | null {
   const ri = railIndex(panel, item.railId);
   let x = item.x;
   let y = item.y;
-  if (def.mount === 'din') {
-    if (ri < 0) return null;
-    x = RAIL_X0 + (item.slot ?? 0) * MODULE;
-    y = railTop(ri) + (DIN_H - asset.height) / 2;
+  if (item.bar && def.mount === 'din') {
+    // fixed along the top or bottom edge of its section: N bars at the left, PE bars at the right
+    const g = geoms.find((s) => s.id === item.bar!.section) ?? geoms[0];
+    const barW = Math.max(1, poleKinds(item, def).length) * asset.width;
+    x = item.params.role === 'PE' ? g.x + g.w - RAIL_X0 - barW : g.x + RAIL_X0;
+    y = item.bar.edge === 'top' ? g.y + 24 : g.y + g.h - BAR_BAND_BOTTOM + 10;
+  } else if (def.mount === 'din') {
+    const pos = railPos(panel, item.railId, geoms);
+    if (!pos) return null;
+    x = pos.x + (item.slot ?? 0) * MODULE;
+    y = pos.top + (DIN_H - asset.height) / 2;
   } else if (def.mount === 'us') {
     if (ri < 0) return null;
     x = usColumnX(Math.min(1, ri));
@@ -140,6 +209,8 @@ export function placeItem(panel: Panel, item: Item): Placed | null {
         const kind = kinds[p];
         const din = t.name === 'top' || t.name === 'bottom';
         const top = t.name === 'top';
+        // a section bar only offers the terminals facing into the enclosure
+        if (item.bar && t.name === item.bar.edge) continue;
         const id = din ? `${top ? 'T' : 'B'}${p}` : `${t.name}${p}`;
         const label = din ? (def.poleMode === 'config' ? (kind === 'N' ? 'N' : String(2 * p + (top ? 1 : 2))) : '') : (t.label ?? '');
         const tx = mirrored ? asset.width - t.x : t.x;
@@ -163,17 +234,19 @@ export function placeItem(panel: Panel, item: Item): Placed | null {
 
 export function enclosureRect(panel: Panel) {
   if (isUs(panel)) return usEnclosure(panel);
-  const n = panel.rails.length;
-  const w = maxRailModules(panel) * MODULE + 2 * RAIL_X0;
-  const bottom = railTop(Math.max(0, n - 1)) + ENCL_BOTTOM_PAD;
-  return { x: 0, y: ENCL_TOP, w, h: bottom - ENCL_TOP };
+  const gs = sectionGeometry(panel);
+  const y = Math.min(...gs.map((g) => g.y));
+  const bottom = Math.max(...gs.map((g) => g.y + g.h));
+  const last = gs[gs.length - 1];
+  return { x: 0, y, w: last.x + last.w, h: bottom - y };
 }
 
 export function layoutPanel(panel: Panel): Layout {
   const placed = new Map<string, Placed>();
   const terminals = new Map<string, Terminal>();
+  const geoms = isUs(panel) ? [] : sectionGeometry(panel);
   for (const item of panel.items) {
-    const p = placeItem(panel, item);
+    const p = placeItem(panel, item, geoms);
     if (!p) continue;
     placed.set(item.id, p);
     for (const t of p.terminals) terminals.set(termKey(item.id, t.id), t);
@@ -197,7 +270,7 @@ export function layoutPanel(panel: Panel): Layout {
     minX = Math.min(minX, encl.x - 60);
     maxX = Math.max(maxX, encl.x + encl.w + 60);
   }
-  return { placed, terminals, encl, bounds: { x: minX, y: minY, w: maxX - minX, h: maxY - minY } };
+  return { placed, terminals, encl, sections: geoms, bounds: { x: minX, y: minY, w: maxX - minX, h: maxY - minY } };
 }
 
 /** Nearest free position on a rail or US column (DIN: multiples of 0.5 module, US: whole spaces), or null if it does not fit. */
@@ -222,12 +295,16 @@ export function findSlot(panel: Panel, railId: string, desired: number, widthMod
   return best;
 }
 
-/** Closest rail to a y coordinate (diagram space). */
-export function nearestRail(panel: Panel, y: number): { railId: string; index: number; dist: number } | null {
-  let best: { railId: string; index: number; dist: number } | null = null;
-  panel.rails.forEach((r, i) => {
+/** Closest rail to a point (diagram space): the nearest section by x, then the nearest row by y. */
+export function nearestRail(panel: Panel, x: number, y: number): { railId: string; index: number; dist: number; x0: number } | null {
+  const geoms = sectionGeometry(panel).filter((g) => g.rails.length);
+  if (!geoms.length) return null;
+  const gap = (g: SectionGeom) => (x < g.x ? g.x - x : x > g.x + g.w ? x - (g.x + g.w) : 0);
+  const sec = geoms.reduce((a, b) => (gap(b) < gap(a) ? b : a));
+  let best: { railId: string; index: number; dist: number; x0: number } | null = null;
+  sec.rails.forEach((r, i) => {
     const d = Math.abs(y - (railTop(i) + DIN_H / 2));
-    if (!best || d < best.dist) best = { railId: r.id, index: i, dist: d };
+    if (!best || d < best.dist) best = { railId: r.id, index: i, dist: d, x0: sec.x + RAIL_X0 };
   });
   return best;
 }

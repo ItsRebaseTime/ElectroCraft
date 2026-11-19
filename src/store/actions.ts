@@ -2,11 +2,11 @@
 // either the created object or an error message, so the store can toast what went wrong.
 import { bridgesOf, getAsset, getDef, poleKinds } from '../model/defs';
 import {
-  ENCL_BOTTOM_PAD, ENCL_TOP, MODULE, RAIL_X0, STUB, US_BAR_TILE, US_MAIN_Y, US_SPACE_H, enclosureRect, findSlot, isRailMounted, isUs, itemWidthModules, layoutPanel,
-  nearestRail, nearestUsColumn, railTop, termKey, usRowTop,
+  MODULE, STUB, RAIL_X0, sectionGeometry, sectionIdOfRail, sectionsOf, US_BAR_TILE, US_MAIN_Y, US_SPACE_H, enclosureRect, findSlot, isRailMounted, isUs, itemWidthModules, layoutPanel,
+  nearestRail, nearestUsColumn, termKey, usRowTop,
 } from '../model/geometry';
 import { createItem, createPanel, createRail, createUsPanel, uid } from '../model/project';
-import type { InputMode, Item, Panel, Project, TerminalRef, Vec, Wire } from '../model/types';
+import type { InputMode, Item, Panel, Project, Section, TerminalRef, Vec, Wire } from '../model/types';
 
 const snap = (v: number, step: number) => Math.round(v / step) * step;
 
@@ -40,8 +40,7 @@ export function addEquipment(panel: Panel, defId: string, at?: Vec, preferredRai
       panel.items.push(item);
       return item;
     }
-    const maxIdx = Math.max(0, panel.rails.length - 1);
-    const defaultY = def.role === 'source' ? ENCL_TOP - 140 : railTop(maxIdx) + ENCL_BOTTOM_PAD + 60;
+    const defaultY = def.role === 'source' ? encl.y - 140 : encl.y + encl.h + 60;
     const sameRole = panel.items.filter((i) => getDef(i.defId)?.role === def.role).length;
     item.x = snap(at ? at.x - 55 : 60 + sameRole * 130, 5);
     item.y = snap(at ? at.y - 20 : defaultY, 5);
@@ -51,6 +50,7 @@ export function addEquipment(panel: Panel, defId: string, at?: Vec, preferredRai
   const width = itemWidthModules(item, def);
   const order: string[] = [];
   let desired = 0;
+  let originX = RAIL_X0;
   if (def.mount === 'us') {
     if (at) {
       const col = nearestUsColumn(panel, at.x);
@@ -59,15 +59,20 @@ export function addEquipment(panel: Panel, defId: string, at?: Vec, preferredRai
     }
   } else {
     if (at) {
-      const near = nearestRail(panel, at.y);
-      if (near) order.push(near.railId);
+      const near = nearestRail(panel, at.x, at.y);
+      if (near) {
+        order.push(near.railId);
+        originX = near.x0;
+      }
     }
-    desired = at ? (at.x - RAIL_X0) / MODULE - width / 2 : 0;
+    desired = at ? (at.x - originX) / MODULE - width / 2 : 0;
   }
   if (preferredRail) order.push(preferredRail);
   for (const r of panel.rails) order.push(r.id);
   for (const railId of new Set(order)) {
-    const slot = findSlot(panel, railId, desired, width);
+    // a rail in another section than the drop point has its own origin
+    const sec = us ? null : sectionGeometry(panel).find((g) => g.rails.some((r) => r.id === railId));
+    const slot = findSlot(panel, railId, sec && at && railId !== order[0] ? (at.x - (sec.x + RAIL_X0)) / MODULE - width / 2 : desired, width);
     if (slot !== null) {
       item.railId = railId;
       item.slot = slot;
@@ -104,7 +109,7 @@ export function updateItem(panel: Panel, id: string, patch: Partial<Item>): stri
   const def = getDef(item.defId);
   if (!def) return 'Unknown device type.';
   const next: Item = { ...item, ...patch, params: { ...item.params, ...(patch.params ?? {}) } };
-  if (isRailMounted(def)) {
+  if (isRailMounted(def) && !item.bar) {
     const kinds = poleKinds(next, def);
     if (def.poleMode !== 'none' && kinds.length === 0) return 'A device needs at least one pole.';
     const slot = findSlot(panel, next.railId ?? '', next.slot ?? 0, itemWidthModules(next, def), item.id);
@@ -121,7 +126,7 @@ export function duplicateItems(panel: Panel, ids: string[]): string[] {
   for (const id of ids) {
     const src = panel.items.find((i) => i.id === id);
     const def = src && getDef(src.defId);
-    if (!src || !def) continue;
+    if (!src || !def || src.bar) continue; // a section bar exists once per edge: switch it on or off in the panel settings
     const copy: Item = { ...structuredClone(src), id: uid('i'), marking: undefined };
     if (isRailMounted(def)) {
       const w = itemWidthModules(src, def);
@@ -217,16 +222,21 @@ export function duplicatePanel(project: Project, panelId: string): Panel | null 
   return copy;
 }
 
-export function addRail(panel: Panel, modules = 12) {
+export function addRail(panel: Panel, modules = 12, sectionId?: string) {
   const rail = createRail(modules);
-  panel.rails.push(rail);
+  if (sectionId && panel.sections?.length) rail.section = sectionId;
+  keepOutside(panel, () => void panel.rails.push(rail));
   return rail;
 }
 
 export function removeRail(panel: Panel, railId: string): string | null {
+  const rail = panel.rails.find((r) => r.id === railId);
+  if (!rail) return 'Rail not found.';
   if (panel.rails.length <= 1) return 'A panel needs at least one rail.';
+  const sec = sectionIdOfRail(panel, rail);
+  if (panel.rails.filter((r) => sectionIdOfRail(panel, r) === sec).length <= 1) return 'A section needs at least one rail. Delete the section instead.';
   if (panel.items.some((i) => i.railId === railId)) return 'Remove or move the devices on this rail first.';
-  panel.rails = panel.rails.filter((r) => r.id !== railId);
+  keepOutside(panel, () => void (panel.rails = panel.rails.filter((r) => r.id !== railId)));
   return null;
 }
 
@@ -242,11 +252,110 @@ export function setRailLength(panel: Panel, railId: string, modules: number): st
   return null;
 }
 
+/** Move a rail one row up or down inside its section. */
 export function moveRail(panel: Panel, railId: string, dir: -1 | 1) {
-  const i = panel.rails.findIndex((r) => r.id === railId);
-  const j = i + dir;
-  if (i < 0 || j < 0 || j >= panel.rails.length) return;
-  [panel.rails[i], panel.rails[j]] = [panel.rails[j], panel.rails[i]];
+  const rail = panel.rails.find((r) => r.id === railId);
+  if (!rail) return;
+  const sec = sectionIdOfRail(panel, rail);
+  const i = panel.rails.indexOf(rail);
+  for (let j = i + dir; j >= 0 && j < panel.rails.length; j += dir) {
+    if (sectionIdOfRail(panel, panel.rails[j]) !== sec) continue;
+    [panel.rails[i], panel.rails[j]] = [panel.rails[j], panel.rails[i]];
+    return;
+  }
+}
+
+/** Move a rail, with the devices on it, to another section. */
+export function setRailSection(panel: Panel, railId: string, sectionId: string): string | null {
+  const rail = panel.rails.find((r) => r.id === railId);
+  if (!rail || !panel.sections?.some((s) => s.id === sectionId)) return 'Section not found.';
+  const from = sectionIdOfRail(panel, rail);
+  if (from === sectionId) return null;
+  if (panel.rails.filter((r) => sectionIdOfRail(panel, r) === from).length <= 1) return 'A section needs at least one rail.';
+  keepOutside(panel, () => void (rail.section = sectionId));
+  return null;
+}
+
+/** Make the implicit single section explicit so more can be added. */
+function ensureSections(panel: Panel) {
+  if (!panel.sections?.length) panel.sections = [{ id: 'main', name: 'Section 1' }];
+}
+
+/** Add an enclosure to the right of the others, with one rail. */
+export function addSection(panel: Panel, modules = 12): Section {
+  ensureSections(panel);
+  const sec: Section = { id: uid('s'), name: `Section ${panel.sections!.length + 1}` };
+  const rail = createRail(modules);
+  rail.section = sec.id;
+  keepOutside(panel, () => {
+    panel.sections!.push(sec);
+    panel.rails.push(rail);
+  });
+  return sec;
+}
+
+export function renameSection(panel: Panel, sectionId: string, name: string) {
+  const s = panel.sections?.find((x) => x.id === sectionId);
+  if (s) s.name = name.trim() || s.name;
+}
+
+/** Remove a section with its rails and bars. Refused while devices still sit on its rails. */
+export function removeSection(panel: Panel, sectionId: string): string | null {
+  const list = sectionsOf(panel);
+  if (list.length <= 1) return 'A panel needs at least one section.';
+  const rails = panel.rails.filter((r) => sectionIdOfRail(panel, r) === sectionId);
+  if (panel.items.some((i) => !i.bar && rails.some((r) => r.id === i.railId))) return 'Remove or move the devices in this section first.';
+  const bars = panel.items.filter((i) => i.bar?.section === sectionId).map((i) => i.id);
+  removeItems(panel, bars);
+  keepOutside(panel, () => {
+    panel.rails = panel.rails.filter((r) => !rails.includes(r));
+    panel.sections = list.filter((s) => s.id !== sectionId);
+  });
+  return null;
+}
+
+/** The N / PE bar of a section edge, if it exists. */
+export const findSectionBar = (panel: Panel, sectionId: string, edge: 'top' | 'bottom', role: 'N' | 'PE') =>
+  panel.items.find((i) => i.bar && i.bar.edge === edge && i.params.role === role && (sectionsOf(panel).some((s) => s.id === i.bar!.section) ? i.bar.section : sectionsOf(panel)[0].id) === sectionId);
+
+/**
+ * Run a change that can grow or shrink the enclosure and keep what stood outside it outside: free devices (supply above,
+ * loads below) move by as much as the top / bottom edge moved.
+ */
+function keepOutside(panel: Panel, change: () => void) {
+  if (isUs(panel)) return change();
+  const before = enclosureRect(panel);
+  change();
+  const after = enclosureRect(panel);
+  const dTop = after.y - before.y;
+  const dBottom = after.y + after.h - (before.y + before.h);
+  if (!dTop && !dBottom) return;
+  for (const it of panel.items) {
+    const def = getDef(it.defId);
+    const asset = getAsset(it.defId);
+    if (!def || def.mount !== 'free') continue;
+    if (it.y >= before.y + before.h - 1) it.y += dBottom;
+    else if (it.y + (asset?.height ?? 0) <= before.y + 1) it.y += dTop;
+  }
+}
+
+/** Switch a N or PE bar along the top or bottom edge of a section on or off. */
+export function setSectionBar(panel: Panel, sectionId: string, edge: 'top' | 'bottom', role: 'N' | 'PE', on: boolean) {
+  if (isUs(panel)) return;
+  keepOutside(panel, () => setBar(panel, sectionId, edge, role, on));
+}
+
+function setBar(panel: Panel, sectionId: string, edge: 'top' | 'bottom', role: 'N' | 'PE', on: boolean) {
+  const have = findSectionBar(panel, sectionId, edge, role);
+  if (!on) {
+    if (have) removeItems(panel, [have.id]);
+    return;
+  }
+  if (have) return;
+  const g = sectionGeometry(panel).find((s) => s.id === sectionId);
+  // two bars share an edge: each gets about half of the width
+  const count = Math.max(4, Math.min(24, Math.floor(((g?.w ?? 300) - 2 * RAIL_X0 - 20) / 2 / 9)));
+  panel.items.push(createItem('bus', { bar: { section: sectionId, edge }, description: role === 'PE' ? 'Earth bar' : 'Neutral bar', params: { count, role, In: 100 } }));
 }
 
 /** Insert or remove the comb bridge between terminal `gap` and `gap + 1` of a terminal block. */

@@ -2,7 +2,7 @@ import type { ReactNode } from 'react';
 import { bridgesOf } from '../model/defs';
 import { colorByKey, potentialColorKey } from '../model/colors';
 import {
-  DIN_H, MODULE, RAIL_X0, STUB, US_BREAKER_W, US_BUS_W, US_SPACE_H, isUs, railIndex, railTop, termKey, usBusX, usColumnX, usPhaseOfRow, usRowTop, usRows, usSpaceNumber,
+  DIN_H, MODULE, RAIL_X0, STUB, US_BREAKER_W, US_BUS_W, US_SPACE_H, isUs, railIndex, railPos, railTop, termKey, usBusX, usColumnX, usPhaseOfRow, usRowTop, usRows, usSpaceNumber,
   type Layout, type Placed,
 } from '../model/geometry';
 import { markingOf } from '../model/marking';
@@ -168,44 +168,51 @@ export function PanelDiagram({ project, panel, layout, routes, sim, markings, op
   return (
     <g fontFamily={FONT}>
       {/* enclosure */}
-      {options.showEnclosure && (
-        <g>
-          <rect x={encl.x} y={encl.y} width={encl.w} height={encl.h} rx={6} fill="#f6f7f9" stroke="#9aa4af" strokeWidth={1.2} />
-          <text x={encl.x + 10} y={encl.y + 13} fontSize={7} fontWeight="bold" fill="#6b7280">
-            {(options.showPanelPrefix && panel.code ? `+${panel.code}  ` : '') + panel.name}
-          </text>
-          {(panel.floor || panel.room) && (
-            <text x={encl.x + 10} y={encl.y + 21} fontSize={4.2} fill="#8b95a1">
-              {[panel.floor, panel.room].filter(Boolean).join(' - ')}
-            </text>
-          )}
-        </g>
-      )}
+      {options.showEnclosure &&
+        (us ? [{ id: 'us', name: '', index: 0, ...encl }] : layout.sections).map((g) => {
+          const multi = layout.sections.length > 1;
+          return (
+            <g key={g.id}>
+              <rect x={g.x} y={g.y} width={g.w} height={g.h} rx={6} fill="#f6f7f9" stroke="#9aa4af" strokeWidth={1.2} />
+              <text x={g.x + 10} y={g.y + 13} fontSize={7} fontWeight="bold" fill="#6b7280">
+                {(options.showPanelPrefix && panel.code ? `+${panel.code}  ` : '') + panel.name + (multi ? ` - ${g.name}` : '')}
+              </text>
+              {(panel.floor || panel.room) && g.index === 0 && (
+                <text x={g.x + 10} y={g.y + 21} fontSize={4.2} fill="#8b95a1">
+                  {[panel.floor, panel.room].filter(Boolean).join(' - ')}
+                </text>
+              )}
+            </g>
+          );
+        })}
 
       {/* US breaker spaces and bus */}
       {us && options.showRails && <UsInterior panel={panel} project={project} placed={placedList} />}
 
       {/* DIN rails */}
       {options.showRails && !us &&
-        panel.rails.map((r, i) => {
-          const y = railTop(i) + (DIN_H - 35) / 2;
-          const w = r.modules * MODULE;
-          const slots: ReactNode[] = [];
-          for (let k = 0; k < r.modules; k++) slots.push(<rect key={k} x={RAIL_X0 + k * MODULE + 4} y={y + 15} width={10} height={5} rx={2.5} fill="#8f99a5" opacity={0.75} />);
-          return (
-            <g key={r.id} {...hit(`r:${r.id}`)}>
-              <rect x={RAIL_X0 - 6} y={y} width={w + 12} height={35} rx={1.5} fill="#cfd5dc" stroke={selRail === r.id ? SEL : '#8f99a5'} strokeWidth={selRail === r.id ? 1.6 : 0.6} />
-              {slots}
-              <text x={RAIL_X0 - 12} y={y + 19} fontSize={4} textAnchor="end" fill="#8b95a1">
-                {i + 1}
-              </text>
-              {interactive &&
-                Array.from({ length: r.modules + 1 }, (_v, k) => (
-                  <line key={k} x1={RAIL_X0 + k * MODULE} x2={RAIL_X0 + k * MODULE} y1={y + 35} y2={y + 37.5} stroke="#9aa4af" strokeWidth={0.4} />
-                ))}
-            </g>
-          );
-        })}
+        layout.sections.flatMap((g) =>
+          g.rails.map((r, i) => {
+            const y = railTop(i) + (DIN_H - 35) / 2;
+            const w = r.modules * MODULE;
+            const x0 = g.x + RAIL_X0;
+            const slots: ReactNode[] = [];
+            for (let k = 0; k < r.modules; k++) slots.push(<rect key={k} x={x0 + k * MODULE + 4} y={y + 15} width={10} height={5} rx={2.5} fill="#8f99a5" opacity={0.75} />);
+            return (
+              <g key={r.id} {...hit(`r:${r.id}`)}>
+                <rect x={x0 - 6} y={y} width={w + 12} height={35} rx={1.5} fill="#cfd5dc" stroke={selRail === r.id ? SEL : '#8f99a5'} strokeWidth={selRail === r.id ? 1.6 : 0.6} />
+                {slots}
+                <text x={x0 - 12} y={y + 19} fontSize={4} textAnchor="end" fill="#8b95a1">
+                  {i + 1}
+                </text>
+                {interactive &&
+                  Array.from({ length: r.modules + 1 }, (_v, k) => (
+                    <line key={k} x1={x0 + k * MODULE} x2={x0 + k * MODULE} y1={y + 35} y2={y + 37.5} stroke="#9aa4af" strokeWidth={0.4} />
+                  ))}
+              </g>
+            );
+          }),
+        )}
 
       {/* devices */}
       {placedList.map((pl) => {
@@ -288,9 +295,10 @@ export function PanelDiagram({ project, panel, layout, routes, sim, markings, op
       {placedList.map((pl) => {
         if (pl.def.mount === 'free' && !options.showFreeItems) return null;
         if (pl.def.noStrip) return null;
+        if (pl.item.bar?.edge === 'top') return null; // no room above a top bar: it is told apart by its colour
         const lines = labelLines(panel, pl.item, pl.def, markingOf(pl.item, markings), options);
-        const ri = panel.rails.findIndex((r) => r.id === pl.item.railId);
-        const y = pl.def.mount === 'din' ? railTop(Math.max(0, ri)) + DIN_H + 3 : pl.def.role === 'source' ? pl.y - 28 : pl.y + pl.h + 3;
+        const pos = railPos(panel, pl.item.railId, layout.sections);
+        const y = pl.def.mount === 'din' && !pl.item.bar ? (pos?.top ?? 0) + DIN_H + 3 : pl.def.role === 'source' ? pl.y - 28 : pl.y + pl.h + 3;
         return (
           <g key={pl.item.id} {...hit(`i:${pl.item.id}`)}>
             <LabelStrip placed={pl} lines={lines} y={y} />

@@ -448,7 +448,7 @@ function run(panel: Panel, layout: Layout, opts: SimOptions, tripped: Set<string
       sim.powered = sim.poleLive.some(Boolean);
     } else if (p.def.role === 'bus' || p.def.role === 'terminal' || p.kinds.length) {
       p.terminals.forEach((term) => {
-        if (term.id.startsWith('T')) sim.poleLive[Number(term.id.slice(1))] = potsAt(g, t(term.id)).size > 0;
+        if (term.id.startsWith('T') || (p.def.role === 'bus' && term.id.startsWith('B'))) sim.poleLive[Number(term.id.slice(1))] = potsAt(g, t(term.id)).size > 0;
       });
       sim.powered = sim.poleLive.some(Boolean);
     }

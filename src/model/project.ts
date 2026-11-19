@@ -1,7 +1,7 @@
 import { defaultParams, defaultPoleConfig, getDef, syncCustomModules } from './defs';
 import { sanitizeModule } from './customModule';
 import { DEFAULT_PHASE_COLORS, DEFAULT_US_PHASE_COLORS } from './colors';
-import type { Item, Panel, Project, Rail, Wire } from './types';
+import type { Item, Panel, Project, Rail, Section, Wire } from './types';
 
 export const uid = (prefix = '') => prefix + Math.random().toString(36).slice(2, 9);
 
@@ -21,6 +21,20 @@ export function createItem(defId: string, init: Partial<Item> = {}): Item {
     model: '',
     ...init,
   };
+}
+
+/** Sections of a loaded panel: at least one, unique ids; none = the panel is a single enclosure. */
+function sanitizeSections(raw: unknown): Section[] | undefined {
+  if (!Array.isArray(raw)) return undefined;
+  const seen = new Set<string>();
+  const out: Section[] = [];
+  for (const s of raw as Partial<Section>[]) {
+    const id = typeof s?.id === 'string' && s.id ? s.id : uid('s');
+    if (seen.has(id)) continue;
+    seen.add(id);
+    out.push({ id, name: typeof s?.name === 'string' && s.name ? s.name.slice(0, 60) : `Section ${out.length + 1}` });
+  }
+  return out.length ? out : undefined;
 }
 
 export const createRail = (modules = 12): Rail => ({ id: uid('r'), modules });
@@ -119,7 +133,8 @@ export function parseProject(text: string): ParseResult {
       notes: typeof rp?.notes === 'string' ? rp.notes : '',
       region: rp?.region === 'us' ? 'us' : 'eu',
       usPhases: rp?.usPhases === 3 ? 3 : 2,
-      rails: Array.isArray(rp?.rails) && rp.rails.length ? rp.rails.map((r) => ({ id: String(r.id ?? uid('r')), modules: Math.max(1, Number(r.modules) || 12) })) : [createRail()],
+      rails: Array.isArray(rp?.rails) && rp.rails.length ? rp.rails.map((r) => ({ id: String(r.id ?? uid('r')), modules: Math.max(1, Number(r.modules) || 12), ...(typeof r.section === 'string' ? { section: r.section } : {}) })) : [createRail()],
+      sections: sanitizeSections(rp?.sections),
       items: [],
       wires: [],
     });
@@ -138,6 +153,7 @@ export function parseProject(text: string): ParseResult {
           manufacturer: ri.manufacturer ?? '',
           model: ri.model ?? '',
           on: ri.on ?? true,
+          bar: ri.bar && typeof ri.bar.section === 'string' && (ri.bar.edge === 'top' || ri.bar.edge === 'bottom') ? { section: ri.bar.section, edge: ri.bar.edge } : undefined,
         }),
       );
     }
