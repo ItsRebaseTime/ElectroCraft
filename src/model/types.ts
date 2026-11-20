@@ -17,7 +17,8 @@ export type Category =
   | 'sockets'
   | 'sources'
   | 'loads'
-  | 'custom';
+  | 'custom'
+  | 'library';
 
 /** How the simulator treats a device. */
 export type Role =
@@ -28,6 +29,7 @@ export type Role =
   | 'meter' // pole-wise pass-through, reports current
   | 'terminal' // pole-wise pass-through, always closed
   | 'bus' // all terminals joined together
+  | 'patch' // keystone patch panel: a grid of jacks, none of them joined
   | 'indicator' // lamp between phase (top) and neutral (bottom) terminal
   | 'module' // user-designed module: terminals sharing a net are joined inside
   | 'us_breaker' // plug-on breaker: its load terminal is fed from the panel bus by position (alternating phases)
@@ -65,7 +67,7 @@ export interface EquipmentDef {
   designation: string;
   /** Key into the icon table (Material Design Icons). */
   icon: string;
-  /** SVG file name in src/assets/equipment */
+  /** Name of the artwork (informational; the SVG comes from the module's `device.svg`) */
   asset: string;
   /** din = on a DIN rail (EU), us = in a US load-center breaker space, free = placed anywhere. */
   mount: 'din' | 'free' | 'us';
@@ -77,6 +79,8 @@ export interface EquipmentDef {
   mirrorTerminals?: boolean;
   /** The art carries its own text: no label strip under the device. */
   noStrip?: boolean;
+  /** Not offered in the palette (the app creates it, e.g. from the floor plan). */
+  hidden?: boolean;
   /** din only. 'config' = choose a pole configuration, 'count' = free number of poles/terminals, 'none' = fixed layout. */
   poleMode?: 'config' | 'count' | 'none';
   poleConfigs?: string[];
@@ -182,6 +186,35 @@ export interface ModuleTerminal {
 /** isolated: no internal connections, columns: top and bottom terminals of a column are joined, bus: everything joined, custom: nets typed per terminal. */
 export type ModuleBehaviour = 'isolated' | 'columns' | 'bus' | 'custom';
 
+/**
+ * A module that is a full device instead of a fixed face: pole configurations (width and terminals follow the poles),
+ * parameters, a simulation role, a mounting kind and artwork written as SVG with the layer conventions of the built-in
+ * devices. All built-in devices are modules of this kind.
+ */
+export interface ModuleDevice {
+  /** Palette group (project modules are always listed under Custom modules). */
+  category: Category;
+  role: Exclude<Role, 'module'>;
+  /** Key into the icon table. */
+  icon: string;
+  mount: 'din' | 'free' | 'us';
+  region?: 'eu' | 'us' | 'all';
+  tileAxis?: 'x' | 'y';
+  mirrorTerminals?: boolean;
+  noStrip?: boolean;
+  hidden?: boolean;
+  poleMode: 'config' | 'count' | 'none';
+  poleConfigs?: string[];
+  count?: { min: number; max: number; default: number; label: string };
+  params: ParamDef[];
+  stateful?: boolean;
+  tripsOnOverload?: boolean;
+  /** Label strip text, e.g. "{curve}{In}". */
+  summary?: string;
+  /** Artwork: SVG text using the conventions of docs/equipment-assets.md. */
+  svg: string;
+}
+
 export interface CustomModule {
   id: string;
   name: string;
@@ -207,6 +240,8 @@ export interface CustomModule {
   bottom: { rows: number; cols: number };
   terminals: ModuleTerminal[];
   shapes: ModuleShape[];
+  /** Present for device modules; the designed-face fields above are then unused. */
+  device?: ModuleDevice;
 }
 
 export interface Item {
@@ -225,6 +260,8 @@ export interface Item {
   switchStates?: Record<string, boolean>;
   /** Custom modules: per-device override of how an input (by id) actuates its switches; missing = the module's own mode. */
   inputModes?: Record<string, InputMode>;
+  /** Created from the floor plan: this item stands for a circuit (or one of its points) and is kept in sync with it. */
+  link?: { circuit: string; point?: string; /** Data outlets: which of the outlet's ports (0-based) this cable is. */ port?: number };
   /** Section bar (EU): a N or PE bar fixed along the top or bottom edge of a section instead of sitting on a rail. */
   bar?: { section: string; edge: 'top' | 'bottom' };
   /** Manual marking. Empty/undefined = automatic. */
@@ -307,6 +344,97 @@ export interface Project {
   panels: Panel[];
   /** Modules designed in this project. */
   modules: CustomModule[];
+  /** Floor plans with outlets, cables and the places of the panels. */
+  floorPlans: FloorPlan[];
+}
+
+// ---------------------------------------------------------------- floor plans
+
+/** What a cable carries. */
+export type FloorMedium = 'power' | 'network' | 'coax' | 'audio' | 'fiber' | 'phone' | 'other';
+
+export interface FloorPoint {
+  id: string;
+  /** Key of FLOOR_KINDS (socket, light, network, tv, fiber ...). */
+  kind: string;
+  x: number;
+  y: number;
+  /** Short label printed next to the symbol, e.g. S3 or RJ2. */
+  label: string;
+  /** How many of them are at this place (sockets in a row, ports of a data outlet ...); missing = 1. */
+  count?: number;
+  /** Power points: connected load in watts of each one. */
+  watts?: number;
+  /** Sockets and appliances: single phase (missing), two or three phases. */
+  phases?: 1 | 2 | 3;
+  /** Audio receivers: how many speaker channels it has. */
+  channels?: number;
+  /** The layer (floor, walls, ceiling ...) the outlet is on. */
+  layer?: string;
+  note?: string;
+}
+
+/** A panel (electrical or media cabinet) placed on a floor plan. */
+export interface FloorPanelMarker {
+  id: string;
+  panelId: string;
+  x: number;
+  y: number;
+}
+
+/** One step of a cable's route: an outlet or a bend. */
+export type FloorNode = { point: string } | { x: number; y: number };
+
+/**
+ * A group of outlets connected by one kind of cable and brought to a panel. `chain` runs the cable from outlet to outlet in
+ * order (the way sockets of one circuit are wired); `star` gives every outlet its own cable to the panel (network, coax, fibre).
+ */
+export interface FloorCircuit {
+  id: string;
+  name: string;
+  medium: FloorMedium;
+  topology: 'chain' | 'star';
+  cable: string;
+  color: string;
+  nodes: FloorNode[];
+  /** The panel marker the cable ends at; none = not connected to a panel yet. */
+  panel?: string;
+  /** Speaker circuits: the audio receiver / amplifier (an outlet of kind amp) the cables end at instead of a panel. */
+  hub?: string;
+  /** The layer the cable runs in; missing = the layer of its first outlet. */
+  layer?: string;
+  /** Chains: the outlet the panel cable is connected at (missing = the last outlet of the chain). */
+  feed?: string;
+  /** Chains: bends of the cable between that outlet and the panel, in order from the outlet. */
+  run?: Vec[];
+  /** Stars: bends of each outlet's own cable to the panel (outlet id -> bends in order from the outlet). */
+  bends?: Record<string, Vec[]>;
+  /** Power circuits: connected load in watts; missing = the sum of the outlets. */
+  watts?: number;
+  /** Power circuits: the number of phases; missing = the most of its outlets. */
+  phases?: 1 | 2 | 3;
+}
+
+/** A layer of a floor plan: outlets and cables are drawn in layers that can be shown, faded or hidden. Listed bottom to top. */
+export interface FloorLayer {
+  id: string;
+  name: string;
+}
+
+export interface FloorPlan {
+  id: string;
+  name: string;
+  layers: FloorLayer[];
+  /** Plan drawing, scaled down to fit in the project file. */
+  image?: { data: string; w: number; h: number };
+  /** Drawing size when there is no image. */
+  w: number;
+  h: number;
+  /** Pixels per metre of the drawing; 0 = not set (no lengths). */
+  pxPerM: number;
+  points: FloorPoint[];
+  panels: FloorPanelMarker[];
+  circuits: FloorCircuit[];
 }
 
 /** Which conductor a wire belongs to, for visibility settings. */

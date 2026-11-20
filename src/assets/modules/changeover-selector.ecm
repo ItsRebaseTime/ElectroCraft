@@ -1,0 +1,166 @@
+{
+  "format": "electrocraft-modules",
+  "version": 1,
+  "modules": [
+    {
+      "id": "lib-changeover-selector",
+      "name": "Changeover selector",
+      "description": "Hidden changeover switch; the lamps imitate its position",
+      "designation": "S",
+      "widthModules": 2,
+      "heightMm": 90,
+      "color": "#dde3ea",
+      "stroke": "#69747f",
+      "rating": {
+        "In": 16,
+        "Un": 230
+      },
+      "behaviour": "isolated",
+      "switchable": false,
+      "switches": [
+        {
+          "id": "kcho",
+          "name": "SEL",
+          "no": [
+            "T0_0",
+            "B0_0"
+          ],
+          "nc": [
+            "T0_0",
+            "B0_1"
+          ],
+          "visible": false,
+          "x": 18,
+          "y": 62
+        }
+      ],
+      "trips": false,
+      "top": {
+        "rows": 1,
+        "cols": 1
+      },
+      "bottom": {
+        "rows": 1,
+        "cols": 2
+      },
+      "terminals": [
+        {
+          "id": "T0_0",
+          "side": "top",
+          "row": 0,
+          "col": 0,
+          "label": "C",
+          "net": "solo:T0_0"
+        },
+        {
+          "id": "B0_0",
+          "side": "bottom",
+          "row": 0,
+          "col": 0,
+          "label": "NO",
+          "net": "solo:B0_0"
+        },
+        {
+          "id": "B0_1",
+          "side": "bottom",
+          "row": 0,
+          "col": 1,
+          "label": "NC",
+          "net": "solo:B0_1"
+        }
+      ],
+      "shapes": [
+        {
+          "id": "snbubgpg",
+          "name": "Title",
+          "type": "text",
+          "x": 18,
+          "y": 30,
+          "w": 10,
+          "h": 8,
+          "r": 4,
+          "rx": 0.8,
+          "fill": "#1f2630",
+          "stroke": "none",
+          "strokeWidth": 0.3,
+          "opacity": 1,
+          "text": "I / II",
+          "fontSize": 6,
+          "show": "always"
+        },
+        {
+          "id": "s79nea4p",
+          "name": "Lamp I (actuated)",
+          "type": "circle",
+          "x": 9,
+          "y": 46,
+          "w": 10,
+          "h": 8,
+          "r": 3,
+          "rx": 0.8,
+          "fill": "#d1342f",
+          "stroke": "#7a1d17",
+          "strokeWidth": 0.3,
+          "opacity": 1,
+          "text": "",
+          "fontSize": 4,
+          "show": "sw:kcho"
+        },
+        {
+          "id": "s7yjxkwc",
+          "name": "Lamp I (off)",
+          "type": "circle",
+          "x": 9,
+          "y": 46,
+          "w": 10,
+          "h": 8,
+          "r": 3,
+          "rx": 0.8,
+          "fill": "#7a8794",
+          "stroke": "#4c5560",
+          "strokeWidth": 0.3,
+          "opacity": 1,
+          "text": "",
+          "fontSize": 4,
+          "show": "rel:kcho"
+        },
+        {
+          "id": "sywdmgut",
+          "name": "Lamp II (released)",
+          "type": "circle",
+          "x": 27,
+          "y": 46,
+          "w": 10,
+          "h": 8,
+          "r": 3,
+          "rx": 0.8,
+          "fill": "#2fbf4f",
+          "stroke": "#14631f",
+          "strokeWidth": 0.3,
+          "opacity": 1,
+          "text": "",
+          "fontSize": 4,
+          "show": "rel:kcho"
+        },
+        {
+          "id": "svsfbk8w",
+          "name": "Lamp II (off)",
+          "type": "circle",
+          "x": 27,
+          "y": 46,
+          "w": 10,
+          "h": 8,
+          "r": 3,
+          "rx": 0.8,
+          "fill": "#7a8794",
+          "stroke": "#4c5560",
+          "strokeWidth": 0.3,
+          "opacity": 1,
+          "text": "",
+          "fontSize": 4,
+          "show": "sw:kcho"
+        }
+      ]
+    }
+  ]
+}

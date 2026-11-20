@@ -2,6 +2,7 @@ import { getAsset, getDef, poleKinds } from './defs';
 import type { Panel, Item, EquipmentDef, Rail, Section, Vec } from './types';
 import type { AssetTerminal, ParsedAsset } from './asset';
 import { evalShow, type EvalContext } from './expr';
+import { patchAsset, patchDims, patchSize } from './patch';
 
 // ---- EU / DIN-rail layout (millimetres)
 export const MODULE = 18;
@@ -13,8 +14,9 @@ export const ENCL_BOTTOM_PAD = 170; // below the last row's top edge
 
 // ---- sections (side-by-side enclosures) and their N / PE bars
 export const SECTION_GAP = 60;
-export const BAR_BAND_TOP = 56; // extra enclosure height above the first rail when the section has a top bar
+export const BAR_BAND_TOP = 56; // extra enclosure height above the first rail for a top bar of the usual height (a bus bar)
 export const BAR_BAND_BOTTOM = 76; // ... below the last rail for a bottom bar and its label strip
+export const BAR_GAP = 10; // between the bars of one edge
 
 // ---- US load-center layout
 export const US_SPACE_H = 20; // height of one breaker pole space
@@ -79,7 +81,29 @@ export interface SectionGeom {
   rails: Rail[];
   top: boolean;
   bottom: boolean;
+  /** Extra enclosure height for the bars above the first rail and below the last one (0 = none). */
+  topBand: number;
+  bottomBand: number;
 }
+
+/** Size of a section bar: a bus bar (one tile per terminal) or a patch panel. */
+export function barSize(item: Item): { w: number; h: number } {
+  const def = getDef(item.defId);
+  if (def?.role === 'patch') {
+    const { rows, cols } = patchDims(item);
+    return patchSize(rows, cols);
+  }
+  const asset = getAsset(item.defId);
+  if (!def || !asset) return { w: 0, h: 32 };
+  return { w: Math.max(1, poleKinds(item, def).length) * asset.width, h: asset.height };
+}
+/** Left to right on an edge: neutral bars, then patch panels and other bars, then earth bars at the right. */
+export const barRank = (i: Item): number => (i.params.role === 'N' ? 0 : i.params.role === 'PE' ? 2 : 1);
+/** The section a bar belongs to (an unknown one is the first). */
+export const barSectionId = (panel: Panel, i: Item): string => {
+  const list = sectionsOf(panel);
+  return list.some((q) => q.id === i.bar?.section) ? (i.bar!.section as string) : list[0].id;
+};
 
 /** The sections of a panel; never empty (a panel without sections has one). */
 export function sectionsOf(panel: Panel): Section[] {
@@ -96,13 +120,21 @@ export function sectionGeometry(panel: Panel): SectionGeom[] {
   let x = 0;
   return list.map((s, index) => {
     const rails = panel.rails.filter((r) => sectionIdOfRail(panel, r) === s.id);
-    const bars = panel.items.filter((i) => i.bar && (list.some((q) => q.id === i.bar!.section) ? i.bar.section : list[0].id) === s.id);
-    const top = bars.some((i) => i.bar!.edge === 'top');
-    const bottom = bars.some((i) => i.bar!.edge === 'bottom');
-    const w = Math.max(6, ...rails.map((r) => r.modules)) * MODULE + 2 * RAIL_X0;
-    const y = ENCL_TOP - (top ? BAR_BAND_TOP : 0);
-    const bottomY = railTop(Math.max(0, rails.length - 1)) + ENCL_BOTTOM_PAD + (bottom ? BAR_BAND_BOTTOM : 0);
-    const g: SectionGeom = { id: s.id, name: s.name, index, x, y, w, h: bottomY - y, rails, top, bottom };
+    const bars = panel.items.filter((i) => i.bar && barSectionId(panel, i) === s.id);
+    // what the bars of an edge need: the tallest one, and all of them side by side
+    const edge = (e: 'top' | 'bottom') => {
+      const sizes = bars.filter((i) => i.bar!.edge === e).map(barSize);
+      return sizes.length ? { h: Math.max(...sizes.map((z) => z.h)), w: sizes.reduce((a, z) => a + z.w, 0) + BAR_GAP * (sizes.length - 1) } : null;
+    };
+    const t = edge('top');
+    const b = edge('bottom');
+    // the enclosure is as wide as its longest rail or its fullest edge of bars
+    const w = Math.max(6 * MODULE, ...rails.map((r) => r.modules * MODULE), t ? t.w : 0, b ? b.w : 0) + 2 * RAIL_X0;
+    const topBand = t ? 24 + t.h : 0;
+    const bottomBand = b ? 10 + b.h + 34 : 0;
+    const y = ENCL_TOP - topBand;
+    const bottomY = railTop(Math.max(0, rails.length - 1)) + ENCL_BOTTOM_PAD + bottomBand;
+    const g: SectionGeom = { id: s.id, name: s.name, index, x, y, w, h: bottomY - y, rails, top: !!t, bottom: !!b, topBand, bottomBand };
     x += w + SECTION_GAP;
     return g;
   });
@@ -176,18 +208,25 @@ export function itemWidthModules(item: Item, def: EquipmentDef): number {
 
 export function placeItem(panel: Panel, item: Item, geoms: SectionGeom[] = sectionGeometry(panel)): Placed | null {
   const def = getDef(item.defId);
-  const asset = getAsset(item.defId);
+  const asset = def?.role === 'patch' ? patchAsset(item) : getAsset(item.defId);
   if (!def || !asset) return null;
   const { kinds, tiles, axis } = tiling(item, def);
   const ri = railIndex(panel, item.railId);
   let x = item.x;
   let y = item.y;
   if (item.bar && def.mount === 'din') {
-    // fixed along the top or bottom edge of its section: N bars at the left, PE bars at the right
+    // fixed along the top or bottom edge of its section: neutral bars at the left, then patch panels, earth bars at the right
     const g = geoms.find((s) => s.id === item.bar!.section) ?? geoms[0];
-    const barW = Math.max(1, poleKinds(item, def).length) * asset.width;
-    x = item.params.role === 'PE' ? g.x + g.w - RAIL_X0 - barW : g.x + RAIL_X0;
-    y = item.bar.edge === 'top' ? g.y + 24 : g.y + g.h - BAR_BAND_BOTTOM + 10;
+    const edgeBars = panel.items.filter((i) => i.bar && i.bar.edge === item.bar!.edge && barSectionId(panel, i) === g.id).sort((a, b) => barRank(a) - barRank(b));
+    const me = barSize(item);
+    let cursor = g.x + RAIL_X0;
+    for (const o of edgeBars) {
+      if (o === item || o.id === item.id) break;
+      if (barRank(o) < 2) cursor += barSize(o).w + BAR_GAP;
+    }
+    x = barRank(item) === 2 ? g.x + g.w - RAIL_X0 - me.w : cursor;
+    const tallest = Math.max(...edgeBars.map((o) => barSize(o).h));
+    y = item.bar.edge === 'top' ? g.y + 24 + (tallest - me.h) : g.y + g.h - g.bottomBand + 10;
   } else if (def.mount === 'din') {
     const pos = railPos(panel, item.railId, geoms);
     if (!pos) return null;

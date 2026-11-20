@@ -1,6 +1,7 @@
 import { defaultParams, defaultPoleConfig, getDef, syncCustomModules } from './defs';
 import { sanitizeModule } from './customModule';
 import { DEFAULT_PHASE_COLORS, DEFAULT_US_PHASE_COLORS } from './colors';
+import { sanitizeFloorPlans } from './floor';
 import type { Item, Panel, Project, Rail, Section, Wire } from './types';
 
 export const uid = (prefix = '') => prefix + Math.random().toString(36).slice(2, 9);
@@ -72,6 +73,7 @@ export function createProject(name = 'New project'): Project {
     settings: { markingStandard: 'iec81346', phaseColors: { ...DEFAULT_PHASE_COLORS }, usPhaseColors: { ...DEFAULT_US_PHASE_COLORS } },
     panels: [createPanel('Main panel')],
     modules: [],
+    floorPlans: [],
   };
 }
 
@@ -153,6 +155,7 @@ export function parseProject(text: string): ParseResult {
           manufacturer: ri.manufacturer ?? '',
           model: ri.model ?? '',
           on: ri.on ?? true,
+          link: ri.link && typeof ri.link.circuit === 'string' ? { circuit: ri.link.circuit, ...(typeof ri.link.point === 'string' ? { point: ri.link.point } : {}), ...(typeof ri.link.port === 'number' && Number.isInteger(ri.link.port) && ri.link.port >= 0 ? { port: ri.link.port } : {}) } : undefined,
           bar: ri.bar && typeof ri.bar.section === 'string' && (ri.bar.edge === 'top' || ri.bar.edge === 'bottom') ? { section: ri.bar.section, edge: ri.bar.edge } : undefined,
         }),
       );
@@ -180,6 +183,7 @@ export function parseProject(text: string): ParseResult {
     },
     panels: panels.length ? panels : [createPanel('Main panel')],
     modules,
+    floorPlans: sanitizeFloorPlans((o as Partial<Project>).floorPlans),
   };
   return { project, warnings };
 }

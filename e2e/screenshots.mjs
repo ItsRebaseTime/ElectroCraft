@@ -23,6 +23,7 @@ const usSample = readFileSync(join(ROOT, 'docs/examples/us-sample-house.ec'), 'u
 const moduleExample = readFileSync(join(ROOT, 'docs/examples/custom-module.ec'), 'utf8');
 const sectionsExample = readFileSync(join(ROOT, 'docs/examples/multi-section-board.ec'), 'utf8');
 const indicatorExample = readFileSync(join(ROOT, 'docs/examples/relay-indicator.ec'), 'utf8');
+const floorExample = readFileSync(join(ROOT, 'docs/examples/apartment.ec'), 'utf8');
 const IPHONE = 'Mozilla/5.0 (iPhone; CPU iPhone OS 17_4 like Mac OS X) AppleWebKit/605.1.15 (KHTML, like Gecko) Version/17.4 Mobile/15E148 Safari/604.1';
 
 const opts = new firefox.Options().addArguments('-headless').windowSize({ width: 1600, height: 1000 });
@@ -80,6 +81,68 @@ try {
   await driver.findElement(By.xpath("//div[contains(@class,'shape-row')][contains(., 'Coil lamp')]")).click();
   await sleep(500);
   await shot('indicator-light');
+  // floor plan: the whole house, a selected circuit, and the panel planner it feeds
+  await driver.get(BASE);
+  await driver.executeScript('localStorage.setItem("electrocraft.autosave", arguments[0])', floorExample);
+  await driver.get(BASE + '#floor');
+  await driver.navigate().refresh();
+  await driver.wait(until.elementLocated(By.css('svg.floor-canvas image')), 15000);
+  await sleep(1200);
+  await shot('floor-plan');
+  await driver.findElement(By.xpath("//button[contains(@class,'sum-link')][contains(., 'Sockets kitchen')]")).click();
+  await sleep(600);
+  await shot('floor-circuit');
+  // several outlets selected with a Ctrl+drag box (copy them with Ctrl+C, paste them with Ctrl+V)
+  await driver.actions().sendKeys('\uE00C').perform();
+  await sleep(300);
+  await driver.executeScript(`
+    const svg = document.querySelector('svg.floor-canvas'); const r = svg.getBoundingClientRect();
+    const m = /translate\\(([-\\d.e]+) ([-\\d.e]+)\\) scale\\(([-\\d.e]+)\\)/.exec(svg.querySelector(':scope > g').getAttribute('transform'));
+    const at = (x, y) => [r.left + Number(m[1]) + x * Number(m[3]), r.top + Number(m[2]) + y * Number(m[3])];
+    const [x1, y1] = at(60, 150); const [x2, y2] = at(425, 405);
+    const fire = (type, x, y, el) => el.dispatchEvent(new PointerEvent(type, { bubbles: true, cancelable: true, ctrlKey: true, button: 0, buttons: type === 'pointerup' ? 0 : 1, pointerId: 91, pointerType: 'mouse', clientX: x, clientY: y }));
+    fire('pointerdown', x1, y1, document.elementFromPoint(x1, y1) || svg); fire('pointermove', (x1 + x2) / 2, (y1 + y2) / 2, svg); fire('pointermove', x2, y2, svg); fire('pointerup', x2, y2, svg);`);
+  await sleep(500);
+  await shot('floor-selection');
+  // an appliance with two phases (the hob)
+  await driver.actions().sendKeys('\uE00C').perform();
+  await sleep(300);
+  const hob = await driver.findElement(By.xpath("//*[local-name()='g'][starts-with(@data-hit,'p:')][.//*[local-name()='text' and contains(., 'HOB')]]"));
+  await driver.actions({ async: true }).move({ origin: hob }).click().perform();
+  await sleep(500);
+  await shot('floor-phases');
+  // speakers end at the audio receiver
+  await driver.actions().sendKeys('\uE00C').perform(); // Escape: back to the properties of the plan
+  await sleep(300);
+  await driver.findElement(By.xpath("//button[contains(@class,'sum-link')][contains(., 'Living room speakers')]")).click();
+  await sleep(500);
+  await shot('floor-audio');
+  // visibility of everything on the plan, from the View menu
+  await driver.actions().sendKeys('\uE00C').perform();
+  await driver.findElement(By.xpath("//button[contains(., 'View')]")).click();
+  await sleep(500);
+  await shot('floor-visibility');
+  await driver.findElement(By.css('body')).click();
+  // layers: the ceiling in focus, floor and walls faded
+  await driver.findElement(By.xpath("//button[@aria-label='Fade Walls']")).click();
+  await driver.findElement(By.xpath("//button[@aria-label='Fade Floor']")).click();
+  await driver.actions().sendKeys('\uE00C').perform(); // Escape: nothing selected
+  await sleep(500);
+  await shot('floor-layers');
+  await open(floorExample, '');
+  await sleep(300);
+  await shot('floor-panel-planner');
+  await open(floorExample, '#panel=2&select=item:1');
+  await sleep(300);
+  await shot('patch-panel');
+
+  // the device designer (starts as a copy of the MCB)
+  await open(sample, '');
+  await driver.findElement(By.xpath("//button[contains(., 'Modules')]")).click();
+  await driver.findElement(By.xpath("//button[contains(., 'Design a new device')]")).click();
+  await driver.wait(until.elementLocated(By.css('svg.dev-preview')), 5000);
+  await sleep(600);
+  await shot('device-designer');
   await open(sample, '#export');
   await sleep(500);
   await shot('export-dialog');
@@ -128,6 +191,14 @@ try {
     await sleep(300);
     writeFileSync(join(OUT, 'mobile-sections.png'), await phone.takeScreenshot(), 'base64');
     console.log('wrote mobile-sections');
+    await phone.get(BASE);
+    await phone.executeScript('localStorage.setItem("electrocraft.autosave", arguments[0])', floorExample);
+    await phone.get(BASE + '#floor');
+    await phone.navigate().refresh();
+    await phone.wait(until.elementLocated(By.css('svg.floor-canvas image')), 15000);
+    await sleep(1200);
+    writeFileSync(join(OUT, 'mobile-floor.png'), await phone.takeScreenshot(), 'base64');
+    console.log('wrote mobile-floor');
   } finally {
     await phone.quit();
   }

@@ -1,0 +1,108 @@
+{
+  "format": "electrocraft-modules",
+  "version": 1,
+  "modules": [
+    {
+      "id": "bus",
+      "name": "Busbar / distribution block",
+      "description": "All terminals are bonded together. Typical N and PE bars.",
+      "designation": "X",
+      "device": {
+        "category": "connection",
+        "role": "bus",
+        "icon": "busbar",
+        "mount": "din",
+        "poleMode": "count",
+        "count": {
+          "min": 2,
+          "max": 24,
+          "default": 12,
+          "label": "Terminals"
+        },
+        "params": [
+          {
+            "key": "role",
+            "label": "Function",
+            "type": "select",
+            "options": [
+              {
+                "value": "N",
+                "label": "Neutral bar",
+                "hex": "#4f8ee0"
+              },
+              {
+                "value": "PE",
+                "label": "Earth bar",
+                "hex": "#4fae5e"
+              },
+              {
+                "value": "L1",
+                "label": "Phase L1",
+                "hex": "#b08060"
+              },
+              {
+                "value": "L2",
+                "label": "Phase L2",
+                "hex": "#5c5f66"
+              },
+              {
+                "value": "L3",
+                "label": "Phase L3",
+                "hex": "#a8adb5"
+              }
+            ],
+            "default": "N",
+            "group": "config"
+          },
+          {
+            "key": "In",
+            "label": "Rated current",
+            "type": "select",
+            "options": [
+              {
+                "value": 63,
+                "label": "63 A"
+              },
+              {
+                "value": 100,
+                "label": "100 A"
+              },
+              {
+                "value": 125,
+                "label": "125 A"
+              },
+              {
+                "value": 160,
+                "label": "160 A"
+              }
+            ],
+            "default": 100,
+            "group": "rating"
+          }
+        ],
+        "summary": "{role} {In}A",
+        "svg": [
+          "<svg xmlns=\"http://www.w3.org/2000/svg\" viewBox=\"0 0 9 32\" width=\"9\" height=\"32\">",
+          "  <!--",
+          "    Layer conventions (see docs/equipment-assets.md):",
+          "      data-scope=\"pole\"    drawn once per pole, tile is the viewBox",
+          "      data-scope=\"device\"  drawn once (default)",
+          "      data-stretch=\"x\"     device layer scaled horizontally over all poles (use fills only)",
+          "      data-show=\"...\"      visibility expression, e.g. on,!tripped  pole-n  kind==lamp",
+          "      data-center-x=\"true\" text centred across the whole device",
+          "      data-terminal=\"...\"  connection point (top/bottom per pole, or a name for device terminals)",
+          "      {{token}}            replaced by parameters, e.g. {{In}} {{curve}} {{Icn#label}} {{color#hex}}",
+          "  -->",
+          "  <g data-scope=\"pole\" data-layer=\"body\">",
+          "    <rect x=\"0.3\" y=\"0.3\" width=\"8.4\" height=\"31.4\" rx=\"1\" fill=\"{{role#hex}}\" stroke=\"#4c5560\" stroke-width=\"0.5\"/>",
+          "    <circle data-terminal=\"top\" cx=\"4.5\" cy=\"6.5\" r=\"2.2\" fill=\"#9aa4af\" stroke=\"#4c5560\" stroke-width=\"0.5\"/><path d=\"M3.1799999999999997 6.5h2.64\" stroke=\"#3b444d\" stroke-width=\"0.7\"/>",
+          "    <circle data-terminal=\"bottom\" cx=\"4.5\" cy=\"25.5\" r=\"2.2\" fill=\"#9aa4af\" stroke=\"#4c5560\" stroke-width=\"0.5\"/><path d=\"M3.1799999999999997 25.5h2.64\" stroke=\"#3b444d\" stroke-width=\"0.7\"/>",
+          "  </g>",
+          "  <g data-scope=\"pole\" data-layer=\"pe-stripe\" data-show=\"role==PE\"><rect x=\"0.3\" y=\"12\" width=\"8.4\" height=\"8\" fill=\"#f2d21b\"/></g>",
+          "  <g data-layer=\"bar\"><rect x=\"0\" y=\"13\" width=\"9\" height=\"6\" fill=\"#d9a441\" opacity=\"0.0\"/></g>",
+          "</svg>"
+        ]
+      }
+    }
+  ]
+}

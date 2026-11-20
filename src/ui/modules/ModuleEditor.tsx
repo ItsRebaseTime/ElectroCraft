@@ -22,6 +22,9 @@ import { useStore } from '../../store/store';
 import { Field, NumberField, TextField } from '../fields';
 import { Icon } from '../Icon';
 import { exportModulesToFile, saveModule, useModuleUI } from './moduleState';
+import { DeviceDesigner } from './DeviceEditor';
+import { cloneModule } from '../../model/customModule';
+import { moduleById } from '../../model/defs';
 
 type Tool = 'select' | 'rect' | 'circle' | 'text';
 const GRID = 0.5;
@@ -348,6 +351,7 @@ function ModuleEditorInner({ initial }: { initial: CustomModule }) {
   const [tool, setTool] = useState<Tool>('select');
   const [selected, setSelected] = useState<string | null>(null);
   const [tab, setTab] = useState<'module' | 'design'>('module');
+  const [devTab, setDevTab] = useState<'device' | 'artwork' | 'params'>('device');
   const [preview, setPreview] = useState<{ on: boolean; tripped: boolean; powered: boolean; sw: Record<string, boolean>; inp: Record<string, boolean> }>({ on: true, tripped: false, powered: false, sw: {}, inp: {} });
   const isNew = !useStore.getState().project.modules.some((x) => x.id === initial.id);
 
@@ -399,6 +403,21 @@ function ModuleEditorInner({ initial }: { initial: CustomModule }) {
       notify('Give the module a name.', 'error');
       return;
     }
+    if (m.device) {
+      const keys = m.device.params.map((p) => p.key);
+      if (new Set(keys).size !== keys.length) {
+        notify('Parameter keys must be unique.', 'error');
+        return;
+      }
+      if (m.device.poleMode === 'config' && !m.device.poleConfigs?.length) {
+        notify('Choose at least one pole configuration.', 'error');
+        return;
+      }
+      saveModule({ ...m, name: m.name.trim() });
+      notify(`Device "${m.name.trim()}" saved to the project. Find it under Custom modules.`);
+      closeEditor();
+      return;
+    }
     if (!m.terminals.length) {
       notify('A module needs at least one connection (rows and columns above zero).', 'error');
       return;
@@ -439,23 +458,44 @@ function ModuleEditorInner({ initial }: { initial: CustomModule }) {
       switches: d.switches.map((x) => (x.id === swId ? { ...x, [which]: x[which].includes(tid) ? x[which].filter((t) => t !== tid) : [...x[which], tid] } : x)),
     }));
 
+  const kind = m.device ? 'device' : 'module';
+  const header = (
+    <div className="modal-head">
+      <h2>
+        <Icon name="module" /> {isNew ? `New ${kind}` : `Edit ${kind}`}
+      </h2>
+      <div className="row gap-s">
+        <button onClick={() => exportModulesToFile([{ ...m, name: m.name.trim() || 'Module' }])} title="Save this design as a .ecm file you can share or import into another project">
+          <Icon name="exportFile" size={18} /> Export
+        </button>
+        <button onClick={closeEditor}>Cancel</button>
+        <button className="primary" onClick={save}>
+          <Icon name="check" size={18} /> Save to project
+        </button>
+      </div>
+    </div>
+  );
+  if (m.device)
+    return (
+      <div className="modal-backdrop" onClick={closeEditor}>
+        <div className="modal module-editor" role="dialog" aria-modal="true" aria-label="Device designer" onClick={(e) => e.stopPropagation()}>
+          {header}
+          <div className="me-tabs">
+            {(['device', 'artwork', 'params'] as const).map((t) => (
+              <button key={t} className={devTab === t ? 'on' : ''} onClick={() => setDevTab(t)}>
+                {t === 'device' ? 'Device' : t === 'artwork' ? 'Artwork' : 'Parameters'}
+              </button>
+            ))}
+          </div>
+          <DeviceDesigner m={m} setM={setM} tab={devTab} />
+        </div>
+      </div>
+    );
+
   return (
     <div className="modal-backdrop" onClick={closeEditor}>
       <div className="modal module-editor" role="dialog" aria-modal="true" aria-label="Module designer" onClick={(e) => e.stopPropagation()}>
-        <div className="modal-head">
-          <h2>
-            <Icon name="module" /> {isNew ? 'New module' : 'Edit module'}
-          </h2>
-          <div className="row gap-s">
-            <button onClick={() => exportModulesToFile([{ ...m, name: m.name.trim() || 'Module' }])} title="Save this design as a .ecm file you can share or import into another project">
-              <Icon name="exportFile" size={18} /> Export
-            </button>
-            <button onClick={closeEditor}>Cancel</button>
-            <button className="primary" onClick={save}>
-              <Icon name="check" size={18} /> Save to project
-            </button>
-          </div>
-        </div>
+        {header}
         <div className="me-tabs">
           <button className={tab === 'module' ? 'on' : ''} onClick={() => setTab('module')}>
             Module
@@ -765,8 +805,16 @@ function ModuleEditorInner({ initial }: { initial: CustomModule }) {
 export function ModuleEditor() {
   const open = useModuleUI((s) => s.editorOpen);
   const id = useModuleUI((s) => s.editingId);
+  const kind = useModuleUI((s) => s.editorKind);
   const modules = useStore((s) => s.project.modules);
   if (!open) return null;
   const existing = modules.find((x) => x.id === id);
-  return <ModuleEditorInner key={id ?? 'new'} initial={existing ? structuredClone(existing) : newModule()} />;
+  let initial: CustomModule;
+  if (existing) initial = structuredClone(existing);
+  else if (kind === 'device') {
+    // a new device starts as a copy of the MCB: a working definition and artwork to change
+    const src = moduleById([], 'mcb');
+    initial = src ? { ...cloneModule(src, modules), name: 'New device', description: '' } : newModule();
+  } else initial = newModule();
+  return <ModuleEditorInner key={`${id ?? 'new'}-${kind}`} initial={initial} />;
 }

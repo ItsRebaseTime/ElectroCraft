@@ -1,17 +1,20 @@
-import { bridgesOf, getDef, optionList, POLE_CONFIG_LABELS, paramVisible, poleKinds } from '../model/defs';
+import { bridgesOf, getDef, isLibraryDef, isShippedDef, moduleById, optionList, POLE_CONFIG_LABELS, paramVisible, poleKinds } from '../model/defs';
 import { sectionGeometry, termKey } from '../model/geometry';
 import { markingOf } from '../model/marking';
 import { colorByKey, potentialColorKey, WIRE_COLORS } from '../model/colors';
 import { floorsOf } from '../model/project';
 import { evalShow } from '../model/expr';
 import type { InputMode, Item, Panel, ParamDef, ParamValue, TerminalRef, Wire } from '../model/types';
-import { addRail, addSection, duplicateItems, findSectionBar, removeSection, renameSection, setRailSection, setSectionBar, moveRail, removeItems, removeRail, removeWires, setBridges, setInputMode, setRailLength, setUsPhases, setUsRows, toggleBridge, toggleSwitch, updateItem } from '../store/actions';
+import { addRail, addSection, autoWirePatch, duplicateItems, findSectionBar, findSectionPatch, setSectionPatch, removeSection, renameSection, setRailSection, setSectionBar, moveRail, LINKED_ITEM_MESSAGE, removeItems, removeRail, removeWires, setBridges, setInputMode, setRailLength, setUsPhases, setUsRows, toggleBridge, toggleSwitch, updateItem } from '../store/actions';
 import { selectActivePanel, useStore } from '../store/store';
 import { useDiagram } from './DiagramContext';
 import { Field, NumberField, TextField } from './fields';
 import { Icon } from './Icon';
 import { contactLabel, effectiveInputMode, INPUT_MODES } from '../model/customModule';
 import { duplicateModule, useModuleUI } from './modules/moduleState';
+import { useFloorUI } from './floor/floorState';
+import { floorLinkOf } from '../model/floorSync';
+import { PATCH_MAX_COLS, PATCH_MAX_ROWS, patchDims } from '../model/patch';
 
 const SECTIONS = [0.5, 0.75, 1, 1.5, 2.5, 4, 6, 10, 16, 25, 35, 50];
 const AWG = ['18', '16', '14', '12', '10', '8', '6', '4', '3', '2', '1', '1/0', '2/0', '3/0', '4/0'];
@@ -39,6 +42,37 @@ function ParamEditor({ def, item, onChange }: { def: ParamDef; item: Item; onCha
   return <TextField value={String(value)} onCommit={onChange} />;
 }
 
+/** Jacks used and the button that wires the floor plan cables to the free ones. */
+function PatchTools({ panelId, item }: { panelId: string; item: Item }) {
+  const panel = useStore(selectActivePanel);
+  const { mutate, notify } = useStore.getState();
+  const { rows, cols } = patchDims(item);
+  const used = new Set(panel.wires.flatMap((w) => [w.from, w.to]).filter((t) => t.item === item.id).map((t) => t.terminal)).size;
+  const floorCables = panel.items.filter((i) => i.link && i.defId === 'floor_port').length;
+  return (
+    <>
+      <h4>Jacks</h4>
+      <p className="meta">
+        {used} of {rows * cols} jacks wired. {floorCables ? `${floorCables} network, coax or fibre cable${floorCables === 1 ? '' : 's'} come from the floor plan.` : 'Network ports from the floor plan can be wired here.'}
+      </p>
+      <button
+        disabled={!floorCables}
+        title="Wire every cable from the floor plan that has no wire yet to the next free jack"
+        onClick={() => {
+          let r = { wired: 0, missing: 0 };
+          mutate((d) => {
+            r = autoWirePatch(panelIn(d, panelId), item.id);
+          });
+          if (!r.wired && !r.missing) notify('Every cable from the floor plan is wired already.');
+          else notify(`${r.wired} cable${r.wired === 1 ? '' : 's'} wired${r.missing ? `; ${r.missing} found no free jack: add rows or columns` : ''}.`, r.missing ? 'error' : 'info');
+        }}
+      >
+        <Icon name="wire" size={16} /> Wire floor plan cables to free jacks
+      </button>
+    </>
+  );
+}
+
 function ItemProps({ itemId }: { itemId: string }) {
   const panel = useStore(selectActivePanel);
   const { mutate, notify, select, setSim } = useStore.getState();
@@ -60,7 +94,9 @@ function ItemProps({ itemId }: { itemId: string }) {
   };
   const setParam = (key: string, v: ParamValue) => patch({ params: { [key]: v } });
   const ctx = { flags: {}, params: item.params, vars: {}, paramDefs: def.params };
-  const visible = def.params.filter((p) => paramVisible(p) && evalShow(p.show, ctx));
+  const link = floorLinkOf(project, item);
+  // the load, kind and phases of a floor plan circuit come from the plan; changing them here would be undone
+  const visible = def.params.filter((p) => paramVisible(p) && evalShow(p.show, ctx) && !(item.link && ['P', 'kind', 'phases', 'medium'].includes(p.key)));
   const auto = markings[item.id];
 
   return (
@@ -68,6 +104,26 @@ function ItemProps({ itemId }: { itemId: string }) {
       <h3>
         <Icon name={def.icon} /> {def.name}
       </h3>
+      {item.link && (
+        <div className="floor-link">
+          <p className="meta">
+            <Icon name="floor" size={14} /> From the floor plan{link ? ` "${link.plan.name}"` : ''}: <b>{link ? link.circuit.name : 'circuit'}</b>
+            {link?.point ? ` (${link.point.label}${link.port !== undefined && (link.point.count ?? 1) > 1 ? `.${link.port + 1}` : ''})` : ''}. Wire it to the modules of this panel; its load and name follow the plan.
+          </p>
+          {link && (
+            <button
+              onClick={() => {
+                const ui = useFloorUI.getState();
+                ui.setPlan(link.plan.id);
+                ui.select({ kind: 'circuit', id: link.circuit.id });
+                ui.setView('floor');
+              }}
+            >
+              <Icon name="floor" size={16} /> Show on the floor plan
+            </button>
+          )}
+        </div>
+      )}
       <p className="desc">{def.description}</p>
       <Field label="Marking" hint={item.marking?.trim() ? 'Manual marking' : 'Automatic'}>
         <div className="row">
@@ -154,10 +210,13 @@ function ItemProps({ itemId }: { itemId: string }) {
         </>
       )}
 
+      {def.role === 'patch' && (
+        <PatchTools panelId={panel.id} item={item} />
+      )}
       {def.role === 'module' && (def.module?.switches?.length ?? 0) > 0 && (
         <>
           <h4>Switches</h4>
-          {(project.modules.find((m) => m.id === def.id)?.switches ?? [])
+          {(moduleById(project.modules, def.id)?.switches ?? [])
             .filter((sw) => def.module?.switches?.some((x) => x.id === sw.id))
             .map((sw) => {
               const manual = Boolean(item.switchStates?.[sw.id]);
@@ -178,7 +237,7 @@ function ItemProps({ itemId }: { itemId: string }) {
       {def.role === 'module' && (def.module?.inputs?.length ?? 0) > 0 && (
         <>
           <h4>Inputs</h4>
-          {(project.modules.find((m) => m.id === def.id)?.inputs ?? [])
+          {(moduleById(project.modules, def.id)?.inputs ?? [])
             .filter((inp) => def.module?.inputs?.some((x) => x.id === inp.id))
             .map((inp) => (
               <div key={inp.id} className="sw-row">
@@ -204,10 +263,14 @@ function ItemProps({ itemId }: { itemId: string }) {
       )}
       {def.role === 'module' && (
         <>
-          <h4>Custom module</h4>
-          <button onClick={() => useModuleUI.getState().openEditor(def.id)}>
-            <Icon name="module" size={16} /> Edit module design...
-          </button>
+          <h4>{isLibraryDef(def.id) ? 'Library module' : 'Custom module'}</h4>
+          {isLibraryDef(def.id) ? (
+            <p className="meta">Part of the module library that ships with the app, so it cannot be edited. Copy it to the project to change it.</p>
+          ) : (
+            <button onClick={() => useModuleUI.getState().openEditor(def.id)}>
+              <Icon name="module" size={16} /> Edit module design...
+            </button>
+          )}
           <button
             title="Create a new module from this one to make a variation"
             onClick={() => {
@@ -215,7 +278,19 @@ function ItemProps({ itemId }: { itemId: string }) {
               if (id) useModuleUI.getState().openEditor(id);
             }}
           >
-            <Icon name="copy" size={16} /> Clone as new module...
+            <Icon name="copy" size={16} /> {isLibraryDef(def.id) ? 'Copy to project to edit...' : 'Clone as new module...'}
+          </button>
+        </>
+      )}
+
+      {def.role !== 'module' && def.role !== 'patch' && !item.link && isShippedDef(def.id) && (
+        <>
+          <h4>Device definition</h4>
+          <button title="Make an editable copy of this device in the project, to change its parameters, poles or artwork" onClick={() => {
+            const id = duplicateModule(def.id);
+            if (id) useModuleUI.getState().openEditor(id);
+          }}>
+            <Icon name="copy" size={16} /> Copy to project to edit...
           </button>
         </>
       )}
@@ -264,8 +339,10 @@ function ItemProps({ itemId }: { itemId: string }) {
         </button>
         <button
           className="danger"
+          disabled={!!item.link}
+          title={item.link ? LINKED_ITEM_MESSAGE : undefined}
           onClick={() => {
-            mutate((d) => removeItems(panelIn(d, panel.id), [item.id]));
+            mutate((d) => void removeItems(panelIn(d, panel.id), [item.id]));
             select({ kind: null, ids: [] });
           }}
         >
@@ -479,6 +556,35 @@ function SectionsEditor({ panel }: { panel: Panel }) {
               );
             })}
           </div>
+          {(['top', 'bottom'] as const).map((edge) => {
+            const patch = findSectionPatch(panel, g.id, edge);
+            const dims = patch ? patchDims(patch) : null;
+            const resize = (key: 'rows' | 'cols', v: number) => {
+              let msg: string | null = null;
+              mutate((d) => {
+                msg = updateItem(panelIn(d, panel.id), patch!.id, { params: { [key]: Math.round(v) } });
+              });
+              if (msg) notify(msg, 'error');
+            };
+            return (
+              <div key={edge} className="patch-row">
+                <label className="check" title={`A keystone patch panel along the ${edge} of the enclosure, next to the bus bars`}>
+                  <input type="checkbox" checked={!!patch} onChange={(e) => mutate((d) => setSectionPatch(panelIn(d, panel.id), g.id, edge, e.target.checked))} /> Keystone panel {edge}
+                  {patch && (
+                    <button className="link" onClick={(ev) => (ev.preventDefault(), select({ kind: 'item', ids: [patch.id] }))}>
+                      edit
+                    </button>
+                  )}
+                </label>
+                {dims && (
+                  <span className="patch-size">
+                    <NumberField value={dims.rows} min={1} max={PATCH_MAX_ROWS} step={1} unit="rows" onCommit={(v) => resize('rows', v)} />
+                    <NumberField value={dims.cols} min={1} max={PATCH_MAX_COLS} step={1} unit="cols" onCommit={(v) => resize('cols', v)} />
+                  </span>
+                )}
+              </div>
+            );
+          })}
         </div>
       ))}
       <button onClick={() => mutate((d) => void addSection(panelIn(d, panel.id)))}>

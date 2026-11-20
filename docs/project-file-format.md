@@ -99,6 +99,58 @@ face; it keeps working. Files from the first version, with one `contact` (`NO` /
 module's `id`. Their `switchStates` (`{ "ksta": true }`) tell which switches are actuated (default: released). An optional `inputModes` (`{ "kcoil": "toggle" }`) overrides the
 `mode` of an input for that one placed copy. Terminal ids are `T<row>_<col>` (top) and `B<row>_<col>` (bottom).
 
+A module can also be a **device module**: it has a `device` object (and no designed face). Its fields are the ones of an
+equipment definition: `category`, `role`, `icon`, `mount` (`din`, `free`, `us`), optional `region`, `tileAxis`,
+`mirrorTerminals`, `noStrip`, `poleMode` (`config`, `count`, `none`) with `poleConfigs` or `count`, `params`, `stateful`,
+`tripsOnOverload`, `summary`, and the artwork `svg` (a string, or an array of lines). See
+[equipment-assets.md](equipment-assets.md). Placed copies are ordinary items (`defId` = the module's `id`) with `poleConfig`
+and `params`, like the built-in devices, which are device modules shipped with the app.
+
+### Floor plans
+
+`floorPlans` (optional) is a list of floor plans. Each has an `id`, a `name`, the drawing size `w` and `h`, `pxPerM` (pixels per
+metre, 0 = not set), an optional `image` (`{ "data": "data:image/jpeg;base64,...", "w": 1400, "h": 900 }`, a PNG, JPEG or WebP data
+URL scaled down to at most about 2000 px) and three lists, all in drawing pixels:
+
+```jsonc
+{
+  "id": "f1", "name": "Ground floor", "w": 1400, "h": 900, "pxPerM": 100, "image": { "data": "...", "w": 1400, "h": 900 },
+  "layers": [ { "id": "floor", "name": "Floor" }, { "id": "walls", "name": "Walls" }, { "id": "ceiling", "name": "Ceiling" } ],  // bottom to top
+  "points": [ { "id": "p1", "kind": "socket", "x": 300, "y": 200, "label": "S1", "count": 3, "watts": 150, "layer": "walls", "phases": 1, "note": "" } ],
+  "panels": [ { "id": "m1", "panelId": "p1abc", "x": 600, "y": 500 } ],          // a panel of the project placed on the plan
+  "circuits": [ {
+    "id": "c1", "name": "Kitchen sockets", "medium": "power", "topology": "chain", "cable": "3x2.5 mm²", "color": "#e8710a", "layer": "walls",
+    "nodes": [ { "point": "p1" }, { "x": 300, "y": 400 }, { "point": "p2" } ],      // outlets and bends, in order
+    "run": [ { "x": 300, "y": 400 } ],                                            // chains: bends between the outlet the panel cable arrives at and the panel
+    "bends": { "p4": [ { "x": 300, "y": 400 } ] },                                // stars: bends of each outlet's own cable to the panel (instead of "run")
+    "hub": "p9",                                                                  // audio circuits: the receiver (an outlet of kind amp) the speaker cables end at, instead of "panel"
+    "panel": "m1", "feed": "p2",                                                  // the marker the cable ends at, and (chains) the outlet it connects at; default: the last outlet
+    "watts": 2300, "phases": 1                                                    // power only; both optional (default: the sum of the outlets, and the most phases of the outlets)
+  } ]
+}
+```
+
+`phases` (2 or 3, default 1; sockets and appliances only) is the number of phases of an outlet. `count` (optional, 1 to 12, default 1) is how many of the outlet are at that place (sockets in a row, ports of a data outlet); `watts` is the load of each one. `kind` is one of `socket`, `light`, `switch`, `appliance`, `amp` (audio receiver, with `channels`), `network`, `wifi`, `camera`, `tv`, `speaker`, `fiber`, `phone`, `other`;
+`medium` is `power`, `network`, `coax`, `audio`, `fiber`, `phone` or `other`; `topology` is `chain` (outlet to outlet) or `star` (one cable per
+outlet to the panel). Only `power` and `other` can be chains: network, coax, audio, fibre and telephone circuits are always stars with one
+cable per port (a file that says otherwise is read as a star). An outlet belongs to at most one circuit and a circuit carries one
+medium. Older files with a `socket2` (double socket) kind load as a socket with a count of 2. Files from before layers get the three default layers, with each outlet on the usual layer of its kind. A plan can have any number of panel
+markers; each circuit's `panel` names one of them. Cables are drawn and measured
+orthogonally (horizontal, then vertical, between consecutive nodes).
+
+In a chain, `nodes` holds the outlets and the bends between them; the bends of the cable between the outlet it arrives at and the panel are
+in `run`, ordered from the outlet (older files with bends after the last outlet in `nodes` are read that way).
+
+A circuit that ends at a panel is mirrored in that panel by an item with a `link` (`{ "circuit": "c1" }`, plus `"point": "p1"` for
+the per-outlet cables of a star circuit, and `"port": 0` ... for each port of a data outlet with a count): a `load` for power, a `floor_port` for the other media. The app creates, updates and
+removes these items when the plan changes; the wires you draw to them are kept.
+
+### Section bars and patch panels
+
+An item with a `bar` (`{ "section": "main", "edge": "top" | "bottom" }`) is fixed to the edge of a panel section instead of a rail: a `bus`
+bar (`params.role` `N` or `PE`) or a `keystone` **patch panel** with `params.rows` (1 to 4) and `params.cols` (1 to 24). A patch panel has one
+terminal per jack, `P<row>_<col>` (0-based), never joined to another; its artwork is generated for the size.
+
 ### Module files (`.ecm`)
 
 `{ "format": "electrocraft-modules", "version": 1, "modules": [ CustomModule, ... ] }`. Importing also accepts a whole

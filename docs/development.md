@@ -57,10 +57,13 @@ The example projects in [examples/](examples) are the inputs for those screensho
 
 ## Adding a device
 
-1. Draw the SVG (one pole tile for DIN devices) following [equipment-assets.md](equipment-assets.md).
-2. Add the JSON definition next to it, choose a `role`, a `designation` letter and the parameters.
+1. In the app choose **Modules > Design a new device...** (it starts as a copy of the MCB), or **Copy to project to edit...** on
+   a placed device. Set the role, mounting, pole configurations and parameters, and draw the SVG (one pole tile for DIN
+   devices) following [equipment-assets.md](equipment-assets.md). The preview updates as you work.
+2. **Export** it and put the `.ecm` file in `src/assets/modules/base/` with a permanent id (or in `src/assets/modules/`
+   for the optional module library, see [module-library.md](module-library.md)).
 3. If you want a custom palette icon, add a Material Design Icon to `src/ui/Icon.tsx`.
-4. Save: with `npm run dev` running the device appears in the palette immediately.
+4. `npm test` validates the files. With `npm run dev` running the device appears in the palette immediately.
 
 Most devices need no TypeScript. A device with new simulation behaviour needs a new role in
 `src/model/sim.ts` and `src/model/types.ts`.

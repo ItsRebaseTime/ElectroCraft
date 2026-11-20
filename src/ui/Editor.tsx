@@ -4,7 +4,7 @@ import { MODULE, STUB, US_SPACE_H, findSlot, itemWidthModules, nearestRail, near
 import { nodesFromRoute } from '../model/routing';
 import type { Panel, Vec, WireDraft } from '../model/types';
 import { PanelDiagram } from '../render/PanelDiagram';
-import { addEquipment, addWire, duplicateItems, removeItems, removeWires, toggleBridge, toggleSwitch, updateItem } from '../store/actions';
+import { LINKED_ITEM_MESSAGE, addEquipment, addWire, duplicateItems, removeItems, removeWires, toggleBridge, toggleSwitch, updateItem } from '../store/actions';
 import { selectActivePanel, useStore, type Viewport } from '../store/store';
 import { useDiagram } from './DiagramContext';
 import { Icon } from './Icon';
@@ -185,14 +185,16 @@ export function Editor() {
   const deleteSelection = useCallback(() => {
     const sel = useStore.getState().selection;
     if (!sel.kind) return;
+    let kept = 0;
     mutate((p) => {
       const pn = panelOf(p, panel.id);
-      if (sel.kind === 'item') removeItems(pn, sel.ids);
+      if (sel.kind === 'item') kept = removeItems(pn, sel.ids);
       else if (sel.kind === 'wire') removeWires(pn, sel.ids);
       else if (sel.kind === 'rail' && pn.rails.length > 1 && !pn.items.some((i) => i.railId === sel.ids[0])) pn.rails = pn.rails.filter((r) => r.id !== sel.ids[0]);
     });
-    select({ kind: null, ids: [] });
-  }, [mutate, panel.id, select]);
+    if (kept) notify(LINKED_ITEM_MESSAGE, 'error');
+    select(kept ? sel : { kind: null, ids: [] });
+  }, [mutate, notify, panel.id, select]);
 
   useEffect(() => {
     const onKey = (e: KeyboardEvent) => {

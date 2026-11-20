@@ -1,7 +1,7 @@
 import { useState, type ReactNode } from 'react';
 import { getDef } from '../model/defs';
 import { markingOf } from '../model/marking';
-import { duplicateItems, removeItems, removeWires } from '../store/actions';
+import { LINKED_ITEM_MESSAGE, duplicateItems, removeItems, removeWires } from '../store/actions';
 import { loadSample, loadUsSample, newProject, openProject, saveProject } from '../io/projectIO';
 import { selectActivePanel, useStore } from '../store/store';
 import { useDiagram } from './DiagramContext';
@@ -12,6 +12,10 @@ import { Palette } from './Palette';
 import { ProjectTree } from './ProjectTree';
 import { Properties } from './Properties';
 import { ViewOptionsList } from './ViewOptions';
+import { FloorEditor } from './floor/FloorEditor';
+import { FloorPalette, FloorTools } from './floor/FloorPalette';
+import { FloorProperties } from './floor/FloorProperties';
+import { useFloorUI } from './floor/floorState';
 import { ModulesMenuItems } from './modules/ModulesMenu';
 
 type SheetName = 'panels' | 'equipment' | 'props' | 'menu' | null;
@@ -70,12 +74,14 @@ function SelectionBar({ onEdit }: { onEdit: () => void }) {
         className="danger"
         aria-label="Delete"
         onClick={() => {
+          let kept = 0;
           mutate((d) => {
             const pn = d.panels.find((p) => p.id === panel.id)!;
-            if (selection.kind === 'item') removeItems(pn, selection.ids);
+            if (selection.kind === 'item') kept = removeItems(pn, selection.ids);
             else if (selection.kind === 'wire') removeWires(pn, selection.ids);
           });
-          select({ kind: null, ids: [] });
+          if (kept) notify(LINKED_ITEM_MESSAGE, 'error');
+          else select({ kind: null, ids: [] });
         }}
       >
         <Icon name="trash" size={18} />
@@ -88,6 +94,9 @@ function SelectionBar({ onEdit }: { onEdit: () => void }) {
 export function MobileApp({ onExport }: { onExport: () => void }) {
   const [sheet, setSheet] = useState<SheetName>(null);
   const [view, setView] = useState(false);
+  const floor = useFloorUI((s) => s.view) === 'floor';
+  const setWorkspace = useFloorUI((s) => s.setView);
+  const floorSelected = useFloorUI((s) => s.selection.kind);
   const project = useStore((s) => s.project);
   const panel = useStore(selectActivePanel);
   const tool = useStore((s) => s.tool);
@@ -135,24 +144,28 @@ export function MobileApp({ onExport }: { onExport: () => void }) {
       </header>
 
       <div className="m-canvas">
-        <Editor />
+        {floor ? <FloorEditor /> : <Editor />}
         <div className="m-tools">
-          {(
-            [
-              ['select', 'select', 'Select'],
-              ['wire', 'wire', 'Wire'],
-              ['pan', 'pan', 'Pan'],
-            ] as const
-          ).map(([t, icon, label]) => (
-            <button key={t} className={`tool ${tool === t ? 'on' : ''}`} aria-label={label} aria-pressed={tool === t} onClick={() => setTool(t)}>
-              <Icon name={icon} size={24} />
-            </button>
-          ))}
+          {floor ? (
+            <FloorTools />
+          ) : (
+            (
+              [
+                ['select', 'select', 'Select'],
+                ['wire', 'wire', 'Wire'],
+                ['pan', 'pan', 'Pan'],
+              ] as const
+            ).map(([t, icon, label]) => (
+              <button key={t} className={`tool ${tool === t ? 'on' : ''}`} aria-label={label} aria-pressed={tool === t} onClick={() => setTool(t)}>
+                <Icon name={icon} size={24} />
+              </button>
+            ))
+          )}
           <button className="tool" aria-label="Fit to screen" onClick={() => window.dispatchEvent(new Event('ec-fit'))}>
             <Icon name="fit" size={24} />
           </button>
         </div>
-        <SelectionBar onEdit={() => setSheet('props')} />
+        {!floor && <SelectionBar onEdit={() => setSheet('props')} />}
       </div>
 
       <nav className="m-nav">
@@ -163,7 +176,7 @@ export function MobileApp({ onExport }: { onExport: () => void }) {
           <Icon name="plus" size={24} /> Add
         </button>
         <button className={sheet === 'props' ? 'on' : ''} onClick={() => setSheet('props')}>
-          <Icon name="tune" size={24} /> Edit{selection.kind ? ' •' : ''}
+          <Icon name="tune" size={24} /> Edit{(floor ? floorSelected : selection.kind) ? ' •' : ''}
         </button>
         <button onClick={onExport}>
           <Icon name="pdf" size={24} /> PDF
@@ -178,13 +191,13 @@ export function MobileApp({ onExport }: { onExport: () => void }) {
         </Sheet>
       )}
       {sheet === 'equipment' && (
-        <Sheet title="Add equipment" onClose={close}>
-          <Palette onAdded={close} />
+        <Sheet title={floor ? 'Floor plan' : 'Add equipment'} onClose={close}>
+          {floor ? <FloorPalette onPicked={close} /> : <Palette onAdded={close} />}
         </Sheet>
       )}
       {sheet === 'props' && (
         <Sheet title="Properties" onClose={close}>
-          <Properties />
+          {floor ? <FloorProperties /> : <Properties />}
         </Sheet>
       )}
       {sheet === 'menu' && (
@@ -199,6 +212,9 @@ export function MobileApp({ onExport }: { onExport: () => void }) {
               </>
             ) : (
               <>
+                <button className="m-menu-item" onClick={() => (setWorkspace(floor ? 'panel' : 'floor'), close())}>
+                  <Icon name={floor ? 'grid' : 'floor'} size={22} /> {floor ? 'Panel planner' : 'Floor plan'}
+                </button>
                 <button className="m-menu-item" onClick={run(newProject)}>
                   <Icon name="new" size={22} /> New project
                 </button>

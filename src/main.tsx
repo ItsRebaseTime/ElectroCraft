@@ -4,6 +4,7 @@ import App from './App';
 import { parseProject, serializeProject } from './model/project';
 import { sampleProject } from './model/sample';
 import { selectActivePanel, useStore } from './store/store';
+import { useFloorUI } from './ui/floor/floorState';
 import { offerImport } from './ui/modules/moduleState';
 import './styles.css';
 
@@ -44,6 +45,7 @@ function applyHash() {
     if (target) st.select({ kind: kind as 'item' | 'wire' | 'rail', ids: [target.id] });
   }
   if (h.has('export')) st.setExportOpen(true);
+  if (h.has('floor')) useFloorUI.getState().setView('floor');
 }
 applyHash();
 

@@ -1,6 +1,8 @@
 import { WIRE_CLASSES, type RenderOptions, type WireClass, type WireVisibility } from '../model/types';
 import { colorByKey, potentialColorKey } from '../model/colors';
 import { useStore } from '../store/store';
+import { activePlan, useFloorUI } from './floor/floorState';
+import { FloorVisibility } from './floor/FloorVisibility';
 
 export const VIEW_TOGGLES: [keyof RenderOptions, string][] = [
   ['showMarkings', 'Markings (-F1 ...)'],
@@ -66,6 +68,16 @@ export function WireVisibilityControls({ value, onChange }: { value: RenderOptio
 export function ViewOptionsList() {
   const options = useStore((s) => s.options);
   const setOptions = useStore((s) => s.setOptions);
+  const floor = useFloorUI((s) => s.view) === 'floor';
+  const project = useStore((s) => s.project);
+  const planId = useFloorUI((s) => s.planId);
+  if (floor) {
+    // the floor plan has no wires and labels to switch: its view setting is the visibility of its layers
+    const plan = activePlan(project, planId);
+    return (
+      plan ? <FloorVisibility plan={plan} /> : <p className="menu-pad meta">No floor plan yet.</p>
+    );
+  }
   return (
     <div className="viewopts">
       {VIEW_TOGGLES.map(([key, label]) => (

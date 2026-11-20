@@ -6,6 +6,8 @@ import { Icon } from './Icon';
 import { useLayoutMode } from './layout';
 import { ModulesMenuItems } from './modules/ModulesMenu';
 import { ViewOptionsList } from './ViewOptions';
+import { FloorTools } from './floor/FloorPalette';
+import { useFloorUI } from './floor/floorState';
 
 function Menu({ icon, label, children }: { icon: string; label: string; children: React.ReactNode }) {
   const [open, setOpen] = useState(false);
@@ -65,6 +67,8 @@ export function Toolbar() {
   const fileName = useStore((s) => s.fileName);
   const project = useStore((s) => s.project);
   const { setTool, setSim, undo, redo, setExportOpen } = useStore.getState();
+  const view = useFloorUI((s) => s.view);
+  const setView = useFloorUI((s) => s.setView);
 
   const toolBtn = (t: Tool, icon: string, label: string, key: string) => (
     <button className={`tool ${tool === t ? 'on' : ''}`} title={`${label} (${key})`} aria-pressed={tool === t} onClick={() => setTool(t)}>
@@ -120,10 +124,25 @@ export function Toolbar() {
         </button>
       </div>
 
+      <span className="seg small view-switch" role="group" aria-label="Workspace">
+        <button className={view === 'panel' ? 'on' : ''} aria-pressed={view === 'panel'} onClick={() => setView('panel')}>
+          <Icon name="grid" size={16} /> Panel
+        </button>
+        <button className={view === 'floor' ? 'on' : ''} aria-pressed={view === 'floor'} onClick={() => setView('floor')}>
+          <Icon name="floor" size={16} /> Floor plan
+        </button>
+      </span>
+
       <div className="group">
-        {toolBtn('select', 'select', 'Select / move', 'V')}
-        {toolBtn('wire', 'wire', 'Wire tool: click terminals, click empty space for bends', 'W')}
-        {toolBtn('pan', 'pan', 'Pan', 'H')}
+        {view === 'floor' ? (
+          <FloorTools />
+        ) : (
+          <>
+            {toolBtn('select', 'select', 'Select / move', 'V')}
+            {toolBtn('wire', 'wire', 'Wire tool: click terminals, click empty space for bends', 'W')}
+            {toolBtn('pan', 'pan', 'Pan', 'H')}
+          </>
+        )}
       </div>
 
       <div className="group">
@@ -138,6 +157,7 @@ export function Toolbar() {
         </button>
       </div>
 
+      {view === 'panel' && (
       <div className="group sim">
         <button className={`power ${sim.enabled ? 'on' : ''}`} title="Simulate power: shows live wires, current flow and lit indicators" aria-pressed={sim.enabled} onClick={() => setSim({ enabled: !sim.enabled })}>
           <Icon name="power" /> {sim.enabled ? 'Power on' : 'Simulate'}
@@ -157,6 +177,7 @@ export function Toolbar() {
           </>
         )}
       </div>
+      )}
 
       <div className="spacer" />
 

@@ -24,6 +24,16 @@ export function ModulesMenuItems({ onDone, variant = 'sheet' }: { onDone: () => 
       </button>
       <button
         className={cls}
+        title="A full device: pole configurations, parameters, simulation role and SVG artwork, started from the MCB"
+        onClick={() => {
+          useModuleUI.getState().openEditor(null, 'device');
+          onDone();
+        }}
+      >
+        <Icon name="module" size={size} /> Design a new device...
+      </button>
+      <button
+        className={cls}
         onClick={() => {
           onDone();
           void importModulesFromFile();

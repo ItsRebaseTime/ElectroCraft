@@ -1,0 +1,78 @@
+{
+  "format": "electrocraft-modules",
+  "version": 1,
+  "modules": [
+    {
+      "id": "floor_port",
+      "name": "Floor plan cable",
+      "description": "A network, coax, fibre or telephone cable from an outlet on the floor plan. Created automatically; wire its port to a panel module.",
+      "designation": "W",
+      "device": {
+        "category": "connection",
+        "role": "bus",
+        "icon": "terminal",
+        "mount": "free",
+        "hidden": true,
+        "poleMode": "none",
+        "params": [
+          {
+            "key": "medium",
+            "label": "Cable",
+            "type": "select",
+            "default": "network",
+            "group": "config",
+            "options": [
+              {
+                "value": "network",
+                "label": "Network",
+                "hex": "#2563eb"
+              },
+              {
+                "value": "coax",
+                "label": "TV / coax",
+                "hex": "#9333ea"
+              },
+              {
+                "value": "audio",
+                "label": "Audio",
+                "hex": "#0d9488"
+              },
+              {
+                "value": "fiber",
+                "label": "Fibre",
+                "hex": "#0f9d58"
+              },
+              {
+                "value": "phone",
+                "label": "Telephone",
+                "hex": "#64748b"
+              },
+              {
+                "value": "other",
+                "label": "Other",
+                "hex": "#475569"
+              }
+            ]
+          }
+        ],
+        "svg": [
+          "<svg xmlns=\"http://www.w3.org/2000/svg\" viewBox=\"0 0 70 34\" width=\"70\" height=\"34\">",
+          "  <!-- A cable that comes from the floor plan: a network, coax, fibre or telephone outlet wired to this panel.",
+          "       Connect its port to a module of the panel (a terminal block, patch panel ...). See docs/equipment-assets.md. -->",
+          "  <g data-layer=\"body\">",
+          "    <rect x=\"0.4\" y=\"0.4\" width=\"69.2\" height=\"33.2\" rx=\"3\" fill=\"#ffffff\" stroke=\"#6b7480\" stroke-width=\"0.8\"/>",
+          "    <rect x=\"0.4\" y=\"0.4\" width=\"69.2\" height=\"9\" rx=\"3\" fill=\"{{medium#hex}}\"/>",
+          "    <rect x=\"0.4\" y=\"6\" width=\"69.2\" height=\"4\" fill=\"{{medium#hex}}\"/>",
+          "    <circle data-terminal=\"port\" data-dir=\"up\" cx=\"35\" cy=\"5\" r=\"2.6\" fill=\"#9aa4af\" stroke=\"#4c5560\" stroke-width=\"0.6\"/>",
+          "    <path d=\"M33.4 5h3.2\" stroke=\"#3b444d\" stroke-width=\"0.8\"/>",
+          "  </g>",
+          "  <g data-layer=\"label\">",
+          "    <text x=\"0\" y=\"20\" font-size=\"5.2\" font-weight=\"bold\" text-anchor=\"middle\" fill=\"#1f2630\" font-family=\"Helvetica, Arial, sans-serif\" data-center-x=\"true\">{{medium#label}}</text>",
+          "    <text x=\"0\" y=\"28.5\" font-size=\"3.8\" text-anchor=\"middle\" fill=\"#5b6672\" font-family=\"Helvetica, Arial, sans-serif\" data-center-x=\"true\">from the floor plan</text>",
+          "  </g>",
+          "</svg>"
+        ]
+      }
+    }
+  ]
+}

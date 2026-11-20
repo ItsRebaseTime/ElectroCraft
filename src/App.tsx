@@ -4,6 +4,10 @@ import { useStore } from './store/store';
 import { DiagramProvider } from './ui/DiagramContext';
 import { ConfirmHost, ToastHost } from './ui/dialogs';
 import { Editor } from './ui/Editor';
+import { FloorEditor } from './ui/floor/FloorEditor';
+import { FloorPalette } from './ui/floor/FloorPalette';
+import { FloorProperties } from './ui/floor/FloorProperties';
+import { useFloorUI } from './ui/floor/floorState';
 import { ExportDialog } from './ui/ExportDialog';
 import { Palette } from './ui/Palette';
 import { ProjectTree } from './ui/ProjectTree';
@@ -18,6 +22,7 @@ export default function App() {
   const name = useStore((s) => s.project.name);
   const dirty = useStore((s) => s.dirty);
   const layoutKind = useResolvedLayout();
+  const view = useFloorUI((s) => s.view);
 
   useEffect(() => {
     document.title = `${name}${dirty ? ' *' : ''} - ElectroCraft`;
@@ -63,14 +68,10 @@ export default function App() {
           <div className="main">
             <aside className="left">
               <ProjectTree />
-              <Palette />
+              {view === 'floor' ? <FloorPalette /> : <Palette />}
             </aside>
-            <main>
-              <Editor />
-            </main>
-            <aside className="right">
-              <Properties />
-            </aside>
+            <main>{view === 'floor' ? <FloorEditor /> : <Editor />}</main>
+            <aside className="right">{view === 'floor' ? <FloorProperties /> : <Properties />}</aside>
           </div>
         </div>
       )}

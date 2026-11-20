@@ -1,6 +1,7 @@
 import type { CustomModule, EquipmentDef, Item, ParamDef, ParamValue } from './types';
-import { buildModuleDef } from './customModule';
+import { buildModuleDef, parseModules } from './customModule';
 import { parseAsset, type ParsedAsset } from './asset';
+
 
 /** Pole layout per configuration: L = switched phase pole, N = switched neutral pole. */
 export const POLE_CONFIGS: Record<string, ('L' | 'N')[]> = {
@@ -30,11 +31,9 @@ export const CATEGORY_LABELS: Record<string, string> = {
   sources: 'Supply',
   loads: 'Loads',
   custom: 'Custom modules',
+  library: 'Module library',
 };
-export const CATEGORY_ORDER = ['sources', 'protection', 'switching', 'connection', 'indication', 'sockets', 'loads', 'custom'];
-
-const jsonMods = import.meta.glob('../assets/equipment/*.json', { eager: true, import: 'default' }) as Record<string, EquipmentDef>;
-const svgMods = import.meta.glob('../assets/equipment/*.svg', { eager: true, query: '?raw', import: 'default' }) as Record<string, string>;
+export const CATEGORY_ORDER = ['sources', 'protection', 'switching', 'connection', 'indication', 'sockets', 'loads', 'custom', 'library'];
 
 const defs = new Map<string, EquipmentDef>();
 const assets = new Map<string, ParsedAsset>();
@@ -44,15 +43,42 @@ export function registerEquipment(def: EquipmentDef, svgText: string) {
   assets.set(def.id, parseAsset(svgText));
 }
 
-for (const [path, def] of Object.entries(jsonMods)) {
-  const svgPath = path.replace(/[^/]+$/, def.asset);
-  const svg = svgMods[svgPath];
-  if (!svg) {
-    console.warn(`Equipment ${def.id}: missing asset ${def.asset}`);
-    continue;
+// ---- built-in devices and the module library: .ecm module files bundled with the app
+//   src/assets/modules/base/*.ecm  the built-in devices (device modules, ids are permanent because projects store them)
+//   src/assets/modules/*.ecm       the module library (any unique id), read-only in every project
+const baseFiles = import.meta.glob('../assets/modules/base/*.ecm', { eager: true, query: '?raw', import: 'default' }) as Record<string, string>;
+const libFiles = import.meta.glob('../assets/modules/*.ecm', { eager: true, query: '?raw', import: 'default' }) as Record<string, string>;
+const shippedModules = new Map<string, CustomModule>();
+const baseIds = new Set<string>();
+
+function loadShipped(files: Record<string, string>, base: boolean) {
+  for (const [path, text] of Object.entries(files).sort(([a], [b]) => a.localeCompare(b))) {
+    try {
+      for (const m of parseModules(text).modules) {
+        if ((base && !m.device) || shippedModules.has(m.id) || defs.has(m.id)) {
+          console.warn(`${path}: "${m.name}" skipped (${base && !m.device ? 'built-in devices must be device modules' : `its id "${m.id}" is already used by another shipped module`})`);
+          continue;
+        }
+        const { def, svg } = buildModuleDef(m, m.device?.category ?? 'library');
+        registerEquipment(def, svg);
+        shippedModules.set(m.id, m);
+        if (base) baseIds.add(m.id);
+      }
+    } catch (e) {
+      console.warn(`${path} could not be read`, e);
+    }
   }
-  registerEquipment(def, svg);
 }
+loadShipped(baseFiles, true);
+loadShipped(libFiles, false);
+
+/** True for every device that comes from a shipped module file (built-in devices and the module library). */
+export const isShippedDef = (id: string) => shippedModules.has(id);
+/** True for the modules of the library (not the basic built-in devices). */
+export const isLibraryDef = (id: string) => shippedModules.has(id) && !baseIds.has(id);
+export const libraryModuleList = (): CustomModule[] => Array.from(shippedModules.values()).filter((m) => !baseIds.has(m.id));
+/** The source of a module of this project or a shipped one. */
+export const moduleById = (projectModules: CustomModule[], id: string): CustomModule | undefined => projectModules.find((m) => m.id === id) ?? shippedModules.get(id);
 
 const customIds = new Set<string>();
 let customSig = '';
@@ -68,6 +94,7 @@ export function syncCustomModules(modules: CustomModule[]) {
   }
   customIds.clear();
   for (const m of modules) {
+    if (shippedModules.has(m.id)) continue; // ids of built-in devices and the library are reserved: those win
     try {
       const { def, svg } = buildModuleDef(m);
       registerEquipment(def, svg);
@@ -82,7 +109,13 @@ export const isCustomDef = (id: string) => customIds.has(id);
 
 export const getDef = (id: string): EquipmentDef | undefined => defs.get(id);
 export const getAsset = (id: string): ParsedAsset | undefined => assets.get(id);
-export const allDefs = (): EquipmentDef[] => Array.from(defs.values());
+export const allDefs = (): EquipmentDef[] => Array.from(defs.values()).filter((d) => !d.id.startsWith('__'));
+/** Draw a device that is not part of the project (the designer's preview); ids starting with __ never reach the palette. */
+export const registerPreview = (id: string, def: EquipmentDef, svg: string) => registerEquipment({ ...def, id }, svg);
+export const unregisterPreview = (id: string) => {
+  defs.delete(id);
+  assets.delete(id);
+};
 
 export function defaultParams(def: EquipmentDef): Record<string, ParamValue> {
   const out: Record<string, ParamValue> = {};

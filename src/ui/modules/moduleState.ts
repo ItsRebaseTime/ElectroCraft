@@ -1,5 +1,5 @@
 import { create } from 'zustand';
-import { syncCustomModules } from '../../model/defs';
+import { libraryModuleList, moduleById, syncCustomModules } from '../../model/defs';
 import { cloneModule, reidentify, parseModules, serializeModules } from '../../model/customModule';
 import { MODULE_FORMAT } from '../../model/customModule';
 import { findSlot, itemWidthModules } from '../../model/geometry';
@@ -12,18 +12,21 @@ import { useStore } from '../../store/store';
 interface ModuleUI {
   editorOpen: boolean;
   editingId: string | null;
+  /** What a new design starts as: a fixed-face module or a full device (poles, parameters, artwork). */
+  editorKind: 'module' | 'device';
   importing: { source: string; modules: CustomModule[] } | null;
   exporting: boolean;
-  openEditor: (id?: string | null) => void;
+  openEditor: (id?: string | null, kind?: 'module' | 'device') => void;
   closeEditor: () => void;
 }
 
 export const useModuleUI = create<ModuleUI>((set) => ({
   editorOpen: false,
   editingId: null,
+  editorKind: 'module',
   importing: null,
   exporting: false,
-  openEditor: (id = null) => set({ editorOpen: true, editingId: id }),
+  openEditor: (id = null, kind = 'module') => set({ editorOpen: true, editingId: id, editorKind: kind }),
   closeEditor: () => set({ editorOpen: false, editingId: null }),
 }));
 
@@ -74,10 +77,10 @@ export function saveModule(m: CustomModule) {
   if (removed) st.notify(`${removed} placed module${removed > 1 ? 's' : ''} no longer fit and ${removed > 1 ? 'were' : 'was'} removed.`, 'error');
 }
 
-/** Duplicate a module in this project and return the copy's id (null if the source does not exist). */
+/** Duplicate a module of this project, or copy one of the library into it, and return the copy's id (null if there is no such module). */
 export function duplicateModule(id: string): string | null {
   const st = useStore.getState();
-  const src = st.project.modules.find((m) => m.id === id);
+  const src = moduleById(st.project.modules, id);
   if (!src) return null;
   const copy = cloneModule(src, st.project.modules);
   st.mutate((d) => {
@@ -137,7 +140,7 @@ export function commitImport(selected: CustomModule[]) {
   const st = useStore.getState();
   if (!selected.length) return;
   st.mutate((d) => {
-    d.modules.push(...reidentify(selected, d.modules));
+    d.modules.push(...reidentify(selected, [...d.modules, ...libraryModuleList()]));
     syncCustomModules(d.modules);
   });
   st.notify(`Imported ${selected.length} module${selected.length > 1 ? 's' : ''}.`);

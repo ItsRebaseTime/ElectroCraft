@@ -41,7 +41,7 @@ export function Palette({ onAdded }: { onAdded?: () => void } = {}) {
   const region = activePanel.region ?? 'eu';
   const groups = useMemo(() => {
     const needle = q.trim().toLowerCase();
-    const filtered = defs.filter((d) => ((d.region ?? 'eu') === 'all' || (d.region ?? 'eu') === region) && (!needle || `${d.name} ${d.description ?? ''} ${d.category}`.toLowerCase().includes(needle)));
+    const filtered = defs.filter((d) => !d.hidden && ((d.region ?? 'eu') === 'all' || (d.region ?? 'eu') === region) && (!needle || `${d.name} ${d.description ?? ''} ${d.category}`.toLowerCase().includes(needle)));
     return CATEGORY_ORDER.map((c) => ({ cat: c, items: filtered.filter((d) => d.category === c) })).filter((g) => g.items.length);
   }, [defs, q, region]);
 
@@ -108,7 +108,22 @@ export function Palette({ onAdded }: { onAdded?: () => void } = {}) {
                     <span className="entry-name">{d.name}</span>
                     <span className="entry-sub">{d.mount === 'din' ? 'DIN rail' : d.mount === 'us' ? 'Breaker space' : 'External'}</span>
                   </div>
-                  {d.category === 'custom' ? (
+                  {d.category === 'library' ? (
+                    <span className="entry-actions">
+                      <button
+                        className="icon-btn"
+                        title="Copy to the project to edit it"
+                        aria-label={`Copy ${d.name} to the project`}
+                        onClick={(e) => {
+                          e.stopPropagation();
+                          const id = duplicateModule(d.id);
+                          if (id) useModuleUI.getState().openEditor(id);
+                        }}
+                      >
+                        <Icon name="copy" size={16} />
+                      </button>
+                    </span>
+                  ) : d.category === 'custom' ? (
                     <span className="entry-actions">
                       <button className="icon-btn" title="Edit module" aria-label={`Edit ${d.name}`} onClick={(e) => (e.stopPropagation(), useModuleUI.getState().openEditor(d.id))}>
                         <Icon name="edit" size={16} />
@@ -148,7 +163,7 @@ export function Palette({ onAdded }: { onAdded?: () => void } = {}) {
         ))}
         {!groups.length && <p className="empty">No equipment matches "{q}".</p>}
       </div>
-      <p className="palette-tip">Click to add, or drag onto a rail. Assets live in src/assets/equipment.</p>
+      <p className="palette-tip">Click to add, or drag onto a rail. Devices live in src/assets/modules.</p>
     </section>
   );
 }

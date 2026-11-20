@@ -52,6 +52,38 @@ and 3 phase supplies.
 
 ![Three-phase panel](docs/images/three-phase.png)
 
+### Plan the whole house on a floor plan
+
+Before the panel, draw the building: load a **picture of your floor plan**, set its scale, and mark every socket, light,
+appliance, **network** outlet, **TV / coax** port and **fibre** line. Each outlet is one object with a **count** (a socket of 3 is
+drawn as three circles). Connect the outlets with cables **in groups**: power can be chained from outlet to outlet, while network,
+coax and fibre ports always get **a cable each**. Bring each group to one of the **electrical or media panels** you placed on the plan
+(there can be several) and see the cable lengths. Every circuit that reaches a panel **appears in that panel's planner** (a load for a power circuit, one
+cable per outlet for data), ready to be wired to the MCBs, terminal blocks and other modules, and it stays in sync when you change the plan.
+
+![A floor plan with outlets, circuits and two panels](docs/images/floor-plan.png)
+
+![The panel planner with the circuits of the floor plan wired to the modules](docs/images/floor-panel-planner.png)
+
+Select several outlets (Ctrl+click or a box), copy them with Ctrl+C and paste them with Ctrl+V, here or on another floor plan. Speakers and an audio receiver / amplifier are floor plan objects too: speaker cables end at the receiver, which counts its channels.
+
+Every cable can be reshaped by dragging its bends and pulling new nodes out of it, and every kind of outlet, cable and panel (or single object) can be shown, faded or hidden. The panel planner has **keystone patch panels** along the top or bottom of a section (rows and columns of jacks, with the bus bar choices) and wires the network ports of the plan into them.
+
+Outlets and cables live in **layers** (floor, walls, ceiling by default; add, name and remove your own) that can be shown, faded or
+hidden like the wires in the panel view.
+
+![The ceiling layer in focus](docs/images/floor-layers.png)
+
+The example **apartment** ([apartment.ec](docs/examples/apartment.ec), on the picture [apartment-floorplan.png](docs/examples/apartment-floorplan.png)) has every kind of outlet in a logical place: lights per room, sockets, a two-phase hob, an oven, a dishwasher and a washing machine, network, TV and fibre ports, a Wi-Fi access point, a living room receiver with four speakers, and the circuits wired to a three-phase main board and a media cabinet with a patch panel.
+
+![Selecting several outlets with a Ctrl+drag box, ready to copy and paste](docs/images/floor-selection.png)
+
+![An appliance with two phases: the hob](docs/images/floor-phases.png)
+
+![The apartment board in the panel planner: every circuit of the floor plan is a load wired to its breaker](docs/images/floor-panel-planner.png)
+
+The older [house-floorplan.ec](docs/examples/house-floorplan.ec) is a smaller example of the same workflow.
+
 ### Organise a whole building
 
 A project holds any number of panels, grouped by **floor and room**. Every device gets an automatic **IEC 81346**
@@ -67,11 +99,19 @@ the current state, and a switch can be hidden, so a module can show indicator li
 it **changes its fill colour** to a second colour while a condition you pick holds (a coil is energised, a contact is closed,
 the module is tripped ...). **Inputs** (relay coils) operate the switches when energised,
 following, toggling or latching them, so you can build relays, contactors and impulse relays that react in the simulation. Modules are saved inside the project and can be exported to a `.ecm` file and imported into any
-other project.
+other project. A **module library** ships with the app (a fused distribution block, a pushbutton contact block, a changeover selector, a control relay and an impulse relay): they are in the palette of every project, and a copy can be made editable. Adding one is just dropping a `.ecm` file into a folder ([how](docs/module-library.md)).
 
 ![Module designer](docs/images/module-designer.png)
 
 ![A shape that lights up while the coil is energised](docs/images/indicator-light.png)
+
+For devices with more to them, the **device designer** has everything the built-in devices have: pole configurations that
+set the width and terminals (1P to 3P+N, or a free number of terminals), parameters with options, a simulation role
+(protection, switch, meter, bus bar, lamp, load, supply, US breaker ...), DIN, free or US mounting, and SVG artwork with a
+live preview. All built-in devices are device modules (`.ecm` files in `src/assets/modules/base`), so any of them can be
+copied and changed.
+
+![The device designer](docs/images/device-designer.png)
 
 **Clone** any module (pencil, clone and bin buttons in the palette, or *Clone as new module...* on a placed one) to start
 a variation from it. How an input actuates its switches (follow, toggle, set, reset) is the module's default, and can be
@@ -97,6 +137,7 @@ and properties in slide-up sheets. On a desktop, drag with the right mouse butto
   <img src="docs/images/mobile.png" alt="Phone layout" width="260">
   <img src="docs/images/mobile-properties.png" alt="Phone properties sheet" width="260">
   <img src="docs/images/mobile-sections.png" alt="Sections and bus bars on a phone" width="260">
+  <img src="docs/images/mobile-floor.png" alt="The floor plan on a phone" width="260">
 </p>
 
 ### Print the documentation
@@ -154,7 +195,8 @@ Open the files in [docs/examples](docs/examples) to see more.
 | --- | --- |
 | [User guide](docs/user-guide.md) | every feature, shortcuts, troubleshooting |
 | [Examples](docs/examples) | sample project and an equipment catalogue to open |
-| [Equipment assets](docs/equipment-assets.md) | add or restyle devices with SVG + JSON |
+| [Equipment assets](docs/equipment-assets.md) | add or restyle devices: device modules with SVG artwork |
+| [Module library](docs/module-library.md) | ship custom modules with the app as `.ecm` files |
 | [Simulation model](docs/simulation.md) | what is computed and what is not |
 | [Project file format](docs/project-file-format.md) | the `.ec` format |
 | [Architecture](docs/architecture.md), [Development](docs/development.md) | for contributors |

@@ -1,11 +1,210 @@
 // Custom (user-designed) modules: data model helpers, generation of the equipment SVG + definition used by the
 // rest of the app, validation, and the .ecm import/export format.
-import type { CustomModule, EquipmentDef, InputMode, Item, ModuleBehaviour, ModuleInput, ModuleShape, ModuleShapeShow, ModuleSwitch, ModuleTerminal } from './types';
+import type { Category, CustomModule, EquipmentDef, InputMode, Item, ModuleDevice, ParamDef, ParamValue, Role, ModuleBehaviour, ModuleInput, ModuleShape, ModuleShapeShow, ModuleSwitch, ModuleTerminal } from './types';
 
 export const MODULE_MM = 18;
 export const ROW_PITCH_MM = 10.5;
 export const TERMINAL_MARGIN_MM = 6;
 export const MODULE_FORMAT = 'electrocraft-modules';
+
+// ---------------------------------------------------------------- device modules
+
+export const POLE_CONFIG_KEYS = ['1P', '1P+N', '2P', '3P', '3P+N', '4P'];
+export const DEVICE_CATEGORIES: Category[] = ['protection', 'switching', 'connection', 'indication', 'sockets', 'sources', 'loads'];
+export const DEVICE_ROLES: { value: Exclude<Role, 'module'>; label: string }[] = [
+  { value: 'protection', label: 'Protection (poles conduct, can trip)' },
+  { value: 'switch', label: 'Switch (poles conduct, manual on/off)' },
+  { value: 'meter', label: 'Meter (poles conduct, shows current)' },
+  { value: 'terminal', label: 'Terminal block (poles conduct, comb bridges)' },
+  { value: 'bus', label: 'Bus bar (all terminals joined)' },
+  { value: 'patch', label: 'Patch panel (separate jacks)' },
+  { value: 'indicator', label: 'Indicator lamp (phase to neutral)' },
+  { value: 'load', label: 'Load (draws current L to N)' },
+  { value: 'source', label: 'Supply (energises L1 L2 L3 N PE)' },
+  { value: 'us_breaker', label: 'US breaker (fed from the bus by row)' },
+  { value: 'us_main', label: 'US main breaker' },
+];
+const ROLE_VALUES = DEVICE_ROLES.map((r) => r.value as string);
+const CATEGORY_VALUES = [...DEVICE_CATEGORIES, 'custom', 'library'] as string[];
+
+const SVG_TAGS = new Set(['svg', 'g', 'rect', 'circle', 'ellipse', 'path', 'line', 'polyline', 'polygon', 'text', 'tspan', 'defs', 'lineargradient', 'radialgradient', 'stop', 'clippath', 'title', 'desc']);
+export const MAX_SVG_CHARS = 200_000;
+
+/**
+ * Check module artwork and remove anything that is not plain drawing: only shapes, text and gradients are kept, event
+ * handlers and links are dropped. Returns null when it is not a usable SVG. Untouched text is returned as it was.
+ */
+export function sanitizeSvg(text: string): string | null {
+  if (typeof DOMParser === 'undefined' || text.length > MAX_SVG_CHARS) return null;
+  const doc = new DOMParser().parseFromString(text, 'image/svg+xml');
+  const root = doc.documentElement;
+  if (!root || root.localName !== 'svg' || doc.getElementsByTagName('parsererror').length) return null;
+  let removed = 0;
+  const walk = (el: Element) => {
+    for (const child of Array.from(el.children)) {
+      if (!SVG_TAGS.has(child.localName.toLowerCase())) {
+        child.remove();
+        removed++;
+      } else walk(child);
+    }
+    for (const a of Array.from(el.attributes)) {
+      const n = a.name.toLowerCase();
+      if (n.startsWith('on') || n === 'href' || n.endsWith(':href') || /javascript:|expression\(|url\(\s*['"]?(https?:|data:)/i.test(a.value)) {
+        el.removeAttribute(a.name);
+        removed++;
+      }
+    }
+  };
+  walk(root);
+  return removed ? new XMLSerializer().serializeToString(root) : text;
+}
+
+function sanitizeParam(raw: unknown): ParamDef | null {
+  if (!raw || typeof raw !== 'object') return null;
+  const r = raw as Partial<ParamDef> & { options?: unknown };
+  if (typeof r.key !== 'string' || !/^\w{1,24}$/.test(r.key)) return null;
+  const type = r.type === 'select' || r.type === 'number' || r.type === 'text' || r.type === 'boolean' ? r.type : 'text';
+  const value = (v: unknown): ParamValue | null => (typeof v === 'string' ? v.slice(0, 80) : typeof v === 'number' && Number.isFinite(v) ? v : typeof v === 'boolean' ? v : null);
+  const out: ParamDef = { key: r.key, label: str(r.label, 40, r.key), type, default: value(r.default) ?? (type === 'number' ? 0 : type === 'boolean' ? false : '') };
+  if (type === 'select') {
+    out.options = (Array.isArray(r.options) ? r.options : [])
+      .slice(0, 60)
+      .map((o) => {
+        if (typeof o === 'object' && o) {
+          const so = o as { value?: unknown; label?: unknown; hex?: unknown };
+          const v = value(so.value);
+          if (v === null || typeof v === 'boolean') return null;
+          return { value: v, ...(typeof so.label === 'string' ? { label: so.label.slice(0, 60) } : {}), ...(typeof so.hex === 'string' && /^#[0-9a-fA-F]{3,8}$/.test(so.hex) ? { hex: so.hex } : {}) };
+        }
+        const v = value(o);
+        return v === null || typeof v === 'boolean' ? null : v;
+      })
+      .filter((o): o is NonNullable<typeof o> => o !== null);
+  }
+  if (typeof r.unit === 'string') out.unit = r.unit.slice(0, 8);
+  for (const k of ['min', 'max', 'step'] as const) if (typeof r[k] === 'number' && Number.isFinite(r[k])) out[k] = r[k];
+  if (typeof r.show === 'string' && r.show) out.show = r.show.slice(0, 100);
+  if (r.group === 'config' || r.group === 'rating') out.group = r.group;
+  return out;
+}
+
+/** Validate the device part of a module; null when it cannot be used. */
+export function sanitizeDevice(raw: unknown): ModuleDevice | null {
+  if (!raw || typeof raw !== 'object') return null;
+  const r = raw as Partial<ModuleDevice> & { svg?: unknown };
+  const svgText = Array.isArray(r.svg) ? r.svg.filter((l): l is string => typeof l === 'string').join('\n') : typeof r.svg === 'string' ? r.svg : '';
+  const svg = sanitizeSvg(svgText);
+  if (svg === null) return null;
+  const role = ROLE_VALUES.includes(r.role as string) ? (r.role as ModuleDevice['role']) : null;
+  if (!role) return null;
+  const mount = r.mount === 'free' || r.mount === 'us' ? r.mount : 'din';
+  const poleMode = r.poleMode === 'config' || r.poleMode === 'count' ? r.poleMode : 'none';
+  const d: ModuleDevice = {
+    category: CATEGORY_VALUES.includes(r.category as string) ? (r.category as Category) : 'protection',
+    role,
+    icon: str(r.icon, 24, 'flashOutline'),
+    mount,
+    poleMode,
+    params: (Array.isArray(r.params) ? r.params : []).map(sanitizeParam).filter((p): p is ParamDef => p !== null).slice(0, 40),
+    svg,
+  };
+  if (r.region === 'eu' || r.region === 'us' || r.region === 'all') d.region = r.region;
+  if (r.tileAxis === 'x' || r.tileAxis === 'y') d.tileAxis = r.tileAxis;
+  if (r.mirrorTerminals) d.mirrorTerminals = true;
+  if (r.noStrip) d.noStrip = true;
+  if (r.hidden) d.hidden = true;
+  if (r.stateful) d.stateful = true;
+  if (r.tripsOnOverload) d.tripsOnOverload = true;
+  if (typeof r.summary === 'string' && r.summary) d.summary = r.summary.slice(0, 80);
+  if (poleMode === 'config') {
+    const cfgs = (Array.isArray(r.poleConfigs) ? r.poleConfigs : []).filter((c): c is string => typeof c === 'string' && POLE_CONFIG_KEYS.includes(c));
+    d.poleConfigs = cfgs.length ? Array.from(new Set(cfgs)) : ['1P'];
+  }
+  if (poleMode === 'count') {
+    const c = (r.count ?? {}) as Partial<NonNullable<ModuleDevice['count']>>;
+    const min = Math.round(clamp(c.min, 1, 48, 2));
+    const max = Math.round(clamp(c.max, min, 48, Math.max(min, 24)));
+    d.count = { min, max, default: Math.round(clamp(c.default, min, max, min)), label: str(c.label, 24, 'Terminals') };
+  }
+  return d;
+}
+
+/** A module's equipment definition and artwork when it is a device module. */
+function buildDeviceDef(m: CustomModule, category: Category): { def: EquipmentDef; svg: string } {
+  const d = m.device!;
+  const def: EquipmentDef = {
+    id: m.id,
+    name: m.name || 'Device',
+    ...(m.description ? { description: m.description } : {}),
+    category,
+    role: d.role,
+    designation: (m.designation || 'X').slice(0, 3),
+    icon: d.icon,
+    asset: `${m.id}.svg`,
+    mount: d.mount,
+    ...(d.region ? { region: d.region } : {}),
+    ...(d.tileAxis ? { tileAxis: d.tileAxis } : {}),
+    ...(d.mirrorTerminals ? { mirrorTerminals: true } : {}),
+    ...(d.noStrip ? { noStrip: true } : {}),
+    ...(d.hidden ? { hidden: true } : {}),
+    poleMode: d.poleMode,
+    ...(d.poleConfigs ? { poleConfigs: d.poleConfigs } : {}),
+    ...(d.count ? { count: d.count } : {}),
+    params: d.params,
+    ...(d.stateful ? { stateful: true } : {}),
+    ...(d.tripsOnOverload ? { tripsOnOverload: true } : {}),
+    ...(d.summary ? { summary: d.summary } : {}),
+  };
+  return { def, svg: d.svg };
+}
+
+/** A device module has no designed face: every field of the simple module is at a fixed empty value, so files are canonical. */
+export function deviceShell(info: Pick<CustomModule, 'id' | 'name' | 'description' | 'designation'>, device: ModuleDevice): CustomModule {
+  return {
+    ...info,
+    widthModules: 2,
+    heightMm: 90,
+    color: '#eceff3',
+    stroke: '#69747f',
+    rating: { In: 16, Un: 230 },
+    behaviour: 'isolated',
+    switchable: false,
+    trips: false,
+    switches: [],
+    inputs: [],
+    top: { rows: 0, cols: 0 },
+    bottom: { rows: 0, cols: 0 },
+    terminals: [],
+    shapes: [],
+    device,
+  };
+}
+
+/** A new device module to start from: an editable copy of an existing device's definition and artwork. */
+export function deviceModuleFrom(def: EquipmentDef, svg: string, base: { name: string; description?: string; designation: string } = def): CustomModule {
+  return deviceShell(
+    { id: `mod-${rid()}`, name: base.name, description: base.description ?? '', designation: base.designation },
+    {
+      category: def.category,
+      role: def.role as ModuleDevice['role'],
+      icon: def.icon,
+      mount: def.mount,
+      ...(def.region ? { region: def.region } : {}),
+      ...(def.tileAxis ? { tileAxis: def.tileAxis } : {}),
+      ...(def.mirrorTerminals ? { mirrorTerminals: true } : {}),
+      ...(def.noStrip ? { noStrip: true } : {}),
+      ...(def.hidden ? { hidden: true } : {}),
+      poleMode: def.poleMode ?? 'none',
+      ...(def.poleConfigs ? { poleConfigs: [...def.poleConfigs] } : {}),
+      ...(def.count ? { count: { ...def.count } } : {}),
+      params: structuredClone(def.params),
+      ...(def.stateful ? { stateful: true } : {}),
+      ...(def.tripsOnOverload ? { tripsOnOverload: true } : {}),
+      ...(def.summary ? { summary: def.summary } : {}),
+      svg,
+    },
+  );
+}
 
 const rid = () => Math.random().toString(36).slice(2, 9);
 const clamp = (v: unknown, lo: number, hi: number, fallback: number) => {
@@ -257,7 +456,8 @@ function shapeSvg(s: ModuleShape): string {
 }
 
 /** Equipment definition and SVG artwork for a module; fed to the same pipeline as the built-in devices. */
-export function buildModuleDef(m: CustomModule): { def: EquipmentDef; svg: string } {
+export function buildModuleDef(m: CustomModule, category: Category = 'custom'): { def: EquipmentDef; svg: string } {
+  if (m.device) return buildDeviceDef(m, category);
   const W = m.widthModules * MODULE_MM;
   const H = m.heightMm;
   const dark = luminance(m.color) < 0.45;
@@ -308,7 +508,7 @@ export function buildModuleDef(m: CustomModule): { def: EquipmentDef; svg: strin
     id: m.id,
     name: m.name || 'Custom module',
     description: m.description || 'Custom module',
-    category: 'custom',
+    category,
     role: 'module',
     designation: (m.designation || 'X').slice(0, 3),
     icon: 'module',
@@ -419,6 +619,11 @@ export function sanitizeModule(raw: unknown): CustomModule | null {
   m.terminals = stored
     .filter((t): t is ModuleTerminal => !!t && typeof t === 'object' && typeof (t as ModuleTerminal).id === 'string')
     .map((t) => ({ id: t.id, side: t.side === 'bottom' ? 'bottom' : 'top', row: Math.round(clamp(t.row, 0, 3, 0)), col: Math.round(clamp(t.col, 0, 24, 0)), label: str(t.label, 8), net: str(t.net, 24) }));
+  if (r.device !== undefined) {
+    const device = sanitizeDevice(r.device);
+    if (!device) return null;
+    return deviceShell({ id: m.id, name: m.name, description: m.description, designation: m.designation }, device);
+  }
   return syncTerminals(m);
 }
 
@@ -428,7 +633,13 @@ export interface ModuleFile {
 }
 
 export function serializeModules(modules: CustomModule[]): string {
-  return JSON.stringify({ format: MODULE_FORMAT, version: 1, modules }, null, 2);
+  const compact = modules.map((m) => {
+    if (!m.device) return m;
+    // device modules store only what they use; the artwork goes in as one line per array item so it can be read and diffed
+    const { id, name, description, designation, device } = m;
+    return { id, name, description, designation, device: { ...device, svg: device.svg.split('\n') } };
+  });
+  return JSON.stringify({ format: MODULE_FORMAT, version: 1, modules: compact }, null, 2);
 }
 
 /** Read modules from a `.ecm` file or from a whole project (`.ec`). */

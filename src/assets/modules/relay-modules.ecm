@@ -1,0 +1,299 @@
+{
+  "format": "electrocraft-modules",
+  "version": 1,
+  "modules": [
+    {
+      "id": "lib-control-relay",
+      "name": "Control relay (changeover)",
+      "description": "Coil A1/A2 operates one changeover contact: 11 common, 14 NO, 12 NC",
+      "designation": "K",
+      "widthModules": 2,
+      "heightMm": 90,
+      "color": "#e6eaef",
+      "stroke": "#69747f",
+      "rating": {
+        "In": 10,
+        "Un": 230
+      },
+      "behaviour": "isolated",
+      "switchable": false,
+      "switches": [
+        {
+          "id": "kcont",
+          "name": "K",
+          "no": [
+            "T0_1",
+            "B0_1"
+          ],
+          "nc": [
+            "T0_1",
+            "B0_2"
+          ],
+          "visible": false,
+          "x": 18,
+          "y": 50
+        }
+      ],
+      "inputs": [
+        {
+          "id": "kcoil",
+          "name": "COIL",
+          "terminal": "T0_0",
+          "ref": "B0_0",
+          "mode": "momentary",
+          "targets": [
+            "kcont"
+          ]
+        }
+      ],
+      "trips": false,
+      "top": {
+        "rows": 1,
+        "cols": 2
+      },
+      "bottom": {
+        "rows": 1,
+        "cols": 3
+      },
+      "terminals": [
+        {
+          "id": "T0_0",
+          "side": "top",
+          "row": 0,
+          "col": 0,
+          "label": "A1",
+          "net": "solo:T0_0"
+        },
+        {
+          "id": "T0_1",
+          "side": "top",
+          "row": 0,
+          "col": 1,
+          "label": "11",
+          "net": "solo:T0_1"
+        },
+        {
+          "id": "B0_0",
+          "side": "bottom",
+          "row": 0,
+          "col": 0,
+          "label": "A2",
+          "net": "solo:B0_0"
+        },
+        {
+          "id": "B0_1",
+          "side": "bottom",
+          "row": 0,
+          "col": 1,
+          "label": "14",
+          "net": "solo:B0_1"
+        },
+        {
+          "id": "B0_2",
+          "side": "bottom",
+          "row": 0,
+          "col": 2,
+          "label": "12",
+          "net": "solo:B0_2"
+        }
+      ],
+      "shapes": [
+        {
+          "id": "spvuozi8",
+          "name": "Title",
+          "type": "text",
+          "x": 18,
+          "y": 30,
+          "w": 10,
+          "h": 8,
+          "r": 4,
+          "rx": 0.8,
+          "fill": "#1f2630",
+          "stroke": "none",
+          "strokeWidth": 0.3,
+          "opacity": 1,
+          "text": "K",
+          "fontSize": 8,
+          "show": "always"
+        },
+        {
+          "id": "s0l5d3kx",
+          "name": "Coil lamp (on)",
+          "type": "circle",
+          "x": 18,
+          "y": 46,
+          "w": 10,
+          "h": 8,
+          "r": 3,
+          "rx": 0.8,
+          "fill": "#2fbf4f",
+          "stroke": "#14631f",
+          "strokeWidth": 0.3,
+          "opacity": 1,
+          "text": "",
+          "fontSize": 4,
+          "show": "in:kcoil"
+        },
+        {
+          "id": "sfrp9si0",
+          "name": "Coil lamp (off)",
+          "type": "circle",
+          "x": 18,
+          "y": 46,
+          "w": 10,
+          "h": 8,
+          "r": 3,
+          "rx": 0.8,
+          "fill": "#7a8794",
+          "stroke": "#4c5560",
+          "strokeWidth": 0.3,
+          "opacity": 1,
+          "text": "",
+          "fontSize": 4,
+          "show": "nin:kcoil"
+        }
+      ]
+    },
+    {
+      "id": "lib-impulse-relay",
+      "name": "Impulse relay",
+      "description": "Each pulse on A1/A2 toggles the contact 11-14 (latching)",
+      "designation": "K",
+      "widthModules": 2,
+      "heightMm": 90,
+      "color": "#e6eaef",
+      "stroke": "#69747f",
+      "rating": {
+        "In": 10,
+        "Un": 230
+      },
+      "behaviour": "isolated",
+      "switchable": false,
+      "switches": [
+        {
+          "id": "kimp",
+          "name": "K",
+          "no": [
+            "T0_1",
+            "B0_1"
+          ],
+          "nc": [],
+          "visible": false,
+          "x": 18,
+          "y": 50
+        }
+      ],
+      "inputs": [
+        {
+          "id": "kcoil",
+          "name": "PULSE",
+          "terminal": "T0_0",
+          "ref": "B0_0",
+          "mode": "toggle",
+          "targets": [
+            "kimp"
+          ]
+        }
+      ],
+      "trips": false,
+      "top": {
+        "rows": 1,
+        "cols": 2
+      },
+      "bottom": {
+        "rows": 1,
+        "cols": 2
+      },
+      "terminals": [
+        {
+          "id": "T0_0",
+          "side": "top",
+          "row": 0,
+          "col": 0,
+          "label": "A1",
+          "net": "solo:T0_0"
+        },
+        {
+          "id": "T0_1",
+          "side": "top",
+          "row": 0,
+          "col": 1,
+          "label": "11",
+          "net": "solo:T0_1"
+        },
+        {
+          "id": "B0_0",
+          "side": "bottom",
+          "row": 0,
+          "col": 0,
+          "label": "A2",
+          "net": "solo:B0_0"
+        },
+        {
+          "id": "B0_1",
+          "side": "bottom",
+          "row": 0,
+          "col": 1,
+          "label": "14",
+          "net": "solo:B0_1"
+        }
+      ],
+      "shapes": [
+        {
+          "id": "sk6xnypf",
+          "name": "Title",
+          "type": "text",
+          "x": 18,
+          "y": 30,
+          "w": 10,
+          "h": 8,
+          "r": 4,
+          "rx": 0.8,
+          "fill": "#1f2630",
+          "stroke": "none",
+          "strokeWidth": 0.3,
+          "opacity": 1,
+          "text": "IMPULSE",
+          "fontSize": 5,
+          "show": "always"
+        },
+        {
+          "id": "sltweu5w",
+          "name": "Contact closed (lamp)",
+          "type": "circle",
+          "x": 18,
+          "y": 46,
+          "w": 10,
+          "h": 8,
+          "r": 3,
+          "rx": 0.8,
+          "fill": "#d9a83f",
+          "stroke": "#7a5a10",
+          "strokeWidth": 0.3,
+          "opacity": 1,
+          "text": "",
+          "fontSize": 4,
+          "show": "sw:kimp"
+        },
+        {
+          "id": "szkr0vgn",
+          "name": "Contact open (lamp)",
+          "type": "circle",
+          "x": 18,
+          "y": 46,
+          "w": 10,
+          "h": 8,
+          "r": 3,
+          "rx": 0.8,
+          "fill": "#7a8794",
+          "stroke": "#4c5560",
+          "strokeWidth": 0.3,
+          "opacity": 1,
+          "text": "",
+          "fontSize": 4,
+          "show": "rel:kimp"
+        }
+      ]
+    }
+  ]
+}

@@ -2,6 +2,7 @@ import { create } from 'zustand';
 import { DEFAULT_RENDER_OPTIONS, type Panel, type Project, type RenderOptions, type Selection } from '../model/types';
 import { createProject } from '../model/project';
 import { syncCustomModules } from '../model/defs';
+import { syncFloorLinks } from '../model/floorSync';
 import { emptyRuntime, type SimRuntime } from '../model/sim';
 
 export type Tool = 'select' | 'wire' | 'pan';
@@ -48,6 +49,17 @@ interface State {
 }
 
 const HISTORY = 100;
+
+/** Copy of the project to edit. Floor plan images are large and never edited in place, so they are shared, not copied. */
+function cloneProject(p: Project): Project {
+  const images = p.floorPlans.map((f) => f.image);
+  const clone = structuredClone({ ...p, floorPlans: p.floorPlans.map((f) => ({ ...f, image: undefined })) }) as Project;
+  clone.floorPlans.forEach((f, i) => {
+    if (images[i]) f.image = images[i];
+    else delete f.image;
+  });
+  return clone;
+}
 let toastId = 0;
 
 export const useStore = create<State>((set, get) => ({
@@ -67,6 +79,7 @@ export const useStore = create<State>((set, get) => ({
 
   setProject: (project, fileName, dirty = false) => {
     syncCustomModules(project.modules ?? []);
+    syncFloorLinks(project);
     set({
       project,
       fileName,
@@ -82,9 +95,10 @@ export const useStore = create<State>((set, get) => ({
 
   mutate: (fn, record = true) =>
     set((s) => {
-      const draft = structuredClone(s.project);
+      const draft = cloneProject(s.project);
       fn(draft);
       syncCustomModules(draft.modules ?? []);
+      syncFloorLinks(draft);
       const activeStillExists = draft.panels.some((p) => p.id === s.activePanelId);
       return {
         project: draft,

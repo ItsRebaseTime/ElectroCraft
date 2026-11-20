@@ -30,12 +30,146 @@ a **floor** and a **room**. The Project tree groups panels by floor.
   along that edge of the enclosure (N at the left, PE at the right); the enclosure grows to make room. Wire to it like
   to any other device, and use *edit* beside the checkbox to change its number of terminals. Unticking removes the bar
   and its wires.
+* **Keystone patch panels:** *Keystone panel top* and *Keystone panel bottom* (below the bus bar choices) add a **patch panel**
+  along that edge of the section: a grid of keystone jacks whose size you set with **rows** (1 to 4) and **columns** (1 to 24)
+  right in the section settings. Every jack is a terminal of its own (jacks are never joined), numbered 1, 2, 3 ... row by row.
+  It sits next to the bus bars of the same edge (neutral bar, patch panel, earth bar from left to right) and the enclosure
+  grows, and widens, to fit it. Reduce the size and the wires to jacks that disappear are removed. The cables that come from the
+  floor plan (see *Floor plans*) are items of the panel; **select the patch panel** (*edit*) and press **Wire floor plan cables
+  to free jacks** to wire every cable that has no wire yet to the next free jack, in reading order, coloured by what it carries
+  (network blue, coax violet, fibre orange). Or draw the wires yourself.
+
+![A media cabinet with a keystone patch panel and the floor plan cables wired into its jacks](images/patch-panel.png)
 
 ![Two sections side by side with N and PE bars](images/sections.png)
 
   The example [examples/multi-section-board.ec](examples/multi-section-board.ec) shows a two-section board: a main switch and
   RCD with N and PE bars along the top of the first section, and sixteen-module rails with bars along the bottom of the second.
   Adding or removing bars, rails or sections moves the supply and loads outside the enclosure out of the way.
+
+## Floor plans
+
+The **Floor plan** workspace (the *Panel / Floor plan* switch in the toolbar, or *Floor plan* in the phone menu) is where you
+plan the whole building before you plan a panel. Load a picture of a floor plan, mark every outlet, connect them with cables
+in groups, and bring the groups to the panels. Everything you connect appears in the panel planner, ready to be wired to the
+modules of the panel.
+
+![The example apartment: outlets in every room, circuits in bundles to the main board (DB1) and the media cabinet (MC)](images/floor-plan.png)
+
+The pictures in this chapter show the example [apartment.ec](examples/apartment.ec): open it, or start from your own plan.
+
+**1. Add a floor plan.** The picture button next to *Floor plan* on the left loads a PNG, JPEG or WebP picture (it is scaled
+down to fit in the project file); the plus button adds an empty sheet. A project can hold any number of floor plans, for
+example one per floor. In the properties you can replace or remove the picture and rename the plan.
+
+**2. Set the scale.** With the ruler tool, click both ends of something whose length you know (a wall, a door), then type the
+real distance. From then on every cable shows its length. You can also type the pixels per metre.
+
+**3. Mark the outlets.** Pick a kind of outlet on the left and click the plan to place it; click again to place more.
+The kinds are grouped by what they carry: **power** (socket, double socket, light, light switch, fixed appliance),
+**network** (RJ45 outlet, Wi-Fi access point, camera), **TV / coax**, **audio** (speaker), **fibre**, **telephone** and **other**. The
+**audio receiver / amplifier** is a power outlet too (it has a load, and can be part of a power circuit) that speaker cables end at. Each is drawn with a **pictogram** of what it is (a socket, a ceiling light, a switch, an Ethernet jack, a Wi-Fi
+symbol, a camera, a TV, a fibre ...) on a shape and colour that tell the kind of cable (circle: power, square: network, diamond: coax,
+triangle: fibre, rounded: telephone and other), and gets a label (`S1`, `RJ3`, `TV2` ...) that you can change. Drag an outlet to move it, **Delete** removes it.
+
+**Selecting several, copy and paste.** **Ctrl+click** (or Shift+click) adds an outlet to the selection or takes it out again, **Ctrl+drag**
+on empty space selects the outlets in a box, and **Ctrl+A** selects all the visible ones. Drag any selected outlet to move them
+all, **Delete** removes them, and the properties panel offers a layer for all of them. **Ctrl+C** copies the selection and
+**Ctrl+V** pastes copies, centred on the pointer when it is over the plan (otherwise shifted a little more with every paste), with
+fresh labels and the same kind, count, load, layer and note. The copies are selected, so you can drag them into place straight
+away, and you can paste on another floor plan too (a layer the other plan does not have falls back to the usual one for the kind).
+Cables are not copied: connect the copies with the cable tool. When nothing is selected the plan's properties have a *Paste* button.
+
+![Six outlets of a bedroom selected with a Ctrl+drag box: copy them and paste them into the next room](images/floor-selection.png)
+
+Every kind of outlet is a **single object with a count**: there is one *Socket*, and you say how many sockets are at that place
+(1 to 12). Set *Count per outlet* on the left before placing, or change the *Count* of a placed outlet in its properties. The
+count is drawn as that many symbols side by side (`S3 ×3` is three circles), and works the same for lights, switches, network
+ports, TV ports and fibre ports. Power outlets have a connected load in watts **per socket / light** (a default per kind,
+editable); the place's load is that times the count.
+
+**Layers.** Objects live in **layers**, so you can plan the walls, the floor and the ceiling separately. A new floor plan starts with
+*Floor*, *Walls* and *Ceiling*; under *Layers* on the left you can rename them, add more (*Add layer*), reorder them (the top of the
+list is drawn on top) and delete them (their outlets and cables move to the layer below). Every layer has **Show / Fade / Hide**,
+like the wire visibility of the panel view (the same controls are in the *View* menu while the floor plan is open): hidden layers
+are not drawn and cannot be clicked, faded ones are drawn light. *New outlets go to* chooses the layer for what you place next;
+*Automatic* uses the usual layer of each kind (lights, Wi-Fi access points and cameras on the ceiling, sockets, switches and data
+ports on the walls, fixed appliances on the floor). Change the layer of an outlet or a cable in its properties; a cable starts on the
+layer of its first outlet. Layer visibility is a view setting and is not saved with the project; the layers and what is on them are.
+
+**Visibility of the objects.** Besides the layers, every kind of object has its own Show / Fade / Hide: each **kind of outlet** (the
+eye button on its row in the list on the left steps through shown, faded and hidden), each **kind of cable**, the **panels**, and
+every **single outlet, cable or panel** (*On the plan* in its properties). The *View* menu lists all of them (layers, outlets,
+cables, panels) with *Show everything*. An object is shown as hidden as the most hidden of its layer, its kind and itself. Hidden
+objects are not drawn and cannot be clicked; the objects you hid one by one are listed in the plan's properties with a *Show*
+button. Like the layers this is a view setting and is not saved.
+
+![The ceiling layer in focus, the others faded](images/floor-layers.png)
+
+**4. Place the panels.** Every panel of the project (electrical or media cabinet) can be placed on a plan, and **a plan can
+have as many panels as you like**: a main board, sub-boards, a media cabinet. Click a panel in the list on the left, then click
+the plan; the plus button next to *Panels* adds a new panel to the project and lets you place it right away. Its marker can be
+moved like an outlet, and a panel can be on several plans (one per floor it serves). Each circuit ends at one panel, chosen by
+clicking its marker or in the circuit's properties, and appears only in that panel.
+
+**5. Connect the outlets in groups.** With the cable tool, click an outlet to start a **circuit**, click the next outlets to
+add them, click empty space to put a bend in the cable, and finish by clicking a panel. An outlet that already has a circuit
+continues that circuit when you click it. A circuit carries one kind of cable only (the app tells you when you mix them) and
+has a name, a cable type (for power `3x1.5 mm²` to `5x10 mm²`, for data Cat5e to Cat7, RG6, OS2 ...), a colour and a panel.
+How it is wired decides what appears in the panel:
+
+* **Chain** (the default for power): one cable runs from outlet to outlet in order and then to the panel, like the sockets of one
+  circuit. You can reorder the outlets in the properties. The cable from the panel arrives at the **outlet you clicked last**
+  before clicking the panel (click an outlet of an existing circuit, then the panel, to connect at that outlet); the chain continues
+  from there, in both directions if it is in the middle. *Connected at* in the circuit's properties changes it later. A power circuit has a phase count and a connected load, the sum of its
+  outlets (load times count) unless you set it by hand. A power circuit can also be a star, with a cable from every outlet.
+* **Star** (always for network, coax, fibre and telephone): **every port has its own cable** to the panel. These cannot be
+  chained like AC power, so the app does not offer it; an outlet with a count of 2 brings two cables, and the cable count and
+  length of the circuit include all of them.
+
+**Phases.** Sockets and appliances have a **Phases** setting (1, 2 or 3): a hob can be single-phase, two-phase or three-phase, and a
+three-phase socket is a socket with three. A power circuit takes the **most phases of its outlets** (the *Phases* of the circuit offers
+*Automatic* or 1, 2 or 3 to override it), and that is the number of phases of the load that appears in the panel, so the load has
+the terminals L1, L2, L3 you need to wire it. Outlets in a star circuit each give their own load with their own phases. The plan shows
+`2ph` or `3ph` next to the label of such an outlet.
+
+![The hob of the example apartment: two phases, 5 kW](images/floor-phases.png)
+
+**Speakers and the receiver.** A *speaker* has a count like any outlet (a stereo pair at one place is a count of 2) and every speaker has its
+own cable, as for network and fibre. Draw a speaker circuit with the cable tool and finish it by **clicking the audio receiver**: the
+cables then end at the receiver instead of a panel (*Ends at* in the circuit's properties also offers the panels, for a speaker
+distribution panel). The receiver has a number of **speaker channels** (2 to 16) and its properties show how many the connected
+speakers use. A speaker circuit that ends at a receiver puts nothing in the panels.
+
+![The living room speakers end at the audio receiver](images/floor-audio.png)
+
+Cables are drawn and measured along the walls (horizontally, then vertically; extra bends steer them), so lengths are realistic.
+**Select a circuit** (click its cable, or its name in the plan's properties) to edit its route: every run shows a **+**; **drag the +**
+to pull a new bend (a node) out of the cable and drop it where the cable should go, **drag a bend** (the round handles) to move it,
+**double-click a bend** to remove it, and *Straighten* in the circuit's properties removes them all. This works for the cable between
+the outlets of a chain, for the run to the panel, and for each outlet's own cable in a star.
+They show the plan length only: add the drops to the outlets and the panel yourself. The summary in the properties of the plan
+lists, per kind of cable, how many outlets are wired and the total length.
+
+**6. Route them to the panel modules.** As soon as a circuit ends at a panel, that panel gets an item for it, below the
+enclosure, named after the circuit:
+
+* a **power circuit** becomes a **load** with the circuit's name, phases and connected load (and the cable and length in its
+  notes), so you wire an MCB to it like to any load, and the simulation sees the current;
+* a **network, coax, fibre or telephone circuit** becomes one **cable** item **per port** (an outlet `RJ3` with a count of 2 gives
+  `Network: RJ3.1` and `Network: RJ3.2`) with a single port that you wire to a module of the panel, such as a terminal block you
+  use as a patch field.
+
+![The apartment board in the panel planner: a three-phase supply, main switch, RCD and a breaker for every circuit of the plan (the hob has a two-pole one)](images/floor-panel-planner.png)
+
+The items follow the plan: renaming a circuit, changing its load or count, or moving an outlet into or out of it updates the
+items (a lower count removes the extra port cables), and the wires you drew stay. If the circuit no longer ends at that panel (or is deleted, or its panel marker is removed), the item
+and its wires are removed. Because of that these items cannot be deleted or duplicated in the panel planner; their properties
+say where they come from and have a *Show on the floor plan* button. Undo and redo treat the plan and the panels together.
+
+Notes: a circuit stays on one floor plan, so a cable between floors is two circuits (one per floor) joined in a panel. The
+floor plans are not part of the PDF export yet. On a phone the tools are in the column on the left, the kinds of outlet open
+from *Add*, and the properties from *Edit*; names and labels appear when you zoom in.
 
 ## Placing equipment
 
@@ -274,6 +408,10 @@ where the pencil edits it, the clone button copies it as the base of a variation
 and opens in the designer) and the bin deletes it (devices that use it are removed too). Changing a saved module updates
 every placed copy; wires to connections that no longer exist are dropped.
 
+The app also ships a **Module library**: ready-made modules (a fused distribution block, a pushbutton contact block, a
+changeover selector, a control relay, an impulse relay) in their own palette group. They are read-only; the copy button
+(or *Copy to project to edit...* on a placed one) turns one into a normal, editable project module.
+
 **Export modules...** writes a `.ecm` file; **Import modules...** accepts a `.ecm` file or a whole `.ec` project and lets
 you choose which modules to add (ids and names are made unique). There is an example in
 [examples/fused-distribution-block.ecm](examples/fused-distribution-block.ecm), a pushbutton block with NO and NC contacts in
@@ -281,6 +419,36 @@ you choose which modules to add (ids and names are made unique). There is an exa
 indicator lamps in [examples/changeover-selector.ecm](examples/changeover-selector.ecm), and a control relay and an impulse relay
 in [examples/relay-modules.ecm](examples/relay-modules.ecm), wired up in [examples/relay-circuits.ec](examples/relay-circuits.ec).
 [examples/relay-indicator.ec](examples/relay-indicator.ec) has a relay whose lamp changes colour while its coil is energised.
+
+## Designing a device
+
+A **device** is a module with everything the built-in devices have: pole configurations that change its width and
+terminals, parameters, a simulation role, a mounting kind and SVG artwork. All built-in devices are devices of this kind.
+**Modules > Design a new device...** opens the device designer on a copy of the MCB; **Copy to project to edit...** (in the
+properties of any placed device, and on library entries) starts from that device instead. Saved devices appear under
+*Custom modules* like other project modules, and can be exported to `.ecm`.
+
+![The device designer](images/device-designer.png)
+
+* **General:** name, description, marking letter, palette group (used when the device ships with the app) and icon.
+* **Behaviour:** the **role** tells the simulator what the device is (protection, switch, meter, terminal block, bus bar,
+  indicator lamp, load, supply, US breaker, US main) and so which terminals it expects; **mounting** is DIN rail, free
+  (like a supply or load) or US breaker space; *Offered in* picks European or US panels; *Poles repeat* sets whether pole
+  tiles go along the rail or down a column. Tick *has an on/off state* for a lever or knob, *trips* for breaker or fuse
+  behaviour, and the label text (tokens such as `{curve}{In}`) is what the label strip shows.
+* **Poles:** *Fixed layout*, *Choose a configuration* (tick which of 1P, 1P+N, 2P, 3P, 3P+N, 4P are offered) or a *Free
+  number of terminals* with a minimum, maximum and default (bus bars and terminal blocks).
+* **Parameters:** each becomes a field in the properties panel. Choose its key, label, type (choice, number, text, yes/no),
+  section (configuration or rating), default, an optional *show only when* condition such as `phases>=2`, and for choices
+  the options (value, label and an optional colour for `{{param#hex}}` tokens). The simulator reads a fixed set of keys:
+  `In`, `Un`, `P`, `cosphi`, `phases`, `curve`, `IdN`, `type`, `Icn`, `Uc`, `feeder`, `role` and `count`.
+* **Artwork:** the SVG source, with a live preview above it. The preview has controls for the poles, the first choice
+  parameters and the *On / Tripped / Current* states, so you can check every layer. Terminals are circles with
+  `data-terminal`; the conventions (layers per pole, `data-show` conditions, tokens, animation) are in
+  [equipment-assets.md](equipment-assets.md). **Open SVG file...** loads artwork drawn in an SVG editor. The artwork may
+  only contain drawing elements: scripts, links and event handlers are removed.
+
+On a phone the designer has *Device*, *Artwork* and *Parameters* tabs.
 
 ## US load centers
 
@@ -310,12 +478,13 @@ shows the equipment that belongs to the open panel.
 
 Append these to the address to share or reproduce a view:
 `#sim` (simulation on), `#panel=2`, `#z=2&x=-300&y=-100` (zoom and pan), `#select=item:3` (or `wire:N`, `rail:N`),
-`#export` (open the export dialog), `?layout=mobile|desktop`. The hash options can be combined with `&`.
+`#export` (open the export dialog), `#floor` (the floor plan workspace), `?layout=mobile|desktop`. The hash options can be combined with `&`.
 
 ## Troubleshooting
 
 | Problem | Cause / fix |
 | --- | --- |
+| A circuit does not show up in the panel | The cable has to end at the panel: finish the circuit by clicking the panel marker (or choose the panel in the circuit's properties). |
 | "No free space on the DIN rails" | Lengthen a rail, add a rail, or remove something. |
 | Changing the poles of a device is refused | Not enough free modules to its right. Move neighbours or lengthen the rail. |
 | Some wires disappeared after reducing poles | Wires to terminals that no longer exist are removed (you get a message). `Ctrl+Z` undoes it. |

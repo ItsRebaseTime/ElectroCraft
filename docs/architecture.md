@@ -20,7 +20,7 @@ app is the same files in a Tauri window.
 src/
   model/        pure TypeScript, no React: the heart of the app
     types.ts      data model (Project > Panel > Item / Wire / Rail)
-    defs.ts       loads equipment JSON + SVG, pole configurations
+    defs.ts       loads the module files (built-in devices, module library), pole configurations
     asset.ts      parses an equipment SVG into drawable nodes and terminals
     expr.ts       data-show expressions and {{tokens}} used by assets
     geometry.ts   layout: where every device and terminal is, rail snapping
@@ -29,6 +29,8 @@ src/
     marking.ts    automatic IEC 81346 / simple markings
     colors.ts     wire colours and the conductor colour convention
     customModule.ts  custom modules: terminals, generated SVG + definition, validation, .ecm files
+    floor.ts      floor plans: outlets, circuits, cable paths and lengths, validation of loaded plans
+    floorSync.ts  keeps the panels in step with the floor plans (a load or cable item per circuit)
     project.ts    create / validate / migrate project files
     sample.ts     the built-in sample project
   render/       SVG drawing, shared by the editor and the exports
@@ -37,12 +39,14 @@ src/
     labels.ts         text for label strips
     exportSvg.tsx     static SVG of a panel (used by PDF and SVG export)
   store/        zustand store + pure editing operations (actions.ts)
-  io/           file open/save (browser or Tauri), PDF builder, project open/save commands
+  io/           file open/save (browser or Tauri), PDF builder, project open/save commands, floor plan picture import
   ui/           React components: editor canvas, toolbar, palette, properties, dialogs
     layout.ts       user-agent based choice between desktop and phone layout
     MobileApp.tsx   phone layout: bottom navigation, sheets, selection bar
     modules/        module designer, import/export dialogs, module operations
-  assets/equipment/   the equipment definitions and artwork (see equipment-assets.md)
+    floor/          floor plan workspace: canvas, outlet and panel palette, properties, state
+  assets/modules/base/  the built-in devices, one device module (.ecm) each (see equipment-assets.md)
+  assets/modules/       the module library: .ecm files shipped with the app (see module-library.md)
 ```
 
 ## Data flow
@@ -65,6 +69,12 @@ src/
 The key idea is that **`PanelDiagram` is the only place a panel is drawn**. The editor mounts it with interaction
 handlers and animation; the exports render the very same component to a static SVG string, so what you see is what is
 printed. All of `model/` is pure functions on plain data, which is why it is covered by fast unit tests.
+
+### Floor plans and panels
+
+`project.floorPlans` holds the plans. `store.mutate` runs `syncFloorLinks` after every edit, so the panels always match the
+circuits that end at them: each circuit gets items (`Item.link` names the circuit and outlet) that the user wires like any other
+device, and items whose circuit is gone are removed with their wires. The images are shared between history snapshots, not copied.
 
 ## Panel types
 
@@ -94,7 +104,7 @@ hit areas (`touchHit`).
 An equipment SVG is parsed once (`asset.ts`) into top-level nodes marked as per-pole or per-device, plus its terminals.
 `DeviceView` then draws it: pole tiles are repeated per pole, stretched layers are scaled across the device, and any
 element with `data-show` is evaluated against the device's state (on, tripped, powered, lit...) and parameters.
-Terminals are read from the SVG, so a new device needs no code. See [equipment-assets.md](equipment-assets.md).
+Terminals are read from the SVG, so a new device is a module file and needs no code. See [equipment-assets.md](equipment-assets.md).
 
 ## Layout and routing
 

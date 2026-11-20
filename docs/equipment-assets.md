@@ -1,12 +1,28 @@
 # Equipment assets
 
-Every device is a pair of files in [`src/assets/equipment/`](../src/assets/equipment):
+Every device, built-in or your own, is a **device module**: a module (`.ecm`) file whose `device` section holds the
+definition (role, mounting, pole configurations, parameters) and the artwork as SVG. The built-in devices are the files in
+[`src/assets/modules/base/`](../src/assets/modules/base), one per device. The same fields are edited in the app with
+**Modules > Design a new device...** (or *Copy to project to edit...* on any placed device), which has a live preview, a
+parameter editor and an SVG source box; see the [user guide](user-guide.md#designing-a-device).
 
-* `name.json` - the definition (name, category, pole configurations, parameters such as current/voltage/power).
-* `name.svg`  - the artwork. Edit it with any SVG editor (Inkscape, Figma export, a text editor).
+To change or add a built-in device: design it in the app, **Export** it, and put the file in `src/assets/modules/base/`
+with a **permanent id** (saved projects store it as `defId`). Drop in the file and rebuild, or save while `npm run dev` is
+running, and the device appears in the palette. The artwork is generic and original; replace it with your own to match a
+specific manufacturer's look.
 
-Drop in a new pair and rebuild (or just save while `npm run dev` is running) and the device appears in the palette.
-The artwork is generic and original; replace it with your own to match a specific manufacturer's look.
+A device module file looks like this (the `svg` is stored one line per array item so it reads and diffs well):
+
+```jsonc
+{ "format": "electrocraft-modules", "version": 1, "modules": [ {
+  "id": "mcb", "name": "Circuit breaker (MCB)", "description": "...", "designation": "F",
+  "device": { /* the fields of the definition below */ "svg": [ "<svg ...>", "  ...", "</svg>" ] }
+} ] }
+```
+
+Module files can come from anywhere, so the artwork is **restricted to drawing elements** (`svg g rect circle ellipse path
+line polyline polygon text tspan defs linearGradient radialGradient stop clipPath title desc`); scripts, links, event
+handlers and external `url()` references are removed on load.
 
 ## SVG conventions
 
@@ -47,18 +63,15 @@ Devices with `role: "terminal"` support comb bridges between neighbouring termin
 hidden `bridges` parameter (`"0,2"` = bridge terminals 1-2 and 3-4) and drawn by the app, not by the SVG, so
 any terminal-block artwork gets them for free.
 
-## Definition file (`name.json`)
+## The definition (the `device` section)
 
 ```jsonc
-{
-  "id": "mcb",                       // unique id, also used in saved projects
-  "name": "Circuit breaker (MCB)",
-  "description": "Shown as a tooltip and in the properties panel",
+{                                    // module level: "id" (unique, stored in projects), "name", "description" and
+                                     // "designation" (IEC 81346 letter code: F, Q, K, X, H, P, E, G, S, XS); then "device":
   "category": "protection",          // palette group: sources | protection | switching | connection | indication | sockets | loads
   "role": "protection",              // how the simulator treats it, see below
-  "designation": "F",                // IEC 81346 letter code for automatic markings (F, Q, K, X, H, P, E, G, S, XS)
   "icon": "breaker",                 // key in src/ui/Icon.tsx
-  "asset": "mcb.svg",
+  "svg": ["<svg ...>", "..."],       // the artwork
   "mount": "din",                    // "din" (sits on a rail) or "free" (placed anywhere: supply, loads)
   "poleMode": "config",              // "config" = pick from poleConfigs, "count" = free number of terminals, "none" = fixed layout
   "poleConfigs": ["1P", "1P+N", "2P", "3P", "3P+N"],
@@ -86,6 +99,7 @@ properties panel, `show` hides a parameter unless an expression holds (`"phases>
 | `protection`, `switch` | each pole conducts top to bottom while the lever is on and the device has not tripped |
 | `meter`, `terminal` | pole-wise pass-through that is always closed (a meter shows its current) |
 | `bus` | all its terminals are one conductor (N/PE bars) |
+| `patch` | a grid of separate jacks (the keystone patch panel); the app draws it for the chosen rows and columns, it cannot be drawn in an SVG file |
 | `indicator` | a lamp per pole between the top (phase) and bottom (neutral) terminal |
 
 **Terminal names.** On DIN devices the SVG marks one `top` and one `bottom` terminal per pole; the app names them
@@ -111,9 +125,9 @@ Extra visibility flags: `side-left` and `side-right`. Extra tokens: `{{descripti
 Terminals may point `up`, `down`, `left` or `right` (`data-dir`). Pole-scope terminals other than `top` / `bottom` get the
 tile index appended to their name (`load` becomes `load0`, `load1`).
 
-## Custom modules
+## Designed-face modules
 
-User-designed modules are turned into the same two things: the app generates the SVG (body, your shapes as layers with
+Modules designed with the shape tools (the *Design a new module* kind) are turned into the same two things: the app generates the SVG (body, your shapes as layers with
 `data-show`, switch lever layers, terminals with `data-label` markings) and a definition with `role: "module"`, then
 registers them next to the built-in devices. For each internal switch the art contains a clickable widget
 (`data-switch="<id>"`) whose layers use the per-switch flags `sw-<id>` (actuated) and `swc-<id>` (a contact of the switch is conducting). A switch marked hidden gets no widget but keeps its flags. Inputs add the flag `in-<id>` (the input is energised). Nothing is written to `src/assets`; the design lives in the project file.

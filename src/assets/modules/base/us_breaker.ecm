@@ -1,0 +1,180 @@
+{
+  "format": "electrocraft-modules",
+  "version": 1,
+  "modules": [
+    {
+      "id": "us_breaker",
+      "name": "Circuit breaker (US plug-on)",
+      "description": "Plug-on breaker for a US load center: 1-3 poles, standard, AFCI, GFCI or dual function. Fed from the bus by its position.",
+      "designation": "F",
+      "device": {
+        "category": "protection",
+        "role": "us_breaker",
+        "icon": "breaker",
+        "mount": "us",
+        "region": "us",
+        "tileAxis": "y",
+        "mirrorTerminals": true,
+        "noStrip": true,
+        "poleMode": "config",
+        "poleConfigs": [
+          "1P",
+          "2P",
+          "3P"
+        ],
+        "params": [
+          {
+            "key": "In",
+            "label": "Rated current",
+            "type": "select",
+            "options": [
+              {
+                "value": 15,
+                "label": "15 A"
+              },
+              {
+                "value": 20,
+                "label": "20 A"
+              },
+              {
+                "value": 25,
+                "label": "25 A"
+              },
+              {
+                "value": 30,
+                "label": "30 A"
+              },
+              {
+                "value": 35,
+                "label": "35 A"
+              },
+              {
+                "value": 40,
+                "label": "40 A"
+              },
+              {
+                "value": 45,
+                "label": "45 A"
+              },
+              {
+                "value": 50,
+                "label": "50 A"
+              },
+              {
+                "value": 60,
+                "label": "60 A"
+              },
+              {
+                "value": 70,
+                "label": "70 A"
+              },
+              {
+                "value": 80,
+                "label": "80 A"
+              },
+              {
+                "value": 90,
+                "label": "90 A"
+              },
+              {
+                "value": 100,
+                "label": "100 A"
+              }
+            ],
+            "default": 20,
+            "group": "rating"
+          },
+          {
+            "key": "type",
+            "label": "Type",
+            "type": "select",
+            "options": [
+              {
+                "value": "STD",
+                "label": "Standard"
+              },
+              {
+                "value": "AFCI",
+                "label": "AFCI"
+              },
+              {
+                "value": "GFCI",
+                "label": "GFCI"
+              },
+              {
+                "value": "DF",
+                "label": "AFCI/GFCI"
+              }
+            ],
+            "default": "STD",
+            "group": "config"
+          },
+          {
+            "key": "Icn",
+            "label": "Interrupting rating",
+            "type": "select",
+            "options": [
+              {
+                "value": 10000,
+                "label": "10 kAIC"
+              },
+              {
+                "value": 22000,
+                "label": "22 kAIC"
+              },
+              {
+                "value": 42000,
+                "label": "42 kAIC"
+              }
+            ],
+            "default": 10000,
+            "group": "rating"
+          }
+        ],
+        "stateful": true,
+        "tripsOnOverload": true,
+        "summary": "{In}A",
+        "svg": [
+          "<svg xmlns=\"http://www.w3.org/2000/svg\" viewBox=\"0 0 70 20\" width=\"70\" height=\"20\">",
+          "  <!-- US load center art. data-show flags: side-left / side-right (which column the breaker is in), on, tripped,",
+          "       and the device parameters (type==GFCI ...). Terminals marked data-terminal are mirrored for the right column. -->",
+          "  <g data-scope=\"pole\" data-layer=\"body\">",
+          "    <rect x=\"0.3\" y=\"0.3\" width=\"69.4\" height=\"19.4\" rx=\"1.6\" fill=\"#353a42\" stroke=\"#15181c\" stroke-width=\"0.6\"/>",
+          "    <rect x=\"12\" y=\"1.6\" width=\"56\" height=\"16.8\" rx=\"1\" fill=\"#454b55\"/>",
+          "  </g>",
+          "  <g data-scope=\"pole\" data-layer=\"lug-left\" data-show=\"side-left\">",
+          "    <rect x=\"0.8\" y=\"4\" width=\"11\" height=\"12\" rx=\"1\" fill=\"#b9c0c8\" stroke=\"#6b7480\" stroke-width=\"0.4\"/>",
+          "    <circle data-terminal=\"load\" data-dir=\"left\" cx=\"6.3\" cy=\"10\" r=\"3.2\" fill=\"#8f99a4\" stroke=\"#4c5560\" stroke-width=\"0.5\"/><path d=\"M4.38 10h3.84\" stroke=\"#3b444d\" stroke-width=\"0.7\"/>",
+          "  </g>",
+          "  <g data-scope=\"pole\" data-layer=\"lug-right\" data-show=\"side-right\">",
+          "    <rect x=\"58.2\" y=\"4\" width=\"11\" height=\"12\" rx=\"1\" fill=\"#b9c0c8\" stroke=\"#6b7480\" stroke-width=\"0.4\"/>",
+          "    <circle  cx=\"63.7\" cy=\"10\" r=\"3.2\" fill=\"#8f99a4\" stroke=\"#4c5560\" stroke-width=\"0.5\"/><path d=\"M61.78 10h3.84\" stroke=\"#3b444d\" stroke-width=\"0.7\"/>",
+          "  </g>",
+          "  <g data-layer=\"labels-side-left\" data-show=\"side-left\">",
+          "    <text x=\"14.5\" y=\"7.6\" font-size=\"4.4\" text-anchor=\"start\" fill=\"#ffffff\" font-family=\"Helvetica, Arial, sans-serif\" font-weight=\"bold\">{{marking}}</text>",
+          "    <text x=\"14.5\" y=\"16.6\" font-size=\"5.6\" text-anchor=\"start\" fill=\"#ffd84a\" font-family=\"Helvetica, Arial, sans-serif\" font-weight=\"bold\">{{In}}A</text>",
+          "    <text x=\"30.5\" y=\"7.6\" font-size=\"3\" text-anchor=\"start\" fill=\"#dfe3e8\" font-family=\"Helvetica, Arial, sans-serif\">{{description}}</text>",
+          "    <text data-show=\"type!=STD\" x=\"30.5\" y=\"16.4\" font-size=\"3.4\" text-anchor=\"start\" fill=\"#8fd0ff\" font-family=\"Helvetica, Arial, sans-serif\" font-weight=\"bold\">{{type#label}}</text>",
+          "  </g>",
+          "  <g data-layer=\"labels-side-right\" data-show=\"side-right\">",
+          "    <text x=\"34\" y=\"7.6\" font-size=\"4.4\" text-anchor=\"start\" fill=\"#ffffff\" font-family=\"Helvetica, Arial, sans-serif\" font-weight=\"bold\">{{marking}}</text>",
+          "    <text x=\"34\" y=\"16.6\" font-size=\"5.6\" text-anchor=\"start\" fill=\"#ffd84a\" font-family=\"Helvetica, Arial, sans-serif\" font-weight=\"bold\">{{In}}A</text>",
+          "    <text x=\"50\" y=\"7.6\" font-size=\"3\" text-anchor=\"start\" fill=\"#dfe3e8\" font-family=\"Helvetica, Arial, sans-serif\">{{description}}</text>",
+          "    <text data-show=\"type!=STD\" x=\"50\" y=\"16.4\" font-size=\"3.4\" text-anchor=\"start\" fill=\"#8fd0ff\" font-family=\"Helvetica, Arial, sans-serif\" font-weight=\"bold\">{{type#label}}</text>",
+          "  </g>",
+          "  <g data-layer=\"handle-plate-side-left\" data-stretch=\"y\" data-show=\"side-left\"><rect x=\"48.4\" y=\"1.4\" width=\"19.2\" height=\"17.2\" rx=\"1.2\" fill=\"#23272d\"/></g>",
+          "  <g data-layer=\"handle-on-side-left\" data-stretch=\"y\" data-show=\"side-left,on,!tripped\"><rect x=\"50\" y=\"2.6\" width=\"16\" height=\"7.4\" rx=\"1\" fill=\"#e8ebee\"/><rect x=\"50\" y=\"2.6\" width=\"16\" height=\"1.8\" rx=\"0.8\" fill=\"#ffffff\"/></g>",
+          "  <g data-layer=\"handle-off-side-left\" data-stretch=\"y\" data-show=\"side-left,!on,!tripped\"><rect x=\"50\" y=\"10\" width=\"16\" height=\"7.4\" rx=\"1\" fill=\"#9aa1a9\"/></g>",
+          "  <g data-layer=\"handle-tripped-side-left\" data-stretch=\"y\" data-show=\"side-left,tripped\"><rect x=\"50\" y=\"6.3\" width=\"16\" height=\"7.4\" rx=\"1\" fill=\"#cfd4da\"/><rect x=\"50\" y=\"15.8\" width=\"16\" height=\"1.6\" fill=\"#f08a24\"/></g>",
+          "  <g data-layer=\"handle-plate-side-right\" data-stretch=\"y\" data-show=\"side-right\"><rect x=\"2.9\" y=\"1.4\" width=\"19.2\" height=\"17.2\" rx=\"1.2\" fill=\"#23272d\"/></g>",
+          "  <g data-layer=\"handle-on-side-right\" data-stretch=\"y\" data-show=\"side-right,on,!tripped\"><rect x=\"4.5\" y=\"2.6\" width=\"16\" height=\"7.4\" rx=\"1\" fill=\"#e8ebee\"/><rect x=\"4.5\" y=\"2.6\" width=\"16\" height=\"1.8\" rx=\"0.8\" fill=\"#ffffff\"/></g>",
+          "  <g data-layer=\"handle-off-side-right\" data-stretch=\"y\" data-show=\"side-right,!on,!tripped\"><rect x=\"4.5\" y=\"10\" width=\"16\" height=\"7.4\" rx=\"1\" fill=\"#9aa1a9\"/></g>",
+          "  <g data-layer=\"handle-tripped-side-right\" data-stretch=\"y\" data-show=\"side-right,tripped\"><rect x=\"4.5\" y=\"6.3\" width=\"16\" height=\"7.4\" rx=\"1\" fill=\"#cfd4da\"/><rect x=\"4.5\" y=\"15.8\" width=\"16\" height=\"1.6\" fill=\"#f08a24\"/></g>",
+          "  <g data-scope=\"pole\" data-layer=\"test-left\" data-show=\"side-left,type!=STD\"><circle cx=\"46.5\" cy=\"10\" r=\"2.3\" fill=\"#3b82f6\"/><text x=\"46.5\" y=\"11\" font-size=\"2.6\" text-anchor=\"middle\" fill=\"#ffffff\" font-family=\"Helvetica, Arial, sans-serif\" font-weight=\"bold\">T</text></g>",
+          "  <g data-scope=\"pole\" data-layer=\"test-right\" data-show=\"side-right,type!=STD\"><circle cx=\"27\" cy=\"10\" r=\"2.3\" fill=\"#3b82f6\"/><text x=\"27\" y=\"11\" font-size=\"2.6\" text-anchor=\"middle\" fill=\"#ffffff\" font-family=\"Helvetica, Arial, sans-serif\" font-weight=\"bold\">T</text></g>",
+          "</svg>"
+        ]
+      }
+    }
+  ]
+}

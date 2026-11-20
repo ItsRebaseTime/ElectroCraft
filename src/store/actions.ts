@@ -2,10 +2,12 @@
 // either the created object or an error message, so the store can toast what went wrong.
 import { bridgesOf, getAsset, getDef, poleKinds } from '../model/defs';
 import {
-  MODULE, STUB, RAIL_X0, sectionGeometry, sectionIdOfRail, sectionsOf, US_BAR_TILE, US_MAIN_Y, US_SPACE_H, enclosureRect, findSlot, isRailMounted, isUs, itemWidthModules, layoutPanel,
+  MODULE, STUB, RAIL_X0, barSectionId, sectionGeometry, sectionIdOfRail, sectionsOf, US_BAR_TILE, US_MAIN_Y, US_SPACE_H, enclosureRect, findSlot, isRailMounted, isUs, itemWidthModules, layoutPanel,
   nearestRail, nearestUsColumn, termKey, usRowTop,
 } from '../model/geometry';
 import { createItem, createPanel, createRail, createUsPanel, uid } from '../model/project';
+import { FLOOR_PORT } from '../model/floorSync';
+import { PATCH_ID, PATCH_PITCH_X, patchDims, patchPorts } from '../model/patch';
 import type { InputMode, Item, Panel, Project, Section, TerminalRef, Vec, Wire } from '../model/types';
 
 const snap = (v: number, step: number) => Math.round(v / step) * step;
@@ -88,10 +90,15 @@ export function removeWires(panel: Panel, ids: string[]) {
   panel.wires = panel.wires.filter((w) => !s.has(w.id));
 }
 
-export function removeItems(panel: Panel, ids: string[]) {
-  const s = new Set(ids);
+export const LINKED_ITEM_MESSAGE = 'Items made from the floor plan stay as long as their cable ends at this panel: change or delete the circuit on the floor plan instead.';
+
+/** Remove devices (and their wires). Items made from a floor plan circuit are kept; returns how many were kept. */
+export function removeItems(panel: Panel, ids: string[]): number {
+  const keep = new Set(panel.items.filter((i) => i.link).map((i) => i.id));
+  const s = new Set(ids.filter((id) => !keep.has(id)));
   panel.items = panel.items.filter((i) => !s.has(i.id));
   panel.wires = panel.wires.filter((w) => !s.has(w.from.item) && !s.has(w.to.item));
+  return ids.filter((id) => keep.has(id)).length;
 }
 
 /** Drop wires whose terminals no longer exist (after pole count changes). Returns how many were removed. */
@@ -126,7 +133,7 @@ export function duplicateItems(panel: Panel, ids: string[]): string[] {
   for (const id of ids) {
     const src = panel.items.find((i) => i.id === id);
     const def = src && getDef(src.defId);
-    if (!src || !def || src.bar) continue; // a section bar exists once per edge: switch it on or off in the panel settings
+    if (!src || !def || src.bar || src.link) continue; // a section bar exists once per edge: switch it on or off in the panel settings
     const copy: Item = { ...structuredClone(src), id: uid('i'), marking: undefined };
     if (isRailMounted(def)) {
       const w = itemWidthModules(src, def);
@@ -343,6 +350,58 @@ function keepOutside(panel: Panel, change: () => void) {
 export function setSectionBar(panel: Panel, sectionId: string, edge: 'top' | 'bottom', role: 'N' | 'PE', on: boolean) {
   if (isUs(panel)) return;
   keepOutside(panel, () => setBar(panel, sectionId, edge, role, on));
+}
+
+/** The keystone patch panel along an edge of a section, if there is one. */
+export const findSectionPatch = (panel: Panel, sectionId: string, edge: 'top' | 'bottom') =>
+  panel.items.find((i) => i.bar && i.bar.edge === edge && barSectionId(panel, i) === sectionId && getDef(i.defId)?.role === 'patch');
+
+/** Switch a keystone patch panel along the top or bottom edge of a section on or off. */
+export function setSectionPatch(panel: Panel, sectionId: string, edge: 'top' | 'bottom', on: boolean, rows = 2, cols?: number) {
+  if (isUs(panel)) return;
+  keepOutside(panel, () => {
+    const have = findSectionPatch(panel, sectionId, edge);
+    if (!on) {
+      if (have) removeItems(panel, [have.id]);
+      return;
+    }
+    if (have) return;
+    const g = sectionGeometry(panel).find((s) => s.id === sectionId);
+    // as many jacks per row as fit the width of the section, at most twelve
+    const fit = Math.max(4, Math.min(12, Math.floor(((g?.w ?? 300) - 2 * RAIL_X0) / PATCH_PITCH_X)));
+    panel.items.push(createItem(PATCH_ID, { bar: { section: sectionId, edge }, description: 'Patch panel', params: { rows, cols: cols ?? fit } }));
+  });
+}
+
+/** Colour of the wire of a floor plan cable, by what it carries. */
+const FLOOR_CABLE_COLOR: Record<string, string> = { network: 'blue', coax: 'violet', audio: 'turquoise', fiber: 'orange', phone: 'grey', other: 'grey' };
+
+/**
+ * Wire the cables that come from the floor plan (the cable items of this panel that are not wired yet) to the free jacks of a
+ * patch panel, in reading order. Returns how many were wired and how many cables found no free jack.
+ */
+export function autoWirePatch(panel: Panel, patchId: string): { wired: number; missing: number } {
+  const patch = panel.items.find((i) => i.id === patchId);
+  if (!patch || getDef(patch.defId)?.role !== 'patch') return { wired: 0, missing: 0 };
+  const { rows, cols } = patchDims(patch);
+  const used = new Set(panel.wires.flatMap((w) => [w.from, w.to]).filter((t) => t.item === patch.id).map((t) => t.terminal));
+  const free = patchPorts(rows, cols).filter((id) => !used.has(id));
+  const wired = new Set(panel.wires.flatMap((w) => [w.from, w.to]).filter((t) => t.terminal === 'port').map((t) => t.item));
+  const cables = panel.items
+    .filter((i) => i.defId === FLOOR_PORT && i.link && !wired.has(i.id))
+    .sort((a, b) => a.description.localeCompare(b.description, undefined, { numeric: true }));
+  let n = 0;
+  for (const cable of cables) {
+    const jack = free[n];
+    if (!jack) break;
+    const r = addWire(panel, { item: cable.id, terminal: 'port' }, { item: patch.id, terminal: jack });
+    if (typeof r === 'string') continue;
+    r.color = FLOOR_CABLE_COLOR[String(cable.params.medium)] ?? 'grey';
+    r.section = 0.5;
+    r.label = cable.description.replace(/^[^:]*:\s*/, '');
+    n++;
+  }
+  return { wired: n, missing: cables.length - n };
 }
 
 function setBar(panel: Panel, sectionId: string, edge: 'top' | 'bottom', role: 'N' | 'PE', on: boolean) {
