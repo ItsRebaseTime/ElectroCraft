@@ -4,6 +4,7 @@ import { Builder, By, Key, until } from 'selenium-webdriver';
 import firefox from 'selenium-webdriver/firefox.js';
 import { mkdirSync, readdirSync, rmSync, writeFileSync } from 'node:fs';
 import { tmpdir } from 'node:os';
+import { SAMPLE_HOUSE } from './fixtures.mjs';
 
 const BASE = process.env.URL ?? 'http://localhost:4173/';
 const OUT = process.env.E2E_OUT ?? `${tmpdir()}/electrocraft-e2e/out`;
@@ -27,13 +28,13 @@ const energised = () => d.executeScript("return document.querySelectorAll('.canv
 
 try {
   await d.get(BASE);
-  await d.executeScript('localStorage.clear()');
+  await d.executeScript('localStorage.setItem("electrocraft.autosave", arguments[0])', SAMPLE_HOUSE);
   await d.get(BASE);
   await d.wait(until.elementLocated(By.css('.canvas g[data-hit^="i:"]')), 15000);
 
   // ---- load the US sample from the sample menu
   await d.findElement(By.css('.toolbar .group .menu button')).click();
-  await d.findElement(By.xpath("//button[contains(., 'Sample: US house')]")).click();
+  await d.findElement(By.xpath("//button[contains(., 'US sample house')]")).click();
   await d.wait(until.elementLocated(By.css('.tree .badge')), 5000);
   await sleep(500);
   check('the US sample opens as a load center (US badge in the project tree)', (await d.findElement(By.css('.tree .badge')).getText()) === 'US');

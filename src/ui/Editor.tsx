@@ -1,10 +1,13 @@
 import { useCallback, useEffect, useRef, useState, type DragEvent, type PointerEvent as RPointerEvent } from 'react';
-import { getDef } from '../model/defs';
+import { connectorTarget } from '../model/comb';
+import { panelClipboard } from './panelClipboard';
+import { placeConnectorOn, useConnectorUI } from './connectors/connectorState';
+import { bridgesOf, getDef } from '../model/defs';
 import { MODULE, STUB, US_SPACE_H, findSlot, itemWidthModules, nearestRail, nearestUsColumn, termKey, usRowTop } from '../model/geometry';
 import { nodesFromRoute } from '../model/routing';
 import type { Panel, Vec, WireDraft } from '../model/types';
 import { PanelDiagram } from '../render/PanelDiagram';
-import { LINKED_ITEM_MESSAGE, addEquipment, addWire, duplicateItems, removeItems, removeWires, toggleBridge, toggleSwitch, updateItem } from '../store/actions';
+import { LINKED_ITEM_MESSAGE, addEquipment, addWire, copyItems, duplicateItems, pasteItems, removeItems, removeComb, removeRowLink, removeWires, setBridgeRange, toggleBridge, toggleSwitch, updateItem } from '../store/actions';
 import { selectActivePanel, useStore, type Viewport } from '../store/store';
 import { useDiagram } from './DiagramContext';
 import { Icon } from './Icon';
@@ -18,6 +21,7 @@ type Drag =
   | { type: 'pan'; sx: number; sy: number; vx: number; vy: number; right?: boolean; moved?: boolean }
   | { type: 'item'; id: string; gx: number; gy: number; sx: number; sy: number; started: boolean }
   | { type: 'wire'; sx: number; sy: number; moved: boolean }
+  | { type: 'comb'; sx: number; sy: number; id: string; from: number; target: boolean; orig: number[] }
   | { type: 'node'; wire: string; idx: number; orig: Vec[]; started: boolean; sx: number; sy: number }
   | { type: 'seg'; wire: string; i: number; orig: Vec[]; started: boolean; sx: number; sy: number; horiz: boolean };
 
@@ -72,6 +76,12 @@ export function Editor() {
   const svgRef = useRef<SVGSVGElement>(null);
   const wrapRef = useRef<HTMLDivElement>(null);
   const dragRef = useRef<Drag | null>(null);
+  const armedPart = useConnectorUI((s) => s.armed);
+  /** Copied devices (Ctrl+C), shared by the panels, and where the pointer last was in diagram space (where Ctrl+V pastes). */
+  const mouseAt = useRef<Vec | null>(null);
+  const [dropTarget, setDropTarget] = useState<string | null>(null);
+  /** The wire being dragged: the diagram draws it above the devices. */
+  const [movingWire, setMovingWire] = useState<string | null>(null);
   // active pointers (for two-finger pinch/pan), pinch start state, and double-tap tracking
   const pointers = useRef(new Map<number, { x: number; y: number }>());
   const pinch = useRef<{ d0: number; mid0: { x: number; y: number }; vp0: Viewport } | null>(null);
@@ -190,6 +200,8 @@ export function Editor() {
       const pn = panelOf(p, panel.id);
       if (sel.kind === 'item') kept = removeItems(pn, sel.ids);
       else if (sel.kind === 'wire') removeWires(pn, sel.ids);
+      else if (sel.kind === 'comb') removeComb(pn, sel.ids[0]);
+      else if (sel.kind === 'link') removeRowLink(pn, sel.ids[0]);
       else if (sel.kind === 'rail' && pn.rails.length > 1 && !pn.items.some((i) => i.railId === sel.ids[0])) pn.rails = pn.rails.filter((r) => r.id !== sel.ids[0]);
     });
     if (kept) notify(LINKED_ITEM_MESSAGE, 'error');
@@ -224,10 +236,30 @@ export function Editor() {
           if (ids.length) select({ kind: 'item', ids });
           else notify('No free space next to the device to place a copy.', 'error');
         }
+      } else if (mod && e.key.toLowerCase() === 'c' && st.selection.kind === 'item') {
+        e.preventDefault();
+        const clip = copyItems(panelOf(st.project, panel.id), st.selection.ids);
+        if (clip.length) {
+          panelClipboard.items = clip;
+          notify(`${clip.length === 1 ? 'Device' : `${clip.length} devices`} copied. Ctrl+V places ${clip.length === 1 ? 'it' : 'them'} near the pointer.`, 'info');
+        } else notify('Nothing to copy: section bars and devices made from the floor plan are left out.', 'error');
+      } else if (mod && e.key.toLowerCase() === 'v') {
+        e.preventDefault();
+        const clip = panelClipboard.items;
+        if (!clip.length) return;
+        const r = svgRef.current?.getBoundingClientRect();
+        const at = mouseAt.current ?? toDiagram((r?.left ?? 0) + (r?.width ?? 0) / 2, (r?.top ?? 0) + (r?.height ?? 0) / 2);
+        let ids: string[] = [];
+        mutate((p) => {
+          ids = pasteItems(panelOf(p, panel.id), clip, at);
+        });
+        if (ids.length) select({ kind: 'item', ids });
+        else notify('No free place on a rail for the copy near the pointer.', 'error');
       } else if (e.key === 'Delete' || e.key === 'Backspace') {
         e.preventDefault();
         deleteSelection();
       } else if (e.key === 'Escape') {
+        useConnectorUI.getState().arm(null);
         setDraft(null);
         select({ kind: null, ids: [] });
         setTool('select');
@@ -316,6 +348,16 @@ export function Editor() {
     if (e.button !== 0) return;
     capture(e);
 
+    // a connector part picked in the list: the click on a device places it there
+    const armedNow = useConnectorUI.getState().armed;
+    if (armedNow) {
+      useConnectorUI.getState().arm(null);
+      if (hit?.kind === 'i') {
+        placeConnectorOn(armedNow, [hit.id]);
+        return;
+      }
+    }
+
     if (draftRef.current) {
       // click-click wiring: second click on a terminal finishes, empty clicks add bends (wire tool)
       if (hit?.kind === 't') {
@@ -358,8 +400,13 @@ export function Editor() {
       }
       case 'j': {
         const [itemId, gap] = hit.id.split(':');
-        mutate((p) => toggleBridge(panelOf(p, panel.id), itemId, Number(gap)));
+        const gapNo = Number(gap);
+        const placedT = layout.placed.get(itemId);
+        const orig = placedT ? bridgesOf(placedT.item, placedT.kinds.length) : [];
+        mutate((p) => toggleBridge(panelOf(p, panel.id), itemId, gapNo));
         select({ kind: 'item', ids: [itemId] });
+        // dragging on from here lengthens or shortens the comb
+        dragRef.current = { type: 'comb', sx: e.clientX, sy: e.clientY, id: itemId, from: gapNo, target: !orig.includes(gapNo), orig };
         return;
       }
       case 'i': {
@@ -395,6 +442,12 @@ export function Editor() {
       case 'w':
         select({ kind: 'wire', ids: [hit.id] });
         return;
+      case 'c':
+        select({ kind: 'comb', ids: [hit.id] });
+        return;
+      case 'k':
+        select({ kind: 'link', ids: [hit.id] });
+        return;
       case 'r':
         select({ kind: 'rail', ids: [hit.id] });
         dragRef.current = { type: 'pan', sx: e.clientX, sy: e.clientY, vx: vp.x, vy: vp.y };
@@ -406,6 +459,7 @@ export function Editor() {
   };
 
   const onPointerMove = (e: RPointerEvent<SVGSVGElement>) => {
+    mouseAt.current = toDiagram(e.clientX, e.clientY);
     if (pointers.current.has(e.pointerId)) pointers.current.set(e.pointerId, { x: e.clientX, y: e.clientY });
     if (pinch.current && pointers.current.size >= 2) {
       const [a, b] = Array.from(pointers.current.values());
@@ -433,6 +487,12 @@ export function Editor() {
     const moved = Math.hypot(e.clientX - d.sx, e.clientY - d.sy) > 3;
     if (d.type === 'wire') {
       if (moved) d.moved = true;
+    } else if (d.type === 'comb') {
+      const pl = layout.placed.get(d.id);
+      if (!pl) return;
+      const n = pl.kinds.length;
+      const over = Math.max(0, Math.min(n - 2, Math.floor((pt.x - pl.x - pl.poleW / 2) / pl.poleW)));
+      mutate((p) => setBridgeRange(panelOf(p, panel.id), d.id, d.orig, Math.min(d.from, over), Math.max(d.from, over), d.target), false);
     } else if (d.type === 'item') {
       if (!d.started) {
         if (!moved) return;
@@ -474,6 +534,7 @@ export function Editor() {
         if (!moved) return;
         d.started = true;
         checkpoint();
+        setMovingWire(d.wire);
       }
       mutate((p) => {
         const w = panelOf(p, panel.id).wires.find((x) => x.id === d.wire);
@@ -512,6 +573,7 @@ export function Editor() {
     }
     const d = dragRef.current;
     dragRef.current = null;
+    setMovingWire(null);
     if (d?.type === 'pan' && d.right && !d.moved) setDraft(null); // plain right click cancels a wire in progress
     // double tap (touch has no dblclick on every browser)
     const down = downRef.current;
@@ -582,8 +644,24 @@ export function Editor() {
     }
   };
 
+  /** A connector part dragged over the diagram snaps to the supported device nearest to the pointer. */
+  const onDragOver = (e: DragEvent<HTMLDivElement>) => {
+    e.preventDefault();
+    if (!useConnectorUI.getState().dragging) return;
+    const target = connectorTarget(layout, toDiagram(e.clientX, e.clientY));
+    if (target !== dropTarget) setDropTarget(target);
+  };
   const onDrop = (e: DragEvent<HTMLDivElement>) => {
     e.preventDefault();
+    const partId = e.dataTransfer.getData('application/x-electrocraft-connector');
+    if (partId) {
+      const target = connectorTarget(layout, toDiagram(e.clientX, e.clientY));
+      setDropTarget(null);
+      useConnectorUI.getState().drag(null);
+      if (target) placeConnectorOn(partId, [target]);
+      else notify('Drop the connector on a breaker, RCD or isolator on a rail.', 'error');
+      return;
+    }
     const defId = e.dataTransfer.getData('application/x-electrocraft');
     if (!defId) return;
     const pt = toDiagram(e.clientX, e.clientY);
@@ -602,7 +680,7 @@ export function Editor() {
   const cursorClass = tool === 'pan' || space ? 'cur-pan' : tool === 'wire' ? 'cur-wire' : 'cur-select';
 
   return (
-    <div className={`editor ${cursorClass}`} ref={wrapRef} onDragOver={(e) => e.preventDefault()} onDrop={onDrop}>
+    <div className={`editor ${cursorClass}`} ref={wrapRef} onDragOver={onDragOver} onDragLeave={(e) => { if (!e.currentTarget.contains(e.relatedTarget as Node | null)) setDropTarget(null); }} onDrop={onDrop}>
       <svg
         ref={svgRef}
         className="canvas"
@@ -633,6 +711,8 @@ export function Editor() {
             selection={selection}
             hoverTerminal={hover && layout.terminals.has(hover) ? hover : null}
             touchHit={coarse ? 1 / vp.z : 0}
+            movingWire={movingWire}
+            dropTarget={dropTarget}
             draft={draft}
           />
         </g>
@@ -652,7 +732,9 @@ export function Editor() {
         </div>
       )}
       <div className="hint">
-        {draft
+        {armedPart
+          ? 'Click a device on a rail to place the connector. Esc cancels.'
+          : draft
           ? tool === 'wire'
             ? 'Click empty space to add a bend, click a terminal to finish. Esc cancels.'
             : 'Click a terminal to finish the wire. Esc cancels.'

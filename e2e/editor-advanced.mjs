@@ -2,6 +2,7 @@ import { Builder, By, Key, until, Select } from 'selenium-webdriver';
 import firefox from 'selenium-webdriver/firefox.js';
 import { mkdirSync, writeFileSync } from 'node:fs';
 import { tmpdir } from 'node:os';
+import { SAMPLE_HOUSE } from './fixtures.mjs';
 const URL = process.env.URL ?? 'http://localhost:4173/';
 const OUT = process.env.E2E_OUT ?? `${tmpdir()}/electrocraft-e2e/out`;
 mkdirSync(OUT, { recursive: true });
@@ -21,7 +22,7 @@ const itemIds = async () => Promise.all((await all('.canvas g[data-hit^="i:"]'))
 const term = (id, t) => css(`circle[data-hit="t:${id}|${t}"]`);
 try {
   await driver.get(URL);
-  await driver.executeScript('localStorage.clear()');
+  await driver.executeScript('localStorage.setItem("electrocraft.autosave", arguments[0])', SAMPLE_HOUSE);
   await driver.get(URL);
   await driver.wait(until.elementLocated(By.css('.canvas g[data-hit^="i:"]')), 10000);
   await sleep(500);

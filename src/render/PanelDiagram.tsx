@@ -5,10 +5,12 @@ import {
   DIN_H, MODULE, RAIL_X0, STUB, US_BREAKER_W, US_BUS_W, US_SPACE_H, isUs, railIndex, railPos, railTop, termKey, usBusX, usColumnX, usPhaseOfRow, usRowTop, usRows, usSpaceNumber,
   type Layout, type Placed,
 } from '../model/geometry';
+import { combPins, rowLinkColumns } from '../model/comb';
+import { connectorOf } from '../model/connectors';
 import { markingOf } from '../model/marking';
 import { simplify, type Route } from '../model/routing';
 import type { SimResult } from '../model/sim';
-import type { Panel, Project, RenderOptions, Selection, Vec, WireDraft } from '../model/types';
+import type { Panel, Project, RenderOptions, RowLink, Selection, Vec, Wire, WireDraft } from '../model/types';
 import { DeviceView } from './svgAsset';
 import { labelLines, wrapText } from './labels';
 
@@ -30,6 +32,10 @@ export interface PanelDiagramProps {
   draft?: WireDraft | null;
   /** Diagram units per screen pixel on touch devices (0 = mouse): enlarges terminals and handles so fingers can hit them. */
   touchHit?: number;
+  /** A wire that is being dragged: drawn above the devices. */
+  movingWire?: string | null;
+  /** A device a dragged connector part would snap to. */
+  dropTarget?: string | null;
 }
 
 const pathOf = (pts: Vec[]) => pts.map((p, i) => `${i ? 'L' : 'M'}${round(p.x)} ${round(p.y)}`).join('');
@@ -153,88 +159,58 @@ function LabelStrip({ placed, lines, y }: { placed: Placed; lines: ReturnType<ty
   );
 }
 
-export function PanelDiagram({ project, panel, layout, routes, sim, markings, options, interactive, animate, selection, hoverTerminal, draft, touchHit = 0 }: PanelDiagramProps) {
+export function PanelDiagram({ project, panel, layout, routes, sim, markings, options, interactive, animate, selection, hoverTerminal, draft, touchHit = 0, movingWire, dropTarget }: PanelDiagramProps) {
   const hitR = Math.max(4, Math.min(8, 13 * touchHit));
   const handleR = Math.max(2.6, Math.min(6, 8 * touchHit));
   const { encl } = layout;
   const selItems = new Set(selection?.kind === 'item' ? selection.ids : []);
   const selWire = selection?.kind === 'wire' ? selection.ids[0] : undefined;
   const selRail = selection?.kind === 'rail' ? selection.ids[0] : undefined;
+  const selComb = selection?.kind === 'comb' ? selection.ids[0] : undefined;
+  const selLink = selection?.kind === 'link' ? selection.ids[0] : undefined;
   const hit = (v: string) => (interactive ? { 'data-hit': v } : {});
   const placedList = Array.from(layout.placed.values());
   const us = isUs(panel);
   const region = panel.region ?? 'eu';
 
-  return (
-    <g fontFamily={FONT}>
-      {/* enclosure */}
-      {options.showEnclosure &&
-        (us ? [{ id: 'us', name: '', index: 0, ...encl }] : layout.sections).map((g) => {
-          const multi = layout.sections.length > 1;
+  const frontWire = movingWire ?? selWire ?? null;
+  // row connectors: conductors with copper pins from one rail to the next, drawn in every column, below the devices until selected
+  const renderLink = (k: RowLink) => {
+    const cols = rowLinkColumns(panel, layout, k);
+    const sel = selLink === k.id;
+    const kd = connectorOf(project, k.def, 'row', k.count);
+    const off = 5; // the conductors leave their pins sideways, like the bent conductors of the real part
+    // plastic brackets hold two or more conductors together: they are not electrical, only show the group
+    const brackets: ReactNode[] = [];
+    if (cols.length >= 2) {
+      const x0 = cols[0].x + off - 3.4;
+      const w = cols[cols.length - 1].x - cols[0].x + 6.8;
+      for (const f of [0.22, 0.78]) {
+        const y = cols[0].upperY + (cols[0].lowerY - cols[0].upperY) * f;
+        brackets.push(<rect key={f} x={x0} y={y - 2} width={w} height={4} rx={1.2} fill="#8a939e" stroke="#3a424b" strokeWidth={0.5} />);
+      }
+    }
+    return (
+      <g key={k.id} {...hit(`k:${k.id}`)}>
+        {cols.map((c, i) => {
+          const d = `M${c.x} ${c.upperY}h${off}V${c.lowerY}h${-off}`;
+          const body = c.kind === 'N' ? '#1f6fd1' : kd.color;
           return (
-            <g key={g.id}>
-              <rect x={g.x} y={g.y} width={g.w} height={g.h} rx={6} fill="#f6f7f9" stroke="#9aa4af" strokeWidth={1.2} />
-              <text x={g.x + 10} y={g.y + 13} fontSize={7} fontWeight="bold" fill="#6b7280">
-                {(options.showPanelPrefix && panel.code ? `+${panel.code}  ` : '') + panel.name + (multi ? ` - ${g.name}` : '')}
-              </text>
-              {(panel.floor || panel.room) && g.index === 0 && (
-                <text x={g.x + 10} y={g.y + 21} fontSize={4.2} fill="#8b95a1">
-                  {[panel.floor, panel.room].filter(Boolean).join(' - ')}
-                </text>
-              )}
+            <g key={i}>
+              {sel && <path d={d} fill="none" stroke={SEL} strokeWidth={8} strokeOpacity={0.35} strokeLinejoin="round" />}
+              <path d={d} fill="none" stroke="#9aa4af" strokeWidth={5.8} strokeLinejoin="round" strokeLinecap="round" />
+              <path d={d} fill="none" stroke={body} strokeWidth={4.4} strokeLinejoin="round" strokeLinecap="round" />
+              <circle cx={c.x} cy={c.upperY} r={2} fill={c.kind === 'N' ? '#4f8ee0' : kd.pinColor} stroke="#5a3a1c" strokeWidth={0.4} />
+              <circle cx={c.x} cy={c.lowerY} r={2} fill={c.kind === 'N' ? '#4f8ee0' : kd.pinColor} stroke="#5a3a1c" strokeWidth={0.4} />
+              {interactive && <path d={d} fill="none" stroke="transparent" strokeWidth={9} pointerEvents="stroke" />}
             </g>
           );
         })}
-
-      {/* US breaker spaces and bus */}
-      {us && options.showRails && <UsInterior panel={panel} project={project} placed={placedList} />}
-
-      {/* DIN rails */}
-      {options.showRails && !us &&
-        layout.sections.flatMap((g) =>
-          g.rails.map((r, i) => {
-            const y = railTop(i) + (DIN_H - 35) / 2;
-            const w = r.modules * MODULE;
-            const x0 = g.x + RAIL_X0;
-            const slots: ReactNode[] = [];
-            for (let k = 0; k < r.modules; k++) slots.push(<rect key={k} x={x0 + k * MODULE + 4} y={y + 15} width={10} height={5} rx={2.5} fill="#8f99a5" opacity={0.75} />);
-            return (
-              <g key={r.id} {...hit(`r:${r.id}`)}>
-                <rect x={x0 - 6} y={y} width={w + 12} height={35} rx={1.5} fill="#cfd5dc" stroke={selRail === r.id ? SEL : '#8f99a5'} strokeWidth={selRail === r.id ? 1.6 : 0.6} />
-                {slots}
-                <text x={x0 - 12} y={y + 19} fontSize={4} textAnchor="end" fill="#8b95a1">
-                  {i + 1}
-                </text>
-                {interactive &&
-                  Array.from({ length: r.modules + 1 }, (_v, k) => (
-                    <line key={k} x1={x0 + k * MODULE} x2={x0 + k * MODULE} y1={y + 35} y2={y + 37.5} stroke="#9aa4af" strokeWidth={0.4} />
-                  ))}
-              </g>
-            );
-          }),
-        )}
-
-      {/* devices */}
-      {placedList.map((pl) => {
-        if (pl.def.mount === 'free' && !options.showFreeItems) return null;
-        const sel = selItems.has(pl.item.id);
-        const isSim = sim.items[pl.item.id];
-        return (
-          <g key={pl.item.id}>
-           <g {...hit(`i:${pl.item.id}`)}>
-            <DeviceView placed={pl} sim={isSim} marking={markings[pl.item.id] ?? ''} />
-            {interactive && <rect x={pl.x} y={pl.y} width={pl.w} height={pl.h} fill="transparent" />}
-            {sel && <rect x={pl.x - 1.5} y={pl.y - 1.5} width={pl.w + 3} height={pl.h + 3} rx={2.5} fill="none" stroke={SEL} strokeWidth={1.4} strokeDasharray="4 2" />}
-            {interactive && isSim?.overload && !sel && <rect x={pl.x - 1} y={pl.y - 1} width={pl.w + 2} height={pl.h + 2} rx={2.5} fill="none" stroke="#dc2626" strokeWidth={1.2} />}
-           </g>
-           {pl.def.role === 'terminal' && <CombBridges placed={pl} showSlots={!!interactive && sel} interactive={!!interactive} />}
-          </g>
-        );
-      })}
-
-      {/* wires */}
-      {options.showWires &&
-        panel.wires.map((w) => {
+        {brackets}
+      </g>
+    );
+  };
+  const renderWire = (w: Wire) => {
           const route = routes.get(w.id);
           if (!route) return null;
           const wsv = sim.wires[w.id];
@@ -289,7 +265,113 @@ export function PanelDiagram({ project, panel, layout, routes, sim, markings, op
               )}
             </g>
           );
+  };
+  const wiresLayer = options.showWires ? panel.wires.filter((w) => w.id !== frontWire).map(renderWire) : null;
+
+  return (
+    <g fontFamily={FONT}>
+      {/* enclosure */}
+      {options.showEnclosure &&
+        (us ? [{ id: 'us', name: '', index: 0, ...encl }] : layout.sections).map((g) => {
+          const multi = layout.sections.length > 1;
+          return (
+            <g key={g.id}>
+              <rect x={g.x} y={g.y} width={g.w} height={g.h} rx={6} fill="#f6f7f9" stroke="#9aa4af" strokeWidth={1.2} />
+              <text x={g.x + 10} y={g.y + 13} fontSize={7} fontWeight="bold" fill="#6b7280">
+                {(options.showPanelPrefix && panel.code ? `+${panel.code}  ` : '') + panel.name + (multi ? ` - ${g.name}` : '')}
+              </text>
+              {(panel.floor || panel.room) && g.index === 0 && (
+                <text x={g.x + 10} y={g.y + 21} fontSize={4.2} fill="#8b95a1">
+                  {[panel.floor, panel.room].filter(Boolean).join(' - ')}
+                </text>
+              )}
+            </g>
+          );
         })}
+
+      {/* US breaker spaces and bus */}
+      {us && options.showRails && <UsInterior panel={panel} project={project} placed={placedList} />}
+
+      {/* wires and row connectors lie behind the rails and the devices */}
+      {wiresLayer}
+      {!us && (panel.rowLinks ?? []).filter((k) => k.id !== selLink).map(renderLink)}
+
+      {/* DIN rails */}
+      {options.showRails && !us &&
+        layout.sections.flatMap((g) =>
+          g.rails.map((r, i) => {
+            const y = railTop(i) + (DIN_H - 35) / 2;
+            const w = r.modules * MODULE;
+            const x0 = g.x + RAIL_X0;
+            const slots: ReactNode[] = [];
+            for (let k = 0; k < r.modules; k++) slots.push(<rect key={k} x={x0 + k * MODULE + 4} y={y + 15} width={10} height={5} rx={2.5} fill="#8f99a5" opacity={0.75} />);
+            return (
+              <g key={r.id} {...hit(`r:${r.id}`)}>
+                <rect x={x0 - 6} y={y} width={w + 12} height={35} rx={1.5} fill="#cfd5dc" stroke={selRail === r.id ? SEL : '#8f99a5'} strokeWidth={selRail === r.id ? 1.6 : 0.6} />
+                {slots}
+                <text x={x0 - 12} y={y + 19} fontSize={4} textAnchor="end" fill="#8b95a1">
+                  {i + 1}
+                </text>
+                {interactive &&
+                  Array.from({ length: r.modules + 1 }, (_v, k) => (
+                    <line key={k} x1={x0 + k * MODULE} x2={x0 + k * MODULE} y1={y + 35} y2={y + 37.5} stroke="#9aa4af" strokeWidth={0.4} />
+                  ))}
+              </g>
+            );
+          }),
+        )}
+
+      {/* devices */}
+      {placedList.map((pl) => {
+        if (pl.def.mount === 'free' && !options.showFreeItems) return null;
+        const sel = selItems.has(pl.item.id);
+        const isSim = sim.items[pl.item.id];
+        return (
+          <g key={pl.item.id}>
+           <g {...hit(`i:${pl.item.id}`)}>
+            <DeviceView placed={pl} sim={isSim} marking={markings[pl.item.id] ?? ''} />
+            {interactive && <rect x={pl.x} y={pl.y} width={pl.w} height={pl.h} fill="transparent" />}
+            {dropTarget === pl.item.id && <rect x={pl.x - 2.5} y={pl.y - 2.5} width={pl.w + 5} height={pl.h + 5} rx={3} fill="#2563eb" fillOpacity={0.12} stroke="#2563eb" strokeWidth={1.6} />}
+            {sel && <rect x={pl.x - 1.5} y={pl.y - 1.5} width={pl.w + 3} height={pl.h + 3} rx={2.5} fill="none" stroke={SEL} strokeWidth={1.4} strokeDasharray="4 2" />}
+            {interactive && isSim?.overload && !sel && <rect x={pl.x - 1} y={pl.y - 1} width={pl.w + 2} height={pl.h + 2} rx={2.5} fill="none" stroke="#dc2626" strokeWidth={1.2} />}
+           </g>
+           {pl.def.role === 'terminal' && <CombBridges placed={pl} showSlots={!!interactive && sel} interactive={!!interactive} />}
+          </g>
+        );
+      })}
+
+      {/* the wire being moved is drawn over everything */}
+      {options.showWires && frontWire && panel.wires.filter((w) => w.id === frontWire).map(renderWire)}
+
+      {/* comb bars along the line or load side of neighbouring devices */}
+      {!us &&
+        (panel.combs ?? []).map((c) => {
+          const pos = railPos(panel, c.railId, layout.sections);
+          if (!pos) return null;
+          const pins = combPins(panel, layout, c);
+          const ty = pins.length ? pins.reduce((a, p) => a + p.y, 0) / pins.length : pos.top + (c.side === 'top' ? 8 : 82);
+          const x0 = pos.x + c.slot * MODULE + 0.8;
+          const w = c.modules * MODULE - 1.6;
+          const top = c.side === 'top';
+          const sy = top ? ty - 13.5 : ty + 7.5;
+          const sel = selComb === c.id;
+          const cd = connectorOf(project, c.def, 'comb', c.phases);
+          return (
+            <g key={c.id} {...hit(`c:${c.id}`)}>
+              {pins.map((p) => (
+                <path key={p.terminal + p.item} d={top ? `M${p.x - 1.8} ${sy + 5}v${p.y - sy - 5.4}h3.6v${-(p.y - sy - 5.4)}` : `M${p.x - 1.8} ${sy + 1}v${-(sy - p.y + 0.6)}h3.6v${sy - p.y + 0.6}`} fill={p.kind === 'N' ? '#4f8ee0' : cd.pinColor} stroke="#5a3a1c" strokeWidth={0.4} />
+              ))}
+              <rect x={x0} y={sy} width={w} height={6} rx={1.2} fill={cd.color} stroke={sel ? SEL : '#8f99a5'} strokeWidth={sel ? 1.1 : 0.5} />
+              <text x={x0 + w / 2} y={sy + 4.3} fontSize={4} textAnchor="middle" fill="#5b6672">
+                {c.phases}P
+              </text>
+              {interactive && <rect x={x0} y={sy - 1} width={w} height={8} fill="transparent" />}
+            </g>
+          );
+        })}
+
+      {/* the selected row connector is drawn over the devices, like a selected wire */}
+      {!us && selLink && (panel.rowLinks ?? []).filter((k) => k.id === selLink).map(renderLink)}
 
       {/* label strips */}
       {placedList.map((pl) => {

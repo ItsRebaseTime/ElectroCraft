@@ -8,7 +8,7 @@ import { computeRoutes } from './routing';
 import { flatPanel, sampleProject, usPanel, workshopPanel } from './sample';
 import { simulate } from './sim';
 import { evalShow, resolveTokens } from './expr';
-import { orthogonalize } from '../store/actions';
+import { orthogonalize, setBridgeRange } from '../store/actions';
 
 const live = { live: true, autoTrip: true, tripped: [] as string[] };
 
@@ -203,6 +203,20 @@ describe('terminal block comb bridges', () => {
     const live2 = simulate(panel, layoutPanel(panel), { live: true, autoTrip: false, tripped: [] });
     expect(live2.items[lamp.id].powered).toBe(true);
     expect(live2.items[lamp.id].loadCurrent).toBeCloseTo(100 / 230, 3);
+  });
+});
+
+describe('comb range', () => {
+  it('a drag lengthens or shortens the comb from the start state', () => {
+    const panel = flatPanel();
+    const blk = createItem('terminal', { railId: panel.rails[1].id, slot: 6, params: { count: 5, role: 'L', section: 6, bridges: '3' } });
+    panel.items.push(blk);
+    setBridgeRange(panel, blk.id, [3], 0, 2, true);
+    expect(bridgesOf(blk, 5)).toEqual([0, 1, 2, 3]);
+    setBridgeRange(panel, blk.id, [3], 0, 1, true); // dragged back: the original state is the base
+    expect(bridgesOf(blk, 5)).toEqual([0, 1, 3]);
+    setBridgeRange(panel, blk.id, [0, 1, 2, 3], 1, 2, false);
+    expect(bridgesOf(blk, 5)).toEqual([0, 3]);
   });
 });
 

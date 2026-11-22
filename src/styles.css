@@ -1809,3 +1809,36 @@ button.small {
 .floor-vis .wirevis-name .meta {
   font-size: 11px;
 }
+.kind-glyph.shape {
+  background: #475569;
+}
+
+/* comb bar and row connector tools under the properties of selected devices */
+.comb-tools {
+  padding: 0 14px 24px;
+}
+.comb-tools h3 {
+  margin: 4px 0 6px;
+  font-size: 12px;
+  letter-spacing: 0.06em;
+  text-transform: uppercase;
+  color: var(--muted);
+}
+.comb-tools .row.wrap {
+  flex-wrap: wrap;
+}
+
+/* connector parts in the equipment list and their designer */
+.connector-editor .modal-body {
+  display: flex;
+  flex-direction: column;
+  gap: 10px;
+}
+.connector-preview {
+  display: flex;
+  justify-content: center;
+  padding: 8px;
+  border: 1px solid var(--border);
+  border-radius: 8px;
+  background: var(--panel-alt, #f6f7f9);
+}

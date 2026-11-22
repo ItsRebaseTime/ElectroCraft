@@ -9,9 +9,9 @@ export function flatPanel(): Panel {
   const [r0, r1] = p.rails;
   const loadY = railTop(p.rails.length - 1) + ENCL_BOTTOM_PAD + 60;
   const supply = createItem('supply', { x: 60, y: -240, description: 'Incoming supply' });
-  const main = createItem('isolator', { railId: r0.id, slot: 0, poleConfig: '2P', description: 'Main switch' });
+  const main = createItem('isolator', { railId: r0.id, slot: 0, poleConfig: '1P+N', description: 'Main switch' });
   const spd = createItem('spd', { railId: r0.id, slot: 4, poleConfig: '1P+N', description: 'Surge protection' });
-  const rcd = createItem('rcd', { railId: r1.id, slot: 0, poleConfig: '2P', description: 'Residual current protection' });
+  const rcd = createItem('rcd', { railId: r1.id, slot: 0, poleConfig: '1P+N', description: 'Residual current protection' });
   const m1 = createItem('mcb', { railId: p.rails[2].id, slot: 0, poleConfig: '1P', description: 'Lighting', params: { In: 10, curve: 'B', Icn: 6000, Un: 230 } });
   const m2 = createItem('mcb', { railId: p.rails[2].id, slot: 1, poleConfig: '1P', description: 'Sockets', params: { In: 16, curve: 'B', Icn: 6000, Un: 230 } });
   const m3 = createItem('mcb', { railId: p.rails[2].id, slot: 2, poleConfig: '1P', description: 'Oven', params: { In: 16, curve: 'C', Icn: 6000, Un: 230 } });

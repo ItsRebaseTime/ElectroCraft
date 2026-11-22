@@ -15,6 +15,7 @@ import { Properties } from './ui/Properties';
 import { Toolbar } from './ui/Toolbar';
 import { useResolvedLayout } from './ui/layout';
 import { MobileApp } from './ui/MobileApp';
+import { ConnectorEditor } from './ui/connectors/ConnectorEditor';
 import { ModuleEditor } from './ui/modules/ModuleEditor';
 import { ModuleDialogs } from './ui/modules/ModulesMenu';
 
@@ -77,6 +78,7 @@ export default function App() {
       )}
       <ExportDialog />
       <ModuleEditor />
+      <ConnectorEditor />
       <ModuleDialogs />
       <ConfirmHost />
       <ToastHost />

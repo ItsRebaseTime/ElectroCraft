@@ -17,13 +17,13 @@ rmSync(DL, { recursive: true, force: true });
 mkdirSync(DL, { recursive: true });
 mkdirSync(OUT, { recursive: true });
 
-const sample = readFileSync(join(ROOT, 'docs/examples/sample-house.ec'), 'utf8');
-const catalogue = readFileSync(join(ROOT, 'docs/examples/equipment-catalogue.ec'), 'utf8');
-const usSample = readFileSync(join(ROOT, 'docs/examples/us-sample-house.ec'), 'utf8');
-const moduleExample = readFileSync(join(ROOT, 'docs/examples/custom-module.ec'), 'utf8');
-const sectionsExample = readFileSync(join(ROOT, 'docs/examples/multi-section-board.ec'), 'utf8');
-const indicatorExample = readFileSync(join(ROOT, 'docs/examples/relay-indicator.ec'), 'utf8');
-const floorExample = readFileSync(join(ROOT, 'docs/examples/apartment.ec'), 'utf8');
+const sample = readFileSync(join(ROOT, 'src/assets/examples/sample-house.ec'), 'utf8');
+const catalogue = readFileSync(join(ROOT, 'src/assets/examples/equipment-catalogue.ec'), 'utf8');
+const usSample = readFileSync(join(ROOT, 'src/assets/examples/us-sample-house.ec'), 'utf8');
+const moduleExample = readFileSync(join(ROOT, 'src/assets/examples/custom-module.ec'), 'utf8');
+const sectionsExample = readFileSync(join(ROOT, 'src/assets/examples/multi-section-board.ec'), 'utf8');
+const indicatorExample = readFileSync(join(ROOT, 'src/assets/examples/relay-indicator.ec'), 'utf8');
+const floorExample = readFileSync(join(ROOT, 'src/assets/examples/apartment.ec'), 'utf8');
 const IPHONE = 'Mozilla/5.0 (iPhone; CPU iPhone OS 17_4 like Mac OS X) AppleWebKit/605.1.15 (KHTML, like Gecko) Version/17.4 Mobile/15E148 Safari/604.1';
 
 const opts = new firefox.Options().addArguments('-headless').windowSize({ width: 1600, height: 1000 });
@@ -61,6 +61,37 @@ try {
   await shot('equipment');
   await open(catalogue, '#select=item:23&z=3&x=-250&y=-1350');
   await shot('comb-bridges');
+  // a three phase comb bar across neighbouring breakers
+  await open(sample, '#z=3&x=351&y=-737');
+  const mcbIds = await driver.executeScript("const st = JSON.parse(localStorage.getItem('electrocraft.autosave')); const p = st.panels[0]; const r = p.items.find((i) => i.defId === 'mcb').railId; return p.items.filter((i) => i.defId === 'mcb' && i.railId === r).map((i) => i.id);");
+  const press = (id, shift) => driver.executeScript(`const el = document.querySelector('.canvas g[data-hit="i:${id}"]'); const r = el.getBoundingClientRect(); const init = { bubbles: true, cancelable: true, clientX: r.x + r.width / 2, clientY: r.y + r.height / 2, pointerId: 7, button: 0, shiftKey: ${shift}, pointerType: 'mouse' }; el.dispatchEvent(new PointerEvent('pointerdown', init)); el.dispatchEvent(new PointerEvent('pointerup', init));`);
+  await press(mcbIds[0], false);
+  for (const id of mcbIds.slice(1)) await press(id, true);
+  await sleep(400);
+  const part = (name) => By.xpath(`//div[contains(@class,'palette-list')]//div[contains(concat(' ',normalize-space(@class),' '),' entry ')][.//span[contains(@class,'entry-name')][text()='${name}']]`);
+  await driver.findElement(part('Comb bar 3P')).click();
+  await sleep(600);
+  await shot('comb-bar');
+  // a row connector between the residual current device and the breakers below it
+  await open(sample, '#z=2.6&x=339&y=-428');
+  const rcdId = await driver.executeScript("const st = JSON.parse(localStorage.getItem('electrocraft.autosave')); return st.panels[0].items.find((i) => i.defId === 'rcd').id;");
+  await press(rcdId, false);
+  await sleep(400);
+  await driver.findElement(part('Row connector 3P')).click();
+  await sleep(400);
+  // the RCD has a neutral pole in column 2 and the breaker below a line pole: leave the neutral out
+  await driver.findElement(By.xpath("//label[contains(., 'Neutral poles are joined too')]//input")).click();
+  await sleep(600);
+  await shot('row-connector');
+  // the Connectors group of the equipment list and the designer for a variation of a part
+  await driver.executeScript("const l = document.querySelector('.palette-list'); l.scrollTop = l.scrollHeight;");
+  await sleep(300);
+  await shot('connectors');
+  await driver.findElement(By.css('button[aria-label="Clone Comb bar 3P"]')).click();
+  await driver.wait(until.elementLocated(By.css('.connector-editor')), 3000);
+  await sleep(300);
+  await shot('connector-designer');
+  await driver.findElement(By.xpath("//div[contains(@class,'connector-editor')]//button[text()='Cancel']")).click();
   await open(usSample, '#sim&z=1.5&x=318&y=-47');
   await shot('us-panel');
   await open(moduleExample, '#z=2&x=170&y=40');
@@ -111,6 +142,23 @@ try {
   await driver.actions({ async: true }).move({ origin: hob }).click().perform();
   await sleep(500);
   await shot('floor-phases');
+  // a shape (the wet area of the bathroom): selected, with its handles and properties
+  await driver.actions().sendKeys('\uE00C').perform();
+  await sleep(300);
+  await driver.executeScript(`
+    const el = document.querySelector('svg.floor-canvas g[data-hit^="sh:"] rect');
+    const r = el.getBoundingClientRect(); const x = r.left + r.width / 2, y = r.top + 3;
+    const fire = (type) => (document.elementFromPoint(x, y) || el).dispatchEvent(new PointerEvent(type, { bubbles: true, cancelable: true, button: 0, buttons: type === 'pointerup' ? 0 : 1, pointerId: 93, pointerType: 'mouse', clientX: x, clientY: y }));
+    fire('pointerdown'); fire('pointerup');`);
+  await sleep(500);
+  await shot('floor-shapes');
+  // the picture faded: the outlets and cables stand out
+  await driver.actions().sendKeys('\uE00C').perform();
+  await driver.findElement(By.xpath("//button[@aria-label='Floor plan picture: shown']")).click();
+  await sleep(500);
+  await shot('floor-picture');
+  await driver.findElement(By.xpath("//button[@aria-label='Floor plan picture: faded']")).click();
+  await driver.findElement(By.xpath("//button[@aria-label='Floor plan picture: hidden']")).click();
   // speakers end at the audio receiver
   await driver.actions().sendKeys('\uE00C').perform(); // Escape: back to the properties of the plan
   await sleep(300);

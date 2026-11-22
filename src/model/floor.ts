@@ -1,6 +1,6 @@
 // Floor plans: outlets, cable circuits and the places of the panels. Pure helpers on the project data; the part that
 // creates the matching items in the panels is floorSync.ts.
-import type { FloorCircuit, FloorLayer, FloorMedium, FloorNode, FloorPanelMarker, FloorPlan, FloorPoint, Project, Vec } from './types';
+import type { FloorCircuit, FloorLayer, FloorShape, FloorShapeType, FloorMedium, FloorNode, FloorPanelMarker, FloorPlan, FloorPoint, Project, Vec } from './types';
 
 const rid = () => Math.random().toString(36).slice(2, 9);
 export const floorUid = (prefix: string) => prefix + rid();
@@ -83,7 +83,7 @@ export const DEFAULT_LAYERS: FloorLayer[] = [
 ];
 
 export function createFloorPlan(name: string): FloorPlan {
-  return { id: floorUid('f'), name, layers: DEFAULT_LAYERS.map((l) => ({ ...l })), w: FLOOR_DEFAULT_W, h: FLOOR_DEFAULT_H, pxPerM: 0, points: [], panels: [], circuits: [] };
+  return { id: floorUid('f'), name, layers: DEFAULT_LAYERS.map((l) => ({ ...l })), shapes: [], w: FLOOR_DEFAULT_W, h: FLOOR_DEFAULT_H, pxPerM: 0, points: [], panels: [], circuits: [] };
 }
 
 export const planOf = (project: Pick<Project, 'floorPlans'>, id: string | null | undefined): FloorPlan | undefined => project.floorPlans.find((f) => f.id === id);
@@ -96,6 +96,7 @@ export const resolveLayer = (plan: Pick<FloorPlan, 'layers'>, id: string | undef
 export const layerIndex = (plan: Pick<FloorPlan, 'layers'>, id: string | undefined): number => Math.max(0, plan.layers.findIndex((l) => l.id === resolveLayer(plan, id).id));
 /** The layer an outlet of this kind goes to when none is chosen: its usual one if the plan still has it, else the first. */
 export const defaultLayerFor = (plan: Pick<FloorPlan, 'layers'>, kindId: string): string => resolveLayer(plan, floorKind(kindId).layer).id;
+export const shapeLayer = (plan: FloorPlan, s: FloorShape): string => resolveLayer(plan, s.layer).id;
 export const pointLayer = (plan: FloorPlan, p: FloorPoint): string => resolveLayer(plan, p.layer).id;
 export const circuitLayer = (plan: FloorPlan, c: FloorCircuit): string => {
   if (c.layer && plan.layers.some((l) => l.id === c.layer)) return c.layer;
@@ -128,6 +129,7 @@ export function layerContents(plan: FloorPlan, id: string) {
   return {
     points: plan.points.filter((p) => pointLayer(plan, p) === id),
     circuits: plan.circuits.filter((c) => circuitLayer(plan, c) === id),
+    shapes: plan.shapes.filter((s) => shapeLayer(plan, s) === id),
   };
 }
 
@@ -137,9 +139,10 @@ export function removeFloorLayer(plan: FloorPlan, id: string): string | null {
   if (i < 0) return 'Layer not found.';
   if (plan.layers.length <= 1) return 'A floor plan needs at least one layer.';
   const target = plan.layers[i > 0 ? i - 1 : 1].id;
-  const { points, circuits } = layerContents(plan, id);
+  const { points, circuits, shapes } = layerContents(plan, id);
   for (const p of points) p.layer = target;
   for (const c of circuits) c.layer = target;
+  for (const s of shapes) s.layer = target;
   plan.layers = plan.layers.filter((l) => l.id !== id);
   return null;
 }
@@ -169,11 +172,66 @@ export function addFloorPoint(plan: FloorPlan, kindId: string, x: number, y: num
   return point;
 }
 
+// ---------------------------------------------------------------- shapes
+
+export const FLOOR_SHAPES: { id: FloorShapeType; label: string; icon: string }[] = [
+  { id: 'rect', label: 'Rectangle', icon: 'rect' },
+  { id: 'ellipse', label: 'Ellipse', icon: 'ellipse' },
+  { id: 'line', label: 'Line (a wall, a cable tray ...)', icon: 'lineShape' },
+  { id: 'text', label: 'Text', icon: 'text' },
+];
+export const shapeInfo = (t: FloorShapeType) => FLOOR_SHAPES.find((s) => s.id === t) ?? FLOOR_SHAPES[0];
+export const DEFAULT_SHAPE_SIZE: Record<FloorShapeType, { w: number; h: number }> = { rect: { w: 160, h: 100 }, ellipse: { w: 120, h: 120 }, line: { w: 160, h: 0 }, text: { w: 0, h: 0 } };
+
+/** Add a shape. For a rectangle or ellipse (x, y) is a corner; for a line the start, and (w, h) the vector to its end. */
+export function addFloorShape(plan: FloorPlan, type: FloorShapeType, x: number, y: number, w = 0, h = 0, layer?: string): FloorShape {
+  const s: FloorShape = {
+    id: floorUid('s'),
+    type,
+    x: Math.round(x),
+    y: Math.round(y),
+    w: Math.round(w),
+    h: Math.round(h),
+    stroke: type === 'text' ? '#111827' : '#1f2937',
+    strokeWidth: type === 'line' ? 6 : 3,
+    fill: 'none',
+    fillOpacity: 0.25,
+    layer: layer && plan.layers.some((l) => l.id === layer) ? layer : plan.layers[Math.min(1, plan.layers.length - 1)].id,
+  };
+  if (type === 'text') {
+    s.text = 'Text';
+    s.fontSize = 28;
+  }
+  plan.shapes.push(s);
+  return s;
+}
+
+export function removeFloorShape(plan: FloorPlan, id: string) {
+  plan.shapes = plan.shapes.filter((s) => s.id !== id);
+}
+
+/** A rectangle or ellipse with a negative size (drawn right to left, bottom to top) gets the same shape with a positive one. */
+export function normalizeFloorShape(s: FloorShape) {
+  if (s.type !== 'rect' && s.type !== 'ellipse') return;
+  if (s.w < 0) [s.x, s.w] = [s.x + s.w, -s.w];
+  if (s.h < 0) [s.y, s.h] = [s.y + s.h, -s.h];
+}
+
+/** The box around a shape. */
+export function shapeBounds(s: FloorShape): { x: number; y: number; w: number; h: number } {
+  if (s.type === 'text') {
+    const size = s.fontSize ?? 28;
+    return { x: s.x, y: s.y - size * 0.7, w: Math.max(size, (s.text ?? '').length * size * 0.55), h: size * 1.4 };
+  }
+  return { x: Math.min(s.x, s.x + s.w), y: Math.min(s.y, s.y + s.h), w: Math.abs(s.w), h: Math.abs(s.h) };
+}
+
 // ---------------------------------------------------------------- copy and paste
 
 /** Outlets copied from a plan: everything but their identity, ready to be pasted on this or another plan. */
 export interface FloorClip {
   points: Omit<FloorPoint, 'id' | 'label'>[];
+  shapes?: Omit<FloorShape, 'id'>[];
 }
 
 /** Copy outlets (circuits are not copied: the copies start unconnected). */
@@ -191,6 +249,24 @@ export function pasteFloorPoints(plan: FloorPlan, clip: FloorClip, dx: number, d
     p.layer = src.layer && plan.layers.some((l) => l.id === src.layer) ? src.layer : defaultLayerFor(plan, kind.id);
     plan.points.push(p);
     out.push(p);
+  }
+  return out;
+}
+
+/** Copy shapes. */
+export function copyFloorShapes(plan: FloorPlan, ids: string[]): FloorClip {
+  const set = new Set(ids);
+  return { points: [], shapes: plan.shapes.filter((s) => set.has(s.id)).map(({ id: _id, ...rest }) => structuredClone(rest)) };
+}
+
+/** Paste copies of shapes, moved by (dx, dy). Returns the new shapes. */
+export function pasteFloorShapes(plan: FloorPlan, clip: FloorClip, dx: number, dy: number): FloorShape[] {
+  const out: FloorShape[] = [];
+  for (const src of clip.shapes ?? []) {
+    const s: FloorShape = { ...structuredClone(src), id: floorUid('s'), x: Math.round(src.x + dx), y: Math.round(src.y + dy) };
+    s.layer = src.layer && plan.layers.some((l) => l.id === src.layer) ? src.layer : plan.layers[Math.min(1, plan.layers.length - 1)].id;
+    plan.shapes.push(s);
+    out.push(s);
   }
   return out;
 }
@@ -585,6 +661,7 @@ export function sanitizeFloorPlans(raw: unknown): FloorPlan[] {
       id: uniq(o.id, 'f'),
       name: text(o.name, 60, `Floor ${n + 1}`) || `Floor ${n + 1}`,
       layers: layers.length ? layers : DEFAULT_LAYERS.map((l) => ({ ...l })),
+      shapes: [],
       w: finite(o.w, 100, 20_000, FLOOR_DEFAULT_W),
       h: finite(o.h, 100, 20_000, FLOOR_DEFAULT_H),
       pxPerM: finite(o.pxPerM, 0, 100_000, 0),
@@ -615,6 +692,33 @@ export function sanitizeFloorPlans(raw: unknown): FloorPlan[] {
       if (!m || typeof m !== 'object' || typeof (m as FloorPanelMarker).panelId !== 'string') continue;
       const mk = m as FloorPanelMarker;
       plan.panels.push({ id: uniq(mk.id, 'm'), panelId: mk.panelId, x: finite(mk.x, -COORD, COORD, 0), y: finite(mk.y, -COORD, COORD, 0) });
+    }
+    const colour = (v: unknown, fb: string) => (typeof v === 'string' && /^(#[0-9a-fA-F]{6}|none)$/.test(v) ? v : fb);
+    const shapeTypes = ['rect', 'ellipse', 'line', 'text'];
+    for (const q of (Array.isArray(o.shapes) ? o.shapes : []).slice(0, 1000)) {
+      if (!q || typeof q !== 'object') continue;
+      const sh = q as Partial<FloorShape>;
+      if (!shapeTypes.includes(sh.type as string)) continue;
+      const type = sh.type as FloorShapeType;
+      const shape: FloorShape = {
+        id: uniq(sh.id, 's'),
+        type,
+        x: finite(sh.x, -COORD, COORD, 0),
+        y: finite(sh.y, -COORD, COORD, 0),
+        w: finite(sh.w, -COORD, COORD, 0),
+        h: finite(sh.h, -COORD, COORD, 0),
+        stroke: colour(sh.stroke, '#1f2937'),
+        strokeWidth: finite(sh.strokeWidth, 0, 100, 3),
+        fill: colour(sh.fill, 'none'),
+        fillOpacity: finite(sh.fillOpacity, 0, 1, 0.25),
+        layer: plan.layers.some((l) => l.id === sh.layer) ? sh.layer : plan.layers[Math.min(1, plan.layers.length - 1)].id,
+      };
+      if (type === 'text') {
+        shape.text = text(sh.text, 200, 'Text');
+        shape.fontSize = finite(sh.fontSize, 4, 400, 28);
+      }
+      normalizeFloorShape(shape);
+      plan.shapes.push(shape);
     }
     const pointIds = new Set(plan.points.map((p) => p.id));
     const used = new Set<string>();

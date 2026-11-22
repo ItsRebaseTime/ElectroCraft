@@ -1,7 +1,7 @@
 # Project file format (`.ec`)
 
 A project is one plain JSON document, so it diffs well in version control. Open it in any text editor. Examples are in
-[examples/](examples).
+[src/assets/examples](../src/assets/examples).
 
 ```jsonc
 {
@@ -18,7 +18,8 @@ A project is one plain JSON document, so it diffs well in version control. Open 
     "usPhaseColors": { "L1": "black", "L2": "red", "L3": "blue" }         // US panels
   },
   "panels": [ /* Panel */ ],
-  "modules": [ /* CustomModule, see below */ ]
+  "modules": [ /* CustomModule, see below */ ],
+  "connectors": [ /* ConnectorDef, see below */ ]   // optional: the user's own connector parts
 }
 ```
 
@@ -32,9 +33,13 @@ A project is one plain JSON document, so it diffs well in version control. Open 
   "sections": [ { "id": "main", "name": "Section 1" } ], // optional, EU: enclosures side by side. A rail picks one with "section"
   "rails": [ { "id": "r1", "modules": 12 } ],    // EU: DIN rail length in modules of 18 mm. US: two rails = the two columns, "modules" = spaces per column
   "items": [ /* Item */ ],
-  "wires": [ /* Wire */ ]
+  "wires": [ /* Wire */ ],
+  "combs": [ { "id": "c1", "railId": "r1", "slot": 0, "modules": 3, "phases": 3, "side": "top" } ],   // optional (EU)
+  "rowLinks": [ { "id": "k1", "railId": "r1", "slot": 0, "count": 3, "side": "top" } ]   // optional (EU)
 }
 ```
+
+`combs` are comb bars: `slot` is the first module on the rail, `modules` the length, `phases` 1 to 4 (1 = one conductor, otherwise the pins take turns) and `side` `top` (line) or `bottom` (load). They join the poles of the `mcb`, `rcbo`, `rcd` and `isolator` devices under them (the line pins take the phases in turn, all neutral pins are one conductor). Both may carry `def`, the id of the connector part they are made from (see `connectors` below), and `"neutral": false` for a part that does not join the neutral poles (the default is to join them: a pin on every pole of the devices, neutral to neutral). `rowLinks` are row connectors: `railId` is the upper rail, `slot` the first module (column) and `count` (1 to 4) the contacts and `side` `top` (default) or `bottom`; they join the top (or bottom) terminals of the devices on that rail to the same terminals of the devices in the same columns on the rail below it in the same section.
 
 ## Item (a device)
 
@@ -116,6 +121,7 @@ URL scaled down to at most about 2000 px) and three lists, all in drawing pixels
 {
   "id": "f1", "name": "Ground floor", "w": 1400, "h": 900, "pxPerM": 100, "image": { "data": "...", "w": 1400, "h": 900 },
   "layers": [ { "id": "floor", "name": "Floor" }, { "id": "walls", "name": "Walls" }, { "id": "ceiling", "name": "Ceiling" } ],  // bottom to top
+  "shapes": [ { "id": "s1", "type": "rect", "x": 725, "y": 65, "w": 230, "h": 330, "stroke": "#2563eb", "strokeWidth": 4, "fill": "#3b82f6", "fillOpacity": 0.14, "layer": "floor" } ],
   "points": [ { "id": "p1", "kind": "socket", "x": 300, "y": 200, "label": "S1", "count": 3, "watts": 150, "layer": "walls", "phases": 1, "note": "" } ],
   "panels": [ { "id": "m1", "panelId": "p1abc", "x": 600, "y": 500 } ],          // a panel of the project placed on the plan
   "circuits": [ {
@@ -130,7 +136,7 @@ URL scaled down to at most about 2000 px) and three lists, all in drawing pixels
 }
 ```
 
-`phases` (2 or 3, default 1; sockets and appliances only) is the number of phases of an outlet. `count` (optional, 1 to 12, default 1) is how many of the outlet are at that place (sockets in a row, ports of a data outlet); `watts` is the load of each one. `kind` is one of `socket`, `light`, `switch`, `appliance`, `amp` (audio receiver, with `channels`), `network`, `wifi`, `camera`, `tv`, `speaker`, `fiber`, `phone`, `other`;
+`shapes` are drawn above the picture and below the cables: `type` is `rect`, `ellipse`, `line` or `text`; for a rectangle or ellipse `x`, `y` is the top-left corner and `w`, `h` the size (positive); for a line `x`, `y` is the start and `w`, `h` the vector to the end (it may be negative); a text has `text` and `fontSize` and its colour is `stroke`; `fill` is a `#rrggbb` colour or `none`. `phases` (2 or 3, default 1; sockets and appliances only) is the number of phases of an outlet. `count` (optional, 1 to 12, default 1) is how many of the outlet are at that place (sockets in a row, ports of a data outlet); `watts` is the load of each one. `kind` is one of `socket`, `light`, `switch`, `appliance`, `amp` (audio receiver, with `channels`), `network`, `wifi`, `camera`, `tv`, `speaker`, `fiber`, `phone`, `other`;
 `medium` is `power`, `network`, `coax`, `audio`, `fiber`, `phone` or `other`; `topology` is `chain` (outlet to outlet) or `star` (one cable per
 outlet to the panel). Only `power` and `other` can be chains: network, coax, audio, fibre and telephone circuits are always stars with one
 cable per port (a file that says otherwise is read as a star). An outlet belongs to at most one circuit and a circuit carries one
@@ -150,6 +156,19 @@ removes these items when the plan changes; the wires you draw to them are kept.
 An item with a `bar` (`{ "section": "main", "edge": "top" | "bottom" }`) is fixed to the edge of a panel section instead of a rail: a `bus`
 bar (`params.role` `N` or `PE`) or a `keystone` **patch panel** with `params.rows` (1 to 4) and `params.cols` (1 to 24). A patch panel has one
 terminal per jack, `P<row>_<col>` (0-based), never joined to another; its artwork is generated for the size.
+
+### Connector parts (`connectors`)
+
+The user's own variations of the comb bars and row connectors (the built-in parts, `comb-1p` to `comb-4p` and `row-1p` to `row-4p`,
+live in the app and are not stored):
+
+```jsonc
+{ "id": "cn1", "name": "Long comb", "description": "", "kind": "comb",   // or "row"
+  "phases": 3, "length": 12,       // comb: phases 1-4, length of a new bar in modules
+  "contacts": 3, "side": "top",    // row connector: contacts 1-4, "top" (top to top) or "bottom"
+  "neutral": true,                 // also joins the neutral poles of 1P+N / 3P+N devices
+  "color": "#f1f3f5", "pinColor": "#c8793c" }
+```
 
 ### Module files (`.ecm`)
 

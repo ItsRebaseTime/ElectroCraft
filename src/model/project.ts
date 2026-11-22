@@ -2,7 +2,8 @@ import { defaultParams, defaultPoleConfig, getDef, syncCustomModules } from './d
 import { sanitizeModule } from './customModule';
 import { DEFAULT_PHASE_COLORS, DEFAULT_US_PHASE_COLORS } from './colors';
 import { sanitizeFloorPlans } from './floor';
-import type { Item, Panel, Project, Rail, Section, Wire } from './types';
+import { sanitizeConnector } from './connectors';
+import type { CombBar, ConnectorDef, RowLink, Item, Panel, Project, Rail, Section, Wire } from './types';
 
 export const uid = (prefix = '') => prefix + Math.random().toString(36).slice(2, 9);
 
@@ -73,6 +74,7 @@ export function createProject(name = 'New project'): Project {
     settings: { markingStandard: 'iec81346', phaseColors: { ...DEFAULT_PHASE_COLORS }, usPhaseColors: { ...DEFAULT_US_PHASE_COLORS } },
     panels: [createPanel('Main panel')],
     modules: [],
+    connectors: [],
     floorPlans: [],
   };
 }
@@ -168,6 +170,21 @@ export function parseProject(text: string): ParseResult {
       }
       p.wires.push({ id: rw.id ?? uid('w'), from: rw.from, to: rw.to, color: rw.color ?? 'auto', nodes: Array.isArray(rw.nodes) ? rw.nodes : null, section: rw.section ?? 2.5, awg: typeof rw.awg === 'string' ? rw.awg : undefined, label: rw.label });
     }
+    const railIds = new Set(p.rails.map((r) => r.id));
+    const combs: CombBar[] = [];
+    for (const rc of Array.isArray(rp?.combs) ? rp.combs : []) {
+      if (!rc || !railIds.has(rc.railId)) continue;
+      const phases = [1, 2, 3, 4].includes(Number(rc.phases)) ? (Number(rc.phases) as 1 | 2 | 3 | 4) : 1;
+      combs.push({ id: typeof rc.id === 'string' ? rc.id : uid('c'), railId: rc.railId, slot: Math.max(0, Number(rc.slot) || 0), modules: Math.max(1, Math.round(Number(rc.modules) || 1)), phases, side: rc.side === 'bottom' ? 'bottom' : 'top', ...(typeof rc.def === 'string' ? { def: rc.def } : {}), ...(rc.neutral === false ? { neutral: false } : {}) });
+    }
+    if (combs.length) p.combs = combs;
+    const links: RowLink[] = [];
+    for (const rl of Array.isArray(rp?.rowLinks) ? rp.rowLinks : []) {
+      if (!rl || !railIds.has(rl.railId)) continue;
+      const count = [1, 2, 3, 4].includes(Number(rl.count)) ? (Number(rl.count) as 1 | 2 | 3 | 4) : 3;
+      links.push({ id: typeof rl.id === 'string' ? rl.id : uid('k'), railId: rl.railId, slot: Math.max(0, Number(rl.slot) || 0), count, side: rl.side === 'bottom' ? 'bottom' : 'top', ...(typeof rl.def === 'string' ? { def: rl.def } : {}), ...(rl.neutral === false ? { neutral: false } : {}) });
+    }
+    if (links.length) p.rowLinks = links;
     return p;
   });
   const project: Project = {
@@ -183,6 +200,7 @@ export function parseProject(text: string): ParseResult {
     },
     panels: panels.length ? panels : [createPanel('Main panel')],
     modules,
+    connectors: (Array.isArray((o as Partial<Project>).connectors) ? ((o as Partial<Project>).connectors as unknown[]) : []).map(sanitizeConnector).filter((c): c is ConnectorDef => !!c),
     floorPlans: sanitizeFloorPlans((o as Partial<Project>).floorPlans),
   };
   return { project, warnings };

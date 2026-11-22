@@ -1,12 +1,12 @@
 import { create } from 'zustand';
-import { circuitLayer, pointLayer, planOf, type FloorClip } from '../../model/floor';
-import type { FloorCircuit, FloorPanelMarker, FloorPlan, FloorPoint, Project, Vec } from '../../model/types';
+import { circuitLayer, pointLayer, planOf, shapeLayer, type FloorClip } from '../../model/floor';
+import type { FloorCircuit, FloorPanelMarker, FloorPlan, FloorPoint, FloorShape, FloorShapeType, Project, Vec } from '../../model/types';
 
-export type FloorTool = 'select' | 'point' | 'circuit' | 'panel' | 'scale' | 'pan';
+export type FloorTool = 'select' | 'point' | 'shape' | 'circuit' | 'panel' | 'scale' | 'pan';
 export interface FloorSelection {
-  kind: 'point' | 'circuit' | 'marker' | null;
+  kind: 'point' | 'shape' | 'circuit' | 'marker' | null;
   id: string | null;
-  /** Several outlets selected at once (Ctrl+click or a box); `id` is one of them. */
+  /** Several outlets (or several shapes) selected at once (Ctrl+click, or a box for outlets); `id` is one of them. */
   ids?: string[];
 }
 /** Everything selected: the outlets of a multiple selection, or the one object. */
@@ -25,6 +25,8 @@ interface FloorUI {
   tool: FloorTool;
   /** Outlet kind placed by the point tool. */
   kind: string;
+  /** The shape drawn by the shape tool. */
+  shapeType: FloorShapeType;
   /** How many of the outlet are placed at once (sockets in a row, ports of a data outlet). */
   placeCount: number;
   /** Panel placed by the panel tool. */
@@ -51,6 +53,7 @@ interface FloorUI {
   setPlan: (id: string | null) => void;
   setTool: (t: FloorTool) => void;
   setKind: (k: string) => void;
+  setShapeType: (t: FloorShapeType) => void;
   setPlaceCount: (n: number) => void;
   setPanelToPlace: (id: string | null) => void;
   setCircuit: (id: string | null) => void;
@@ -73,6 +76,7 @@ export const useFloorUI = create<FloorUI>((set) => ({
   planId: null,
   tool: 'select',
   kind: 'socket',
+  shapeType: 'rect',
   placeCount: 1,
   panelToPlace: null,
   circuitId: null,
@@ -89,6 +93,7 @@ export const useFloorUI = create<FloorUI>((set) => ({
   setPlan: (planId) => set({ planId, selection: NONE, circuitId: null, scaleDraft: null }),
   setTool: (tool) => set({ tool, circuitId: null, scaleDraft: null }),
   setKind: (kind) => set({ kind, tool: 'point', circuitId: null }),
+  setShapeType: (shapeType) => set({ shapeType, tool: 'shape', circuitId: null }),
   setPlaceCount: (n) => set({ placeCount: Math.min(12, Math.max(1, Math.round(n))) }),
   setPanelToPlace: (panelToPlace) => set({ panelToPlace, tool: panelToPlace ? 'panel' : 'select' }),
   setCircuit: (circuitId) => set({ circuitId, lastPoint: null }),
@@ -142,3 +147,8 @@ export const circuitVisibility = (s: VisState, plan: FloorPlan, c: FloorCircuit)
   worstVisibility(layerVisibility(s, plan.id, circuitLayer(plan, c)), objVisibility(s, plan.id, `medium:${c.medium}`), objVisibility(s, plan.id, `obj:${c.id}`));
 export const markerVisibility = (s: VisState, plan: FloorPlan, m: FloorPanelMarker): LayerVisibility =>
   worstVisibility(objVisibility(s, plan.id, 'panels'), objVisibility(s, plan.id, `obj:${m.id}`));
+/** Shapes: their layer, the setting for all shapes and the shape itself. */
+export const shapeVisibility = (s: VisState, plan: FloorPlan, sh: FloorShape): LayerVisibility =>
+  worstVisibility(layerVisibility(s, plan.id, shapeLayer(plan, sh)), objVisibility(s, plan.id, 'shapes'), objVisibility(s, plan.id, `obj:${sh.id}`));
+/** The picture of the plan. */
+export const imageVisibility = (s: Pick<FloorUI, 'objVis'>, plan: FloorPlan): LayerVisibility => objVisibility(s, plan.id, 'image');

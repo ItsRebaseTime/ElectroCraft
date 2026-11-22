@@ -1,5 +1,6 @@
 import { useEffect, useRef, useState } from 'react';
-import { loadSample, loadUsSample, newProject, openProject, saveProject } from '../io/projectIO';
+import { newProject, openProject, saveProject } from '../io/projectIO';
+import { ExamplesList } from './ExamplesList';
 import { emptyRuntime } from '../model/sim';
 import { useStore, type Tool } from '../store/store';
 import { Icon } from './Icon';
@@ -106,12 +107,8 @@ export function Toolbar() {
           <Icon name="saveAs" />
         </button>
         <Menu icon="download" label="">
-          <button className="menu-btn" onClick={() => (document.body.dispatchEvent(new MouseEvent('mousedown', { bubbles: true })), void loadSample())}>
-            <Icon name="download" size={18} /> Sample: EU house (1- and 3-phase)
-          </button>
-          <button className="menu-btn" onClick={() => (document.body.dispatchEvent(new MouseEvent('mousedown', { bubbles: true })), void loadUsSample())}>
-            <Icon name="download" size={18} /> Sample: US house (200 A load center)
-          </button>
+          <div className="menu-heading">Examples</div>
+          <ExamplesList onPick={() => document.body.dispatchEvent(new MouseEvent('mousedown', { bubbles: true }))} />
         </Menu>
       </div>
 

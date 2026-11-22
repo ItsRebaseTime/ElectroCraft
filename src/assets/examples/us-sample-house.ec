@@ -4,8 +4,8 @@
   "name": "US sample house",
   "author": "",
   "revision": "A",
-  "created": "2026-11-19T16:25:33.532Z",
-  "modified": "2026-11-19T16:25:33.533Z",
+  "created": "2026-11-21T08:46:45.073Z",
+  "modified": "2026-11-21T08:46:45.074Z",
   "settings": {
     "markingStandard": "iec81346",
     "phaseColors": {
@@ -21,24 +21,24 @@
   },
   "panels": [
     {
-      "id": "p9cztkz4",
+      "id": "pvrpwjxl",
       "name": "Main panel",
       "floor": "Ground floor",
       "room": "Garage",
       "code": "MDP",
       "rails": [
         {
-          "id": "r5crf993",
+          "id": "r98ltzf2",
           "modules": 12
         },
         {
-          "id": "rgxx30kr",
+          "id": "rwqhls4j",
           "modules": 12
         }
       ],
       "items": [
         {
-          "id": "imnh3ol6",
+          "id": "ifhy8t6f",
           "defId": "us_supply",
           "x": 60,
           "y": -240,
@@ -55,7 +55,7 @@
           "model": ""
         },
         {
-          "id": "ikfweety",
+          "id": "i4njgw90",
           "defId": "us_main",
           "x": 73,
           "y": 14,
@@ -69,7 +69,7 @@
           "model": ""
         },
         {
-          "id": "iircvxb0",
+          "id": "iri7p0fh",
           "defId": "us_neutral_bar",
           "x": 20,
           "y": 332,
@@ -83,7 +83,7 @@
           "model": ""
         },
         {
-          "id": "iwylb2be",
+          "id": "i2ydb78u",
           "defId": "us_ground_bar",
           "x": 136,
           "y": 332,
@@ -97,7 +97,7 @@
           "model": ""
         },
         {
-          "id": "irl8tz78",
+          "id": "iktb31cc",
           "defId": "us_breaker",
           "x": 0,
           "y": 0,
@@ -111,11 +111,11 @@
           "description": "Bedroom lights",
           "manufacturer": "",
           "model": "",
-          "railId": "r5crf993",
+          "railId": "r98ltzf2",
           "slot": 0
         },
         {
-          "id": "igtqaoms",
+          "id": "i1sklw8f",
           "defId": "us_breaker",
           "x": 0,
           "y": 0,
@@ -129,11 +129,11 @@
           "description": "Kitchen receptacles",
           "manufacturer": "",
           "model": "",
-          "railId": "r5crf993",
+          "railId": "r98ltzf2",
           "slot": 1
         },
         {
-          "id": "istavgzy",
+          "id": "il3mhxrv",
           "defId": "us_breaker",
           "x": 0,
           "y": 0,
@@ -147,11 +147,11 @@
           "description": "Air conditioner",
           "manufacturer": "",
           "model": "",
-          "railId": "r5crf993",
+          "railId": "r98ltzf2",
           "slot": 2
         },
         {
-          "id": "i78gq1uw",
+          "id": "i7diymyv",
           "defId": "us_breaker",
           "x": 0,
           "y": 0,
@@ -165,11 +165,11 @@
           "description": "Range",
           "manufacturer": "",
           "model": "",
-          "railId": "rgxx30kr",
+          "railId": "rwqhls4j",
           "slot": 0
         },
         {
-          "id": "ic6i8afb",
+          "id": "ihgmrb5d",
           "defId": "us_breaker",
           "x": 0,
           "y": 0,
@@ -183,11 +183,11 @@
           "description": "Dryer",
           "manufacturer": "",
           "model": "",
-          "railId": "rgxx30kr",
+          "railId": "rwqhls4j",
           "slot": 2
         },
         {
-          "id": "iu3b6uqf",
+          "id": "ifx359kt",
           "defId": "load",
           "x": -190,
           "y": 468,
@@ -204,7 +204,7 @@
           "model": ""
         },
         {
-          "id": "iomps00z",
+          "id": "ixqq2sul",
           "defId": "load",
           "x": -65,
           "y": 468,
@@ -221,7 +221,7 @@
           "model": ""
         },
         {
-          "id": "iw6egvx5",
+          "id": "ikex8800",
           "defId": "load",
           "x": 60,
           "y": 468,
@@ -238,7 +238,7 @@
           "model": ""
         },
         {
-          "id": "iwls5067",
+          "id": "ignxm3lp",
           "defId": "load",
           "x": 185,
           "y": 468,
@@ -255,7 +255,7 @@
           "model": ""
         },
         {
-          "id": "iu1vmrzd",
+          "id": "ite8lub1",
           "defId": "load",
           "x": 310,
           "y": 468,
@@ -274,13 +274,13 @@
       ],
       "wires": [
         {
-          "id": "wisimb0m",
+          "id": "woib7cwm",
           "from": {
-            "item": "imnh3ol6",
+            "item": "ifhy8t6f",
             "terminal": "L1"
           },
           "to": {
-            "item": "ikfweety",
+            "item": "i4njgw90",
             "terminal": "line0"
           },
           "color": "auto",
@@ -289,13 +289,13 @@
           "awg": "2/0"
         },
         {
-          "id": "wsrbdz1s",
+          "id": "wubm20tg",
           "from": {
-            "item": "imnh3ol6",
+            "item": "ifhy8t6f",
             "terminal": "L2"
           },
           "to": {
-            "item": "ikfweety",
+            "item": "i4njgw90",
             "terminal": "line1"
           },
           "color": "auto",
@@ -304,13 +304,13 @@
           "awg": "2/0"
         },
         {
-          "id": "w9vtt4a6",
+          "id": "w103c186",
           "from": {
-            "item": "imnh3ol6",
+            "item": "ifhy8t6f",
             "terminal": "N"
           },
           "to": {
-            "item": "iircvxb0",
+            "item": "iri7p0fh",
             "terminal": "term0"
           },
           "color": "auto",
@@ -319,13 +319,13 @@
           "awg": "2/0"
         },
         {
-          "id": "wjocd2iu",
+          "id": "wjjha1dw",
           "from": {
-            "item": "imnh3ol6",
+            "item": "ifhy8t6f",
             "terminal": "PE"
           },
           "to": {
-            "item": "iwylb2be",
+            "item": "i2ydb78u",
             "terminal": "term0"
           },
           "color": "auto",
@@ -334,13 +334,13 @@
           "awg": "4"
         },
         {
-          "id": "w6rx85z2",
+          "id": "wgs8ygox",
           "from": {
-            "item": "irl8tz78",
+            "item": "iktb31cc",
             "terminal": "load0"
           },
           "to": {
-            "item": "iu3b6uqf",
+            "item": "ifx359kt",
             "terminal": "L1"
           },
           "color": "auto",
@@ -349,13 +349,13 @@
           "awg": "14"
         },
         {
-          "id": "w727j3jz",
+          "id": "wtvtwefr",
           "from": {
-            "item": "igtqaoms",
+            "item": "i1sklw8f",
             "terminal": "load0"
           },
           "to": {
-            "item": "iomps00z",
+            "item": "ixqq2sul",
             "terminal": "L1"
           },
           "color": "auto",
@@ -364,13 +364,13 @@
           "awg": "12"
         },
         {
-          "id": "wwsge3l8",
+          "id": "wknqmzbk",
           "from": {
-            "item": "istavgzy",
+            "item": "il3mhxrv",
             "terminal": "load0"
           },
           "to": {
-            "item": "iw6egvx5",
+            "item": "ikex8800",
             "terminal": "L1"
           },
           "color": "auto",
@@ -379,13 +379,13 @@
           "awg": "10"
         },
         {
-          "id": "wgthux4y",
+          "id": "w4dq0wxf",
           "from": {
-            "item": "istavgzy",
+            "item": "il3mhxrv",
             "terminal": "load1"
           },
           "to": {
-            "item": "iw6egvx5",
+            "item": "ikex8800",
             "terminal": "L2"
           },
           "color": "auto",
@@ -394,13 +394,13 @@
           "awg": "10"
         },
         {
-          "id": "w6ecarrc",
+          "id": "wkizb6my",
           "from": {
-            "item": "i78gq1uw",
+            "item": "i7diymyv",
             "terminal": "load0"
           },
           "to": {
-            "item": "iwls5067",
+            "item": "ignxm3lp",
             "terminal": "L1"
           },
           "color": "auto",
@@ -409,13 +409,13 @@
           "awg": "8"
         },
         {
-          "id": "w81q8eg2",
+          "id": "wl4l3y67",
           "from": {
-            "item": "i78gq1uw",
+            "item": "i7diymyv",
             "terminal": "load1"
           },
           "to": {
-            "item": "iwls5067",
+            "item": "ignxm3lp",
             "terminal": "L2"
           },
           "color": "auto",
@@ -424,13 +424,13 @@
           "awg": "8"
         },
         {
-          "id": "wpr4ixud",
+          "id": "wxxjjstu",
           "from": {
-            "item": "ic6i8afb",
+            "item": "ihgmrb5d",
             "terminal": "load0"
           },
           "to": {
-            "item": "iu1vmrzd",
+            "item": "ite8lub1",
             "terminal": "L1"
           },
           "color": "auto",
@@ -439,13 +439,13 @@
           "awg": "10"
         },
         {
-          "id": "wfjixgnr",
+          "id": "ww5isvlv",
           "from": {
-            "item": "ic6i8afb",
+            "item": "ihgmrb5d",
             "terminal": "load1"
           },
           "to": {
-            "item": "iu1vmrzd",
+            "item": "ite8lub1",
             "terminal": "L2"
           },
           "color": "auto",
@@ -454,13 +454,13 @@
           "awg": "10"
         },
         {
-          "id": "wm61iqlg",
+          "id": "wr8kqh3p",
           "from": {
-            "item": "iircvxb0",
+            "item": "iri7p0fh",
             "terminal": "term1"
           },
           "to": {
-            "item": "iu3b6uqf",
+            "item": "ifx359kt",
             "terminal": "N"
           },
           "color": "auto",
@@ -469,13 +469,13 @@
           "awg": "14"
         },
         {
-          "id": "wlom1ya1",
+          "id": "w4nihwmu",
           "from": {
-            "item": "iircvxb0",
+            "item": "iri7p0fh",
             "terminal": "term2"
           },
           "to": {
-            "item": "iomps00z",
+            "item": "ixqq2sul",
             "terminal": "N"
           },
           "color": "auto",
@@ -484,13 +484,13 @@
           "awg": "12"
         },
         {
-          "id": "wqis4vq9",
+          "id": "wm1jde38",
           "from": {
-            "item": "iwylb2be",
+            "item": "i2ydb78u",
             "terminal": "term1"
           },
           "to": {
-            "item": "iu3b6uqf",
+            "item": "ifx359kt",
             "terminal": "PE"
           },
           "color": "auto",
@@ -499,13 +499,13 @@
           "awg": "14"
         },
         {
-          "id": "wvzrwxlw",
+          "id": "wshegx9l",
           "from": {
-            "item": "iwylb2be",
+            "item": "i2ydb78u",
             "terminal": "term2"
           },
           "to": {
-            "item": "iomps00z",
+            "item": "ixqq2sul",
             "terminal": "PE"
           },
           "color": "auto",
@@ -514,13 +514,13 @@
           "awg": "12"
         },
         {
-          "id": "w1013xwz",
+          "id": "wxjwrdx3",
           "from": {
-            "item": "iwylb2be",
+            "item": "i2ydb78u",
             "terminal": "term3"
           },
           "to": {
-            "item": "iw6egvx5",
+            "item": "ikex8800",
             "terminal": "PE"
           },
           "color": "auto",
@@ -529,13 +529,13 @@
           "awg": "12"
         },
         {
-          "id": "w413upp9",
+          "id": "wqd0zq4t",
           "from": {
-            "item": "iwylb2be",
+            "item": "i2ydb78u",
             "terminal": "term4"
           },
           "to": {
-            "item": "iwls5067",
+            "item": "ignxm3lp",
             "terminal": "PE"
           },
           "color": "auto",
@@ -544,13 +544,13 @@
           "awg": "12"
         },
         {
-          "id": "wl459fc5",
+          "id": "wzgs3gvw",
           "from": {
-            "item": "iwylb2be",
+            "item": "i2ydb78u",
             "terminal": "term5"
           },
           "to": {
-            "item": "iu1vmrzd",
+            "item": "ite8lub1",
             "terminal": "PE"
           },
           "color": "auto",
@@ -564,5 +564,6 @@
       "usPhases": 2
     }
   ],
-  "modules": []
+  "modules": [],
+  "floorPlans": []
 }

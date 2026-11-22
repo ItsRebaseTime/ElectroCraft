@@ -1,7 +1,7 @@
 import { describe, expect, it } from 'vitest';
 import { addFloorPoint, createFloorPlan, placeFloorPanel, startFloorCircuit, addPointToCircuit } from './floor';
 import { FLOOR_PORT, syncFloorLinks } from './floorSync';
-import { BAR_BAND_TOP, BAR_GAP, ENCL_TOP, layoutPanel, sectionGeometry } from './geometry';
+import { BAR_BAND_TOP, ENCL_TOP, layoutPanel, sectionGeometry } from './geometry';
 import { PATCH_PITCH_X, PATCH_PITCH_Y, PATCH_PAD, patchPorts, patchSize } from './patch';
 import { createPanel, createProject } from './project';
 import { simulate } from './sim';
@@ -39,25 +39,43 @@ describe('keystone patch panel', () => {
     expect(sectionGeometry(p)[0].top).toBe(false);
   });
 
-  it('sits next to the N and PE bars of the same edge and the enclosure widens to fit', () => {
+  it('cannot share an edge with bus bars, and the other edge is free', () => {
+    const p = createPanel('P');
+    const sid = sectionGeometry(p)[0].id;
+    setSectionBar(p, sid, 'top', 'N', true);
+    setSectionPatch(p, sid, 'top', true, 2, 6);
+    expect(findSectionPatch(p, sid, 'top')).toBeUndefined();
+    setSectionPatch(p, sid, 'bottom', true, 2, 6);
+    expect(findSectionPatch(p, sid, 'bottom')).toBeTruthy();
+    setSectionBar(p, sid, 'bottom', 'PE', true);
+    expect(p.items.some((i) => i.bar?.edge === 'bottom' && i.params.role === 'PE')).toBe(false);
+  });
+
+  it('bars that do not fit the default width are staggered in rows instead of widening the enclosure', () => {
     const p = createPanel('P');
     const sid = sectionGeometry(p)[0].id;
     const plain = sectionGeometry(p)[0];
     setSectionBar(p, sid, 'top', 'N', true);
     setSectionBar(p, sid, 'top', 'PE', true);
-    const barsOnly = sectionGeometry(p)[0];
-    expect(barsOnly.topBand).toBe(BAR_BAND_TOP); // bus bars: the usual band
-    expect(barsOnly.w).toBe(plain.w);
-    setSectionPatch(p, sid, 'top', true, 2, 12);
+    const two = sectionGeometry(p)[0];
+    expect(two.topBand).toBe(BAR_BAND_TOP); // both fit side by side: one row
+    expect(two.w).toBe(plain.w);
+    // make the neutral bar so long that the earth bar no longer fits beside it
+    const n = p.items.find((i) => i.bar && i.params.role === 'N')!;
+    n.params.count = 20;
     const g = sectionGeometry(p)[0];
-    expect(g.w).toBeGreaterThan(plain.w); // 2 bars + 12 jacks do not fit the 12 module rails
+    expect(g.w).toBe(plain.w);
+    expect(g.topBand).toBeGreaterThan(BAR_BAND_TOP);
     const l = layoutPanel(p);
-    const items = p.items.filter((i) => i.bar).map((i) => l.placed.get(i.id)!).sort((a, b) => a.x - b.x);
-    expect(items.map((x) => x.item.params.role ?? 'patch')).toEqual(['N', 'patch', 'PE']);
-    for (let i = 1; i < items.length; i++) expect(items[i].x).toBeGreaterThanOrEqual(items[i - 1].x + items[i - 1].w + BAR_GAP - 1e-6);
-    // the bars' jacks and terminals all end on one line, whatever their height
-    expect(new Set(items.map((x) => Math.round(x.y + x.h)))).toEqual(new Set([ENCL_TOP]));
-    expect(items[items.length - 1].x + items[items.length - 1].w).toBeLessThanOrEqual(g.x + g.w);
+    const pn = l.placed.get(n.id)!;
+    const pe = l.placed.get(p.items.find((i) => i.bar && i.params.role === 'PE')!.id)!;
+    expect(pe.y).toBeGreaterThan(pn.y); // staggered: the earth bar is a row below
+    expect(pe.x + pe.w).toBeLessThanOrEqual(g.x + g.w);
+    expect(Math.max(pn.y + pn.h, pe.y + pe.h)).toBeLessThanOrEqual(ENCL_TOP);
+    // a wide patch panel alone sits on the other edge
+    setSectionPatch(p, sid, 'bottom', true, 2, 12);
+    const patch = layoutPanel(p).placed.get(findSectionPatch(p, sid, 'bottom')!.id)!;
+    expect(patch.x + patch.w).toBeLessThanOrEqual(sectionGeometry(p)[0].x + sectionGeometry(p)[0].w);
   });
 
   it('can be resized: wires to jacks that disappear are removed', () => {

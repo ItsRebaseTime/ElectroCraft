@@ -29,6 +29,8 @@ src/
     marking.ts    automatic IEC 81346 / simple markings
     colors.ts     wire colours and the conductor colour convention
     customModule.ts  custom modules: terminals, generated SVG + definition, validation, .ecm files
+    comb.ts       comb bars and row connectors: which terminals they join, columns, snapping, the physical-fit rules
+    connectors.ts the connector parts (built-in and the project's own variations)
     floor.ts      floor plans: outlets, circuits, cable paths and lengths, validation of loaded plans
     floorSync.ts  keeps the panels in step with the floor plans (a load or cable item per circuit)
     project.ts    create / validate / migrate project files
@@ -39,12 +41,14 @@ src/
     labels.ts         text for label strips
     exportSvg.tsx     static SVG of a panel (used by PDF and SVG export)
   store/        zustand store + pure editing operations (actions.ts)
-  io/           file open/save (browser or Tauri), PDF builder, project open/save commands, floor plan picture import
+  io/           file open/save (browser or Tauri), PDF builder, project open/save commands, the example projects, floor plan picture import
   ui/           React components: editor canvas, toolbar, palette, properties, dialogs
     layout.ts       user-agent based choice between desktop and phone layout
     MobileApp.tsx   phone layout: bottom navigation, sheets, selection bar
     modules/        module designer, import/export dialogs, module operations
+    connectors/     the Connectors group state (armed part, drag), the connector designer and the part previews
     floor/          floor plan workspace: canvas, outlet and panel palette, properties, state
+  assets/examples/    the example projects shipped with the app (.ec files; the default opens on a first start)
   assets/modules/base/  the built-in devices, one device module (.ecm) each (see equipment-assets.md)
   assets/modules/       the module library: .ecm files shipped with the app (see module-library.md)
 ```

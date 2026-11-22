@@ -8,7 +8,7 @@ import { fileURLToPath } from 'node:url';
 
 const ROOT = join(dirname(fileURLToPath(import.meta.url)), '..');
 const BASE = process.env.URL ?? 'http://localhost:4173/';
-const project = readFileSync(join(ROOT, 'docs/examples/relay-circuits.ec'), 'utf8');
+const project = readFileSync(join(ROOT, 'src/assets/examples/relay-circuits.ec'), 'utf8');
 const results = [];
 const check = (n, ok, x = '') => { results.push(ok); console.log(`${ok ? 'PASS' : 'FAIL'}  ${n}${x ? '  - ' + x : ''}`); };
 const sleep = (ms) => new Promise((r) => setTimeout(r, ms));

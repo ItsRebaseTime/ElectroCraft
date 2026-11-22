@@ -8,6 +8,7 @@
 //    shortest live path from the source (line) and back to it (neutral).
 
 import { bridgesOf, getDef } from './defs';
+import { combJoins, rowLinkJoins } from './comb';
 import { termKey, usPhaseOfRow, type Layout } from './geometry';
 import type { Item, Panel, Potential } from './types';
 import { effectiveInputMode } from './customModule';
@@ -215,6 +216,8 @@ function buildGraph(panel: Panel, layout: Layout, live: boolean, tripped: Set<st
     }
   }
 
+  // comb bars are plain metal across neighbouring devices
+  for (const j of [...combJoins(panel, layout), ...rowLinkJoins(panel, layout)]) edges.push({ a: j.a, b: j.b, item: j.item });
   for (const e of edges) dsu.union(e.a, e.b);
   for (const t of layout.terminals.keys()) dsu.find(t);
 

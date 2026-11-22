@@ -2,7 +2,8 @@ import { useState, type ReactNode } from 'react';
 import { getDef } from '../model/defs';
 import { markingOf } from '../model/marking';
 import { LINKED_ITEM_MESSAGE, duplicateItems, removeItems, removeWires } from '../store/actions';
-import { loadSample, loadUsSample, newProject, openProject, saveProject } from '../io/projectIO';
+import { newProject, openProject, saveProject } from '../io/projectIO';
+import { ExamplesList } from './ExamplesList';
 import { selectActivePanel, useStore } from '../store/store';
 import { useDiagram } from './DiagramContext';
 import { Editor } from './Editor';
@@ -94,6 +95,7 @@ function SelectionBar({ onEdit }: { onEdit: () => void }) {
 export function MobileApp({ onExport }: { onExport: () => void }) {
   const [sheet, setSheet] = useState<SheetName>(null);
   const [view, setView] = useState(false);
+  const [examples, setExamples] = useState(false);
   const floor = useFloorUI((s) => s.view) === 'floor';
   const setWorkspace = useFloorUI((s) => s.setView);
   const floorSelected = useFloorUI((s) => s.selection.kind);
@@ -110,6 +112,7 @@ export function MobileApp({ onExport }: { onExport: () => void }) {
   const close = () => {
     setSheet(null);
     setView(false);
+    setExamples(false);
   };
   const run = (fn: () => void | Promise<void>) => () => {
     close();
@@ -203,7 +206,14 @@ export function MobileApp({ onExport }: { onExport: () => void }) {
       {sheet === 'menu' && (
         <Sheet title="Menu" onClose={close}>
           <div className="m-menu">
-            {view ? (
+            {examples ? (
+              <>
+                <button className="m-menu-item" onClick={() => setExamples(false)}>
+                  <Icon name="right" size={20} /> Back
+                </button>
+                <ExamplesList className="m-menu-item" iconSize={22} onPick={close} />
+              </>
+            ) : view ? (
               <>
                 <button className="m-menu-item" onClick={() => setView(false)}>
                   <Icon name="right" size={20} /> Back
@@ -227,11 +237,8 @@ export function MobileApp({ onExport }: { onExport: () => void }) {
                 <button className="m-menu-item" onClick={run(() => saveProject(true))}>
                   <Icon name="saveAs" size={22} /> Save as...
                 </button>
-                <button className="m-menu-item" onClick={run(loadSample)}>
-                  <Icon name="download" size={22} /> Load EU sample project
-                </button>
-                <button className="m-menu-item" onClick={run(loadUsSample)}>
-                  <Icon name="download" size={22} /> Load US sample project
+                <button className="m-menu-item" onClick={() => setExamples(true)}>
+                  <Icon name="download" size={22} /> Example projects...
                 </button>
                 <button className="m-menu-item" onClick={() => setView(true)}>
                   <Icon name="eye" size={22} /> View options

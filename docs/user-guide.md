@@ -43,7 +43,7 @@ a **floor** and a **room**. The Project tree groups panels by floor.
 
 ![Two sections side by side with N and PE bars](images/sections.png)
 
-  The example [examples/multi-section-board.ec](examples/multi-section-board.ec) shows a two-section board: a main switch and
+  The example [examples/multi-section-board.ec](../src/assets/examples/multi-section-board.ec) shows a two-section board: a main switch and
   RCD with N and PE bars along the top of the first section, and sixteen-module rails with bars along the bottom of the second.
   Adding or removing bars, rails or sections moves the supply and loads outside the enclosure out of the way.
 
@@ -56,7 +56,7 @@ modules of the panel.
 
 ![The example apartment: outlets in every room, circuits in bundles to the main board (DB1) and the media cabinet (MC)](images/floor-plan.png)
 
-The pictures in this chapter show the example [apartment.ec](examples/apartment.ec): open it, or start from your own plan.
+The pictures in this chapter show the example [apartment.ec](../src/assets/examples/apartment.ec): open it, or start from your own plan.
 
 **1. Add a floor plan.** The picture button next to *Floor plan* on the left loads a PNG, JPEG or WebP picture (it is scaled
 down to fit in the project file); the plus button adds an empty sheet. A project can hold any number of floor plans, for
@@ -97,7 +97,7 @@ are not drawn and cannot be clicked, faded ones are drawn light. *New outlets go
 ports on the walls, fixed appliances on the floor). Change the layer of an outlet or a cable in its properties; a cable starts on the
 layer of its first outlet. Layer visibility is a view setting and is not saved with the project; the layers and what is on them are.
 
-**Visibility of the objects.** Besides the layers, every kind of object has its own Show / Fade / Hide: each **kind of outlet** (the
+**Visibility of the objects.** Besides the layers, every kind of object has its own Show / Fade / Hide: the **picture**, all the **shapes**, each **kind of outlet** (the
 eye button on its row in the list on the left steps through shown, faded and hidden), each **kind of cable**, the **panels**, and
 every **single outlet, cable or panel** (*On the plan* in its properties). The *View* menu lists all of them (layers, outlets,
 cables, panels) with *Show everything*. An object is shown as hidden as the most hidden of its layer, its kind and itself. Hidden
@@ -105,6 +105,22 @@ objects are not drawn and cannot be clicked; the objects you hid one by one are 
 button. Like the layers this is a view setting and is not saved.
 
 ![The ceiling layer in focus, the others faded](images/floor-layers.png)
+
+**Shapes.** The shape tool (or *Shapes* in the list on the left) draws **rectangles, ellipses, lines and text** on the plan, for walls the
+picture does not show, rooms and areas to mark, cable routes and notes. Pick a shape and **drag on the plan** to draw it (a click gives it the
+usual size; a line that is nearly level or upright snaps to level or upright); a text is placed with a click and typed in the properties.
+Select a shape to **move** it (drag, or several with Ctrl+click), **resize** it with the square handles at its corners or the ends of a line,
+and set its outline colour and width, its fill colour and opacity (or no fill), its exact position and size (with the length in metres once the
+scale is set), its **layer** and its visibility in the properties. **Ctrl+C / Ctrl+V** copy and paste shapes like outlets, **Delete** removes them.
+Shapes are drawn above the picture and below the cables and outlets, in layer order. They are part of the project, but not of the panels.
+
+![A shape on the plan: the wet area of the bathroom, selected, with its handles and properties](images/floor-shapes.png)
+
+**The picture** has its own Show / Fade / Hide: the eye button next to *Picture* in the list on the left, *Picture* in the plan's properties, and
+the *View* menu. Fade it to see your own drawing, the outlets and the cables better, or hide it to work on a blank sheet; the scale and everything
+you drew stay where they are.
+
+![The picture faded: the outlets, cables and the shape stand out](images/floor-picture.png)
 
 **4. Place the panels.** Every panel of the project (electrical or media cabinet) can be placed on a plan, and **a plan can
 have as many panels as you like**: a main board, sub-boards, a media cabinet. Click a panel in the list on the left, then click
@@ -173,6 +189,8 @@ from *Add*, and the properties from *Edit*; names and labels appear when you zoo
 
 ## Placing equipment
 
+* **Ctrl+C** copies the selected devices (with their settings, without their wires) and **Ctrl+V** pastes them: a device goes to the
+  free place on a rail closest to the mouse pointer; several copied devices keep their distances (modules apart, rails below).
 * **Click** an entry in the palette to place it on the first free spot (on the selected rail, if you selected one).
   Or **drag** it onto a rail.
 * Devices **snap to half-module positions** and never overlap. If a rail is full you get a message instead.
@@ -199,9 +217,57 @@ Select a device to change it in the properties panel:
 
 Select a terminal block. Between each pair of neighbouring terminals a dashed slot appears: click it to insert a
 **comb bridge**, click a bar to remove it. The properties panel has checkboxes per gap plus *Bridge all* /
-*Remove all*. Bridged terminals are one conductor in the simulation.
+*Remove all*. Bridged terminals are one conductor in the simulation. To bridge several terminals at once,
+**press on a slot and drag** across the terminals: the comb gets as long as the drag (drag back to shorten it).
 
 ![Comb bridges on a terminal block](images/comb-bridges.png)
+
+### Connectors: comb bars and row connectors
+
+The **Connectors** group at the end of the equipment list holds the parts that join breakers, RCDs and isolators (`mcb`,
+`rcbo`, `rcd`, `isolator`) on a DIN rail: **comb bars** and **row connectors**.
+
+![The Connectors group of the equipment list](images/connectors.png)
+
+* **Comb bar 1P to 4P** is the busbar with a pin per module, plugged into the terminals of devices standing next to each
+  other. With 1P all the pins are one conductor; with 2P, 3P or 4P the pins take turns (L1, L2, L3, L1 ...), so one comb feeds a
+  row of single pole breakers from three phases. The neutral pole of a 1P+N device gets no pin.
+* **Row connector 1P to 4P** joins two rails: it takes the **top terminals** (or the **bottom terminals**) of the devices on one
+  rail to the same terminals of the devices **in the same columns** on the rail below, one contact per module. Top to top carries
+  the supply of one row on to the next, bottom to bottom joins the outgoing side. Where a column has a device on only one of
+  the rails, no contact is made.
+
+To use a part, **drag it from the list onto a device**: while you drag, the supported device nearest to the pointer is highlighted
+and the part **snaps** to it when you drop (a comb bar starts there and is as long as the part says, 6 modules for the built-in
+ones; a row connector starts there). You can also **select the devices on one rail** (Shift+click) and click the part: a comb
+bar goes across the selection, a row connector starts at the first selected device. With nothing selected, clicking a part
+waits for a click on a device. Esc cancels.
+
+**Neutral.** The neutral poles of 1P+N and 3P+N devices take a pin too: all the neutral pins of a comb bar are one conductor
+(the phases of the line pins take turns over the line poles only), and a row connector joins neutral to neutral in the same
+column, drawn in blue. Switch *Neutral poles* off in the properties of a placed part, or in the designer, for a part that
+joins the line poles only.
+
+![A three phase comb bar across three breakers](images/comb-bar.png)
+
+A row connector is drawn as thick insulated conductors, held together by two grey **brackets** when it has two or more contacts (the
+brackets show that they are one part: they are not wires and carry nothing). A row connector is drawn in every column it covers, also where no device stands yet, and, like a wire, lies **below the devices until
+you select it**. Only one arrangement fits physically when row connectors hang on the same module: **module / top-to-top connector / module /
+bottom-to-bottom connector / module**. Anything else (two top-to-top ones in a row, a bottom-to-bottom above a top-to-top, ...) is refused,
+and two row connectors cannot cover the same columns between the same two rails. When you place a row connector below a module that already has a top-to-top one, it is placed **bottom to bottom by itself** (and top to top above a bottom-to-bottom one).
+
+Click a placed bar or connector to change its part, phases or contacts, side, start and length, or to delete it. Joined
+terminals are one conductor in the simulation.
+
+![A row connector between the RCD and the breaker below it](images/row-connector.png)
+
+**Your own variations.** The copy button of a part (or **New connector...**) opens the connector designer: name,
+description, kind (comb bar or row connector), phases or contacts, the length of a new comb bar, the side of a row
+connector, whether it joins the neutral poles, and the colours of the body and the pins. Saved parts are stored in the project, listed with edit, copy and delete
+buttons, and can be picked for any placed bar or connector in its properties. Deleting a part leaves the bars made from it in
+place, drawn as the built-in part.
+
+![The connector designer](images/connector-designer.png)
 
 ## Wiring
 
@@ -308,7 +374,9 @@ The PDF is vector, so it stays sharp when zoomed or printed. Fonts are embedded 
 * **Open** (`Ctrl+O`). In Chrome and Edge, Save overwrites the file you opened; in other browsers it downloads a new copy.
 * Your work is also **autosaved in the browser**, so a reload does not lose it. This is only a safety net: use Save to
   keep a real file.
-* The toolbar's download button loads the **sample project**. Example files are in [examples/](examples).
+* The toolbar's download button opens one of the **example projects** that ship with the app (the apartment is what you see on
+  a first start; on a phone it is *Example projects...* in the menu). `?example=<name>` in the address opens one directly. The example
+  files are in [src/assets/examples](../src/assets/examples): put a `.ec` file there and it is an example too.
 
 ## Keyboard and mouse
 
@@ -417,8 +485,8 @@ you choose which modules to add (ids and names are made unique). There is an exa
 [examples/fused-distribution-block.ecm](examples/fused-distribution-block.ecm), a pushbutton block with NO and NC contacts in
 [examples/pushbutton-contact-block.ecm](examples/pushbutton-contact-block.ecm), and a hidden changeover switch that drives two
 indicator lamps in [examples/changeover-selector.ecm](examples/changeover-selector.ecm), and a control relay and an impulse relay
-in [examples/relay-modules.ecm](examples/relay-modules.ecm), wired up in [examples/relay-circuits.ec](examples/relay-circuits.ec).
-[examples/relay-indicator.ec](examples/relay-indicator.ec) has a relay whose lamp changes colour while its coil is energised.
+in [examples/relay-modules.ecm](examples/relay-modules.ecm), wired up in [examples/relay-circuits.ec](../src/assets/examples/relay-circuits.ec).
+[examples/relay-indicator.ec](../src/assets/examples/relay-indicator.ec) has a relay whose lamp changes colour while its coil is energised.
 
 ## Designing a device
 
@@ -472,7 +540,7 @@ shows the equipment that belongs to the open panel.
   can be changed in the project properties.
 * **Markings:** breakers show their space numbers (`1`, `2,4`), the main shows `MAIN`, the bars `N` and `G`.
 * **PDF:** a **panel schedule** page lists circuit, poles, breaker, description, wire gauge and the simulated load as a
-  percentage of the breaker rating. Try [examples/us-sample-house.ec](examples/us-sample-house.ec).
+  percentage of the breaker rating. Try [examples/us-sample-house.ec](../src/assets/examples/us-sample-house.ec).
 
 ## URL options
 

@@ -306,6 +306,65 @@ export interface Rail {
   modules: number;
 }
 
+/**
+ * A connector part (listed under Connectors in the equipment): a comb bar (busbar with a pin per module) or a row connector
+ * (conductors between two rails). The built-in ones live in code, the user's own variations in the project.
+ */
+export interface ConnectorDef {
+  id: string;
+  name: string;
+  description?: string;
+  kind: 'comb' | 'row';
+  /** Comb bar: 1 = one conductor, 2 to 4 = the pins take turns. */
+  phases: 1 | 2 | 3 | 4;
+  /** Comb bar: length in modules of a new bar. */
+  length: number;
+  /** Row connector: number of contacts, 1 to 4. */
+  contacts: 1 | 2 | 3 | 4;
+  /** Row connector: top to top (line side) or bottom to bottom (load side). */
+  side: 'top' | 'bottom';
+  /** Colour of the body (the insulation of a comb, the conductors of a row connector). */
+  color: string;
+  /** Colour of the pins. */
+  pinColor: string;
+  /** Also joins the neutral poles of 1P+N and 3P+N devices (neutral to neutral). */
+  neutral: boolean;
+}
+
+/** A comb bar along the line or load side of neighbouring DIN devices on a rail (see comb.ts). */
+export interface CombBar {
+  id: string;
+  railId: string;
+  /** First module of the bar on the rail (0 = the start of the rail). */
+  slot: number;
+  /** Length in modules. */
+  modules: number;
+  /** 1 = one conductor, 2, 3 or 4 = the pins take turns. */
+  phases: 1 | 2 | 3 | 4;
+  side: 'top' | 'bottom';
+  /** The connector part it is made from (a built-in or custom one); missing = the built-in one for its phases. */
+  def?: string;
+  /** Neutral poles get a pin too (default yes). */
+  neutral?: boolean;
+}
+
+/** A row connector: 1 to 4 contacts joining the terminals of the devices on a rail to the same side (top to top, or bottom to bottom) of the devices right below, on the next rail. */
+export interface RowLink {
+  id: string;
+  /** The upper rail; the connector goes to the rail below it in the same section. */
+  railId: string;
+  /** First module (column) of the connector on the rail. */
+  slot: number;
+  /** Contacts (columns) it joins, 1 to 4. */
+  count: 1 | 2 | 3 | 4;
+  /** Which terminals it joins: the line side (top to top) or the load side (bottom to bottom). */
+  side: 'top' | 'bottom';
+  /** The connector part it is made from; missing = the built-in one for its contacts. */
+  def?: string;
+  /** Neutral poles are joined too (default yes). */
+  neutral?: boolean;
+}
+
 export interface Panel {
   id: string;
   name: string;
@@ -318,6 +377,10 @@ export interface Panel {
   sections?: Section[];
   items: Item[];
   wires: Wire[];
+  /** EU: comb bars across neighbouring devices. */
+  combs?: CombBar[];
+  /** EU: row connectors between two rails. */
+  rowLinks?: RowLink[];
   notes: string;
   /** eu (DIN rails, default) or us (load center with breaker spaces). */
   region?: 'eu' | 'us';
@@ -344,6 +407,8 @@ export interface Project {
   panels: Panel[];
   /** Modules designed in this project. */
   modules: CustomModule[];
+  /** The user's own connector parts (comb bars and row connectors). */
+  connectors?: ConnectorDef[];
   /** Floor plans with outlets, cables and the places of the panels. */
   floorPlans: FloorPlan[];
 }
@@ -415,6 +480,30 @@ export interface FloorCircuit {
   phases?: 1 | 2 | 3;
 }
 
+export type FloorShapeType = 'rect' | 'ellipse' | 'line' | 'text';
+
+/** A shape drawn on a floor plan: walls, rooms, areas and notes. */
+export interface FloorShape {
+  id: string;
+  type: FloorShapeType;
+  /** rect, ellipse: a corner; line: the start; text: the left end of the text, on its middle line. */
+  x: number;
+  y: number;
+  /** rect, ellipse: width and height; line: the vector to the end; text: unused. */
+  w: number;
+  h: number;
+  /** Outline (the line itself, the colour of a text). */
+  stroke: string;
+  strokeWidth: number;
+  /** Fill colour of a rect or ellipse; `none` = outline only. */
+  fill: string;
+  fillOpacity: number;
+  text?: string;
+  fontSize?: number;
+  /** The layer the shape is on. */
+  layer?: string;
+}
+
 /** A layer of a floor plan: outlets and cables are drawn in layers that can be shown, faded or hidden. Listed bottom to top. */
 export interface FloorLayer {
   id: string;
@@ -425,6 +514,8 @@ export interface FloorPlan {
   id: string;
   name: string;
   layers: FloorLayer[];
+  /** Shapes drawn on the plan. */
+  shapes: FloorShape[];
   /** Plan drawing, scaled down to fit in the project file. */
   image?: { data: string; w: number; h: number };
   /** Drawing size when there is no image. */
@@ -485,7 +576,7 @@ export const DEFAULT_RENDER_OPTIONS: RenderOptions = {
 };
 
 export interface Selection {
-  kind: 'item' | 'wire' | 'rail' | null;
+  kind: 'item' | 'wire' | 'rail' | 'comb' | 'link' | null;
   ids: string[];
 }
 

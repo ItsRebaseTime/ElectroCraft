@@ -30,10 +30,10 @@ export function FloorLayers({ plan, manage = false }: { plan: FloorPlan; manage?
   const active = ui.activeLayer[plan.id];
 
   const remove = async (id: string, name: string) => {
-    const { points, circuits } = layerContents(plan, id);
-    const n = points.length + circuits.length;
+    const { points, circuits, shapes } = layerContents(plan, id);
+    const n = points.length + circuits.length + shapes.length;
     if (plan.layers.length <= 1) return void useStore.getState().notify('A floor plan needs at least one layer.', 'error');
-    if (n && !(await ask(`Delete the layer "${name}"? Its ${points.length} outlet${points.length === 1 ? '' : 's'} and ${circuits.length} cable${circuits.length === 1 ? '' : 's'} move to the layer below.`, 'Delete'))) return;
+    if (n && !(await ask(`Delete the layer "${name}"? Its ${points.length} outlet${points.length === 1 ? '' : 's'}, ${circuits.length} cable${circuits.length === 1 ? '' : 's'} and ${shapes.length} shape${shapes.length === 1 ? '' : 's'} move to the layer below.`, 'Delete'))) return;
     edit(plan.id, (p) => void removeFloorLayer(p, id));
     if (active === id) ui.setActiveLayer(plan.id, undefined);
   };

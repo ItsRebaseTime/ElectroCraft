@@ -12,7 +12,7 @@
     "test": "vitest run",
     "typecheck": "tsc --noEmit",
     "tauri": "tauri",
-    "test:e2e": "node e2e/editor-basic.mjs && node e2e/editor-advanced.mjs && node e2e/layout-and-views.mjs && node e2e/modules.mjs && node e2e/us-panel.mjs && node e2e/relays.mjs && node e2e/sections.mjs && node e2e/library.mjs && node e2e/device-designer.mjs && node e2e/floor.mjs"
+    "test:e2e": "node e2e/editor-basic.mjs && node e2e/editor-advanced.mjs && node e2e/layout-and-views.mjs && node e2e/modules.mjs && node e2e/us-panel.mjs && node e2e/relays.mjs && node e2e/sections.mjs && node e2e/library.mjs && node e2e/device-designer.mjs && node e2e/floor.mjs && node e2e/combs.mjs"
   },
   "dependencies": {
     "@mdi/js": "^7.4.47",

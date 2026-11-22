@@ -2,7 +2,7 @@ import { useRef } from 'react';
 import { loadFloorImage } from '../../io/floorImage';
 import {
   FLOOR_KINDS, MAX_POINT_COUNT, ampChannels, ampChannelsUsed, circuitPhases, pointPhases, attachHub, attachPanel, circuitHub, MAX_AMP_CHANNELS, circuitCables, circuitFeed, circuitLayer, pointLayer, circuitMetres, circuitOf, circuitPoints, circuitTopology, circuitWatts, floorKind, mediumInfo, movePointInCircuit, planSummary, pointCount, pointWatts, removeFloorCircuit, removeFloorMarker,
-  removeFloorPoint, removePointFromCircuit, setCircuitFeed, FLOOR_MEDIA,
+  removeFloorPoint, removePointFromCircuit, setCircuitFeed, FLOOR_MEDIA, removeFloorShape, shapeInfo, shapeLayer, normalizeFloorShape,
 } from '../../model/floor';
 import type { FloorCircuit, FloorPlan, Project } from '../../model/types';
 import { useStore } from '../../store/store';
@@ -96,6 +96,11 @@ function PlanProps({ plan }: { plan: FloorPlan }) {
           }}
         />
       </div>
+      {plan.image && (
+        <Field label="Picture" hint="Fade or hide the picture to see your own drawing and the outlets better">
+          <VisSeg value={objVisibility(ui, plan.id, 'image')} label="the picture" onChange={(v) => ui.setObjVis(plan.id, 'image', v)} />
+        </Field>
+      )}
       {!plan.image && <p className="meta">The plan is an empty sheet. Load a picture of your floor plan (PNG, JPEG or WebP) to trace over it.</p>}
 
       {ui.clipboard && ui.clipboard.points.length > 0 && (
@@ -505,6 +510,140 @@ function MarkerProps({ plan, markerId }: { plan: FloorPlan; markerId: string }) 
   );
 }
 
+// ---------------------------------------------------------------- a shape
+
+const hex6 = (v: string, fb = '#1f2937') => (/^#[0-9a-fA-F]{6}$/.test(v) ? v : fb);
+
+function ShapeProps({ plan, shapeId }: { plan: FloorPlan; shapeId: string }) {
+  const ui = useFloorUI();
+  const s = plan.shapes.find((x) => x.id === shapeId);
+  if (!s) return null;
+  const set = (patch: Partial<typeof s>) =>
+    edit(plan.id, (pl) => {
+      const q = pl.shapes.find((x) => x.id === s.id);
+      if (!q) return;
+      Object.assign(q, patch);
+      normalizeFloorShape(q);
+    });
+  const sized = s.type === 'rect' || s.type === 'ellipse';
+  return (
+    <div className="props">
+      <h3>
+        <Icon name={shapeInfo(s.type).icon} /> {shapeInfo(s.type).label.split(' ')[0]}
+      </h3>
+      {s.type === 'text' && (
+        <>
+          <Field label="Text">
+            <TextField multiline value={s.text ?? ''} onCommit={(v) => set({ text: v.slice(0, 200) })} />
+          </Field>
+          <Field label="Font size">
+            <NumberField value={s.fontSize ?? 28} min={4} max={400} step={2} onCommit={(v) => set({ fontSize: v })} />
+          </Field>
+        </>
+      )}
+      <Field label={s.type === 'text' ? 'Colour' : 'Outline'}>
+        <input type="color" aria-label="Outline colour" value={hex6(s.stroke)} onChange={(e) => set({ stroke: e.target.value })} />
+      </Field>
+      {s.type !== 'text' && (
+        <Field label="Outline width">
+          <NumberField value={s.strokeWidth} min={0} max={100} step={1} onCommit={(v) => set({ strokeWidth: v })} />
+        </Field>
+      )}
+      {sized && (
+        <>
+          <Field label="Fill">
+            <span className="row gap-s">
+              <input type="color" aria-label="Fill colour" value={hex6(s.fill, '#cccccc')} disabled={s.fill === 'none'} onChange={(e) => set({ fill: e.target.value })} />
+              <label className="check">
+                <input type="checkbox" checked={s.fill === 'none'} onChange={(e) => set({ fill: e.target.checked ? 'none' : '#cccccc' })} /> none
+              </label>
+            </span>
+          </Field>
+          {s.fill !== 'none' && (
+            <Field label="Fill opacity">
+              <NumberField value={s.fillOpacity} min={0} max={1} step={0.05} onCommit={(v) => set({ fillOpacity: v })} />
+            </Field>
+          )}
+        </>
+      )}
+      <Field label="Position" hint={s.type === 'line' ? 'Start of the line' : undefined}>
+        <span className="row gap-s">
+          <NumberField value={s.x} step={1} unit="x" onCommit={(v) => set({ x: v })} />
+          <NumberField value={s.y} step={1} unit="y" onCommit={(v) => set({ y: v })} />
+        </span>
+      </Field>
+      {s.type !== 'text' && (
+        <Field label={s.type === 'line' ? 'To the end' : 'Size'} hint={plan.pxPerM > 0 ? `${(Math.abs(s.w) / plan.pxPerM).toFixed(2)} x ${(Math.abs(s.h) / plan.pxPerM).toFixed(2)} m` : undefined}>
+          <span className="row gap-s">
+            <NumberField value={s.w} step={1} unit={s.type === 'line' ? 'dx' : 'w'} onCommit={(v) => set({ w: v })} />
+            <NumberField value={s.h} step={1} unit={s.type === 'line' ? 'dy' : 'h'} onCommit={(v) => set({ h: v })} />
+          </span>
+        </Field>
+      )}
+      <Field label="Layer">
+        <select value={shapeLayer(plan, s)} onChange={(e) => set({ layer: e.target.value })}>
+          {plan.layers.map((l) => (
+            <option key={l.id} value={l.id}>
+              {l.name}
+            </option>
+          ))}
+        </select>
+      </Field>
+      <ObjectVisibility plan={plan} id={s.id} label="shape" />
+      <div className="row gap">
+        <button onClick={() => copySelectedOutlets(plan)}>
+          <Icon name="copy" size={16} /> Copy (Ctrl+C)
+        </button>
+        <button
+          className="danger"
+          onClick={() => {
+            edit(plan.id, (pl) => removeFloorShape(pl, s.id));
+            ui.select(NONE);
+          }}
+        >
+          <Icon name="trash" size={16} /> Delete
+        </button>
+      </div>
+    </div>
+  );
+}
+
+function MultiShapeProps({ plan, ids }: { plan: FloorPlan; ids: string[] }) {
+  const ui = useFloorUI();
+  return (
+    <div className="props">
+      <h3>
+        <Icon name="shapes" /> {ids.length} shapes selected
+      </h3>
+      <p className="meta">Ctrl+click adds or removes a shape. Drag one of them to move them all.</p>
+      <Field label="Layer" hint="Move them all to a layer">
+        <select value="" aria-label="Move the selected shapes to a layer" onChange={(e) => e.target.value && edit(plan.id, (pl) => pl.shapes.forEach((q) => ids.includes(q.id) && (q.layer = e.target.value)))}>
+          <option value="">(keep)</option>
+          {plan.layers.map((l) => (
+            <option key={l.id} value={l.id}>
+              {l.name}
+            </option>
+          ))}
+        </select>
+      </Field>
+      <div className="row gap">
+        <button onClick={() => copySelectedOutlets(plan)}>
+          <Icon name="copy" size={16} /> Copy (Ctrl+C)
+        </button>
+        <button
+          className="danger"
+          onClick={() => {
+            edit(plan.id, (pl) => ids.forEach((id) => removeFloorShape(pl, id)));
+            ui.select(NONE);
+          }}
+        >
+          <Icon name="trash" size={16} /> Delete
+        </button>
+      </div>
+    </div>
+  );
+}
+
 /** Several outlets selected at once. */
 function MultiPointProps({ plan, ids }: { plan: FloorPlan; ids: string[] }) {
   const ui = useFloorUI();
@@ -552,6 +691,8 @@ export function FloorProperties() {
   const plan = activePlan(project, ui.planId);
   if (!plan) return <div className="props"><p className="meta">Add a floor plan to start.</p></div>;
   const s = ui.selection;
+  if (s.kind === 'shape' && selectedIds(s).length > 1) return <MultiShapeProps plan={plan} ids={selectedIds(s)} />;
+  if (s.kind === 'shape' && s.id && plan.shapes.some((x) => x.id === s.id)) return <ShapeProps plan={plan} shapeId={s.id} />;
   if (s.kind === 'point' && selectedIds(s).length > 1) return <MultiPointProps plan={plan} ids={selectedIds(s)} />;
   if (s.kind === 'point' && s.id && plan.points.some((p) => p.id === s.id)) return <PointProps plan={plan} pointId={s.id} />;
   if (s.kind === 'circuit' && s.id && plan.circuits.some((c) => c.id === s.id)) return <CircuitProps plan={plan} circuitId={s.id} />;

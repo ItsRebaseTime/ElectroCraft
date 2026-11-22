@@ -9,7 +9,7 @@ import {
   mdiMenu, mdiTune, mdiPuzzleOutline, mdiShapePlusOutline, mdiRectangleOutline, mdiCircleOutline, mdiFormatText, mdiCursorMove,
   mdiLayersOutline, mdiMonitor, mdiCellphone, mdiExport, mdiImport,
   mdiPowerSocketEu as mdiSocket, mdiCeilingLight, mdiLightSwitch, mdiStove, mdiEthernet, mdiWifi, mdiCctv, mdiTelevision, mdiPhoneClassic, mdiDotsHorizontal,
-  mdiEyeOffOutline, mdiEyeMinusOutline, mdiSpeaker, mdiAmplifier,
+  mdiEyeOffOutline, mdiEyeMinusOutline, mdiEllipseOutline, mdiSlashForward, mdiShapeOutline, mdiImageOutline, mdiSpeaker, mdiAmplifier,
   mdiFloorPlan, mdiRuler, mdiImagePlus, mdiMapMarkerPlusOutline, mdiViewGridPlusOutline, mdiImageRemoveOutline, mdiVectorLine,
 } from '@mdi/js';
 
@@ -30,6 +30,7 @@ PATHS.grid_supply = mdiTransmissionTower;
 Object.assign(PATHS, {
   menu: mdiMenu, tune: mdiTune, module: mdiPuzzleOutline, newModule: mdiShapePlusOutline, rect: mdiRectangleOutline, circle: mdiCircleOutline,
   text: mdiFormatText, move: mdiCursorMove, layers: mdiLayersOutline, desktop: mdiMonitor, phone: mdiCellphone, exportFile: mdiExport, importFile: mdiImport,
+  ellipse: mdiEllipseOutline, lineShape: mdiSlashForward, shapes: mdiShapeOutline, picture: mdiImageOutline,
   eyeOff: mdiEyeOffOutline, eyeFade: mdiEyeMinusOutline,
   floor: mdiFloorPlan, ruler: mdiRuler, addImage: mdiImagePlus, addPoint: mdiMapMarkerPlusOutline, placePanel: mdiViewGridPlusOutline, removeImage: mdiImageRemoveOutline, cable: mdiVectorLine,
 });

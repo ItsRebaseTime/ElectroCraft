@@ -68,3 +68,32 @@ export function patchAsset(item: Pick<Item, 'params' | 'bar'>): ParsedAsset {
   }
   return a;
 }
+
+/**
+ * An N / PE / phase bar along the top or bottom edge of a section: one flat strip of the bar's colour with a screw per
+ * terminal (like the US bars). The terminal ids are those of the tall DIN version: B# on a top bar, T# on a bottom bar.
+ */
+export function barStripSvg(edge: 'top' | 'bottom'): string {
+  const top = edge === 'top';
+  const name = top ? 'bottom' : 'top';
+  const dir = top ? 'down' : 'up';
+  return [
+    '<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 9 14" width="9" height="14">',
+    '<g data-scope="pole" data-layer="body">',
+    '<rect x="0" y="0.3" width="9" height="13.4" fill="{{role#hex}}"/>',
+    '<path d="M0 0.3h9M0 13.7h9" stroke="#4c5560" stroke-width="0.6"/>',
+    `<circle data-terminal="${name}" data-dir="${dir}" cx="4.5" cy="7" r="2.7" fill="#8f99a4" stroke="#4c5560" stroke-width="0.5"/>`,
+    '<path d="M3.1 7h2.8" stroke="#3b444d" stroke-width="0.7"/>',
+    '</g></svg>',
+  ].join('');
+}
+
+const stripCache = new Map<string, ParsedAsset>();
+export function barStripAsset(edge: 'top' | 'bottom'): ParsedAsset {
+  let a = stripCache.get(edge);
+  if (!a) {
+    a = parseAsset(barStripSvg(edge));
+    stripCache.set(edge, a);
+  }
+  return a;
+}

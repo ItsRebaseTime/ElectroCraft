@@ -1,6 +1,6 @@
 import { useRef } from 'react';
 import { loadFloorImage } from '../../io/floorImage';
-import { FLOOR_KINDS, FLOOR_MEDIA, createFloorPlan, mediumInfo, planSummary } from '../../model/floor';
+import { FLOOR_KINDS, FLOOR_MEDIA, FLOOR_SHAPES, createFloorPlan, mediumInfo, planSummary } from '../../model/floor';
 import { addPanel } from '../../store/actions';
 import { selectActivePanel, useStore } from '../../store/store';
 import { NumberField } from '../fields';
@@ -24,6 +24,7 @@ export function FloorTools({ className = 'tool' }: { className?: string }) {
       {btn('select', 'select', 'Select / move', 'V')}
       {btn('pan', 'pan', 'Pan', 'H')}
       {btn('point', 'addPoint', 'Place outlets')}
+      {btn('shape', 'shapes', 'Draw shapes (walls, rooms, notes)')}
       {btn('circuit', 'cable', 'Connect outlets with a cable and bring it to a panel')}
       {btn('panel', 'placePanel', 'Place a panel')}
       {btn('scale', 'ruler', 'Set the scale of the plan')}
@@ -106,6 +107,14 @@ export function FloorPalette({ onPicked }: { onPicked?: () => void }) {
 
         {plan && (
           <>
+            {plan.image && (
+              <div className="group">
+                <div className="group-head static">
+                  <Icon name="picture" size={16} /> Picture
+                  <VisCycle label="Floor plan picture" value={objVisibility(ui, plan.id, 'image')} onChange={(v) => ui.setObjVis(plan.id, 'image', v)} />
+                </div>
+              </div>
+            )}
             <div className="group">
               <div className="group-head static">
                 <Icon name="layers" size={16} /> Layers
@@ -151,6 +160,33 @@ export function FloorPalette({ onPicked }: { onPicked?: () => void }) {
                 ))}
               </div>
             ))}
+
+            <div className="group">
+              <div className="group-head static">
+                <Icon name="shapes" size={16} /> Shapes <span className="meta count">{plan.shapes.length || ''}</span>
+                <VisCycle label="Shapes" value={objVisibility(ui, plan.id, 'shapes')} onChange={(v) => ui.setObjVis(plan.id, 'shapes', v)} />
+              </div>
+              {FLOOR_SHAPES.map((s) => (
+                <div key={s.id} className="kind-row">
+                  <button
+                    className={`entry kind ${ui.tool === 'shape' && ui.shapeType === s.id ? 'sel' : ''}`}
+                    onClick={() => {
+                      ui.setShapeType(s.id);
+                      onPicked?.();
+                    }}
+                  >
+                    <span className="kind-glyph shape" aria-hidden>
+                      <Icon name={s.icon} size={20} />
+                    </span>
+                    <span className="entry-text">
+                      <span className="entry-name">{s.label}</span>
+                    </span>
+                    <Icon name="plus" size={16} />
+                  </button>
+                </div>
+              ))}
+              <p className="meta">{plan.shapes.length ? 'Drag on the plan to draw; select a shape to move or resize it.' : 'Draw walls, rooms and notes over the picture, in the layer of your choice.'}</p>
+            </div>
 
             <div className="group">
               <div className="group-head static">

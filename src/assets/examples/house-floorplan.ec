@@ -1453,7 +1453,7 @@
             "item": "igfophii",
             "terminal": "P0_0"
           },
-          "color": "orange",
+          "color": "green",
           "nodes": null,
           "section": 0.5,
           "label": "FO1.1"
@@ -1468,7 +1468,7 @@
             "item": "igfophii",
             "terminal": "P0_1"
           },
-          "color": "orange",
+          "color": "green",
           "nodes": null,
           "section": 0.5,
           "label": "FO1.2"

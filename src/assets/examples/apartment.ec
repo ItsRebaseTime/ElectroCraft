@@ -5,7 +5,7 @@
   "author": "ElectroCraft examples",
   "revision": "A",
   "created": "2026-11-20T20:44:49.427Z",
-  "modified": "2026-11-20T20:47:35.750Z",
+  "modified": "2026-11-21T09:25:17.516Z",
   "settings": {
     "markingStandard": "iec81346",
     "phaseColors": {
@@ -1877,7 +1877,7 @@
             "item": "ivelfooq",
             "terminal": "P0_0"
           },
-          "color": "orange",
+          "color": "green",
           "nodes": null,
           "section": 0.5,
           "label": "FO1"
@@ -2025,6 +2025,36 @@
         {
           "id": "ceiling",
           "name": "Ceiling"
+        }
+      ],
+      "shapes": [
+        {
+          "id": "s72sv8vg",
+          "type": "rect",
+          "x": 725,
+          "y": 65,
+          "w": 230,
+          "h": 330,
+          "stroke": "#2563eb",
+          "strokeWidth": 4,
+          "fill": "#3b82f6",
+          "fillOpacity": 0.14,
+          "layer": "floor"
+        },
+        {
+          "id": "sgyyxrq7",
+          "type": "text",
+          "x": 742,
+          "y": 175,
+          "w": 0,
+          "h": 0,
+          "stroke": "#1d4ed8",
+          "strokeWidth": 3,
+          "fill": "none",
+          "fillOpacity": 0.25,
+          "layer": "ceiling",
+          "text": "Wet area: IP44",
+          "fontSize": 20
         }
       ],
       "w": 1400,

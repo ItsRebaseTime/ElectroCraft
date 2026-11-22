@@ -1,11 +1,13 @@
 import { bridgesOf, getDef, isLibraryDef, isShippedDef, moduleById, optionList, POLE_CONFIG_LABELS, paramVisible, poleKinds } from '../model/defs';
-import { sectionGeometry, termKey } from '../model/geometry';
+import { layoutPanel, sectionGeometry, termKey } from '../model/geometry';
+import { COMB_PHASES, combPins, rowLinkPairs } from '../model/comb';
+import { allConnectors, connectorOf } from '../model/connectors';
 import { markingOf } from '../model/marking';
 import { colorByKey, potentialColorKey, WIRE_COLORS } from '../model/colors';
 import { floorsOf } from '../model/project';
 import { evalShow } from '../model/expr';
 import type { InputMode, Item, Panel, ParamDef, ParamValue, TerminalRef, Wire } from '../model/types';
-import { addRail, addSection, autoWirePatch, duplicateItems, findSectionBar, findSectionPatch, setSectionPatch, removeSection, renameSection, setRailSection, setSectionBar, moveRail, LINKED_ITEM_MESSAGE, removeItems, removeRail, removeWires, setBridges, setInputMode, setRailLength, setUsPhases, setUsRows, toggleBridge, toggleSwitch, updateItem } from '../store/actions';
+import { addRail, addSection, removeComb, removeRowLink, updateComb, updateRowLink, autoWirePatch, duplicateItems, findSectionBar, findSectionPatch, hasSectionBusBar, setSectionPatch, removeSection, renameSection, setRailSection, setSectionBar, moveRail, LINKED_ITEM_MESSAGE, removeItems, removeRail, removeWires, setBridges, setInputMode, setRailLength, setUsPhases, setUsRows, toggleBridge, toggleSwitch, updateItem } from '../store/actions';
 import { selectActivePanel, useStore } from '../store/store';
 import { useDiagram } from './DiagramContext';
 import { Field, NumberField, TextField } from './fields';
@@ -545,8 +547,8 @@ function SectionsEditor({ panel }: { panel: Panel }) {
             {BAR_CHOICES.map(({ edge, role }) => {
               const bar = findSectionBar(panel, g.id, edge, role);
               return (
-                <label key={`${edge}${role}`} className="check" title={`${role === 'PE' ? 'Earth (PE)' : 'Neutral (N)'} bar along the ${edge} of the enclosure`}>
-                  <input type="checkbox" checked={!!bar} onChange={(e) => mutate((d) => setSectionBar(panelIn(d, panel.id), g.id, edge, role, e.target.checked))} /> {role} {edge}
+                <label key={`${edge}${role}`} className="check" title={findSectionPatch(panel, g.id, edge) && !bar ? `The ${edge} edge has a keystone panel: switch it off to use bus bars here` : `${role === 'PE' ? 'Earth (PE)' : 'Neutral (N)'} bar along the ${edge} of the enclosure`}>
+                  <input type="checkbox" checked={!!bar} disabled={!bar && !!findSectionPatch(panel, g.id, edge)} onChange={(e) => mutate((d) => setSectionBar(panelIn(d, panel.id), g.id, edge, role, e.target.checked))} /> {role} {edge}
                   {bar && (
                     <button className="link" onClick={(ev) => (ev.preventDefault(), select({ kind: 'item', ids: [bar.id] }))}>
                       edit
@@ -568,8 +570,8 @@ function SectionsEditor({ panel }: { panel: Panel }) {
             };
             return (
               <div key={edge} className="patch-row">
-                <label className="check" title={`A keystone patch panel along the ${edge} of the enclosure, next to the bus bars`}>
-                  <input type="checkbox" checked={!!patch} onChange={(e) => mutate((d) => setSectionPatch(panelIn(d, panel.id), g.id, edge, e.target.checked))} /> Keystone panel {edge}
+                <label className="check" title={!patch && hasSectionBusBar(panel, g.id, edge) ? `The ${edge} edge has bus bars: switch them off to use a keystone panel here` : `A keystone patch panel along the ${edge} of the enclosure (not on an edge with bus bars)`}>
+                  <input type="checkbox" checked={!!patch} disabled={!patch && hasSectionBusBar(panel, g.id, edge)} onChange={(e) => mutate((d) => setSectionPatch(panelIn(d, panel.id), g.id, edge, e.target.checked))} /> Keystone panel {edge}
                   {patch && (
                     <button className="link" onClick={(ev) => (ev.preventDefault(), select({ kind: 'item', ids: [patch.id] }))}>
                       edit
@@ -703,10 +705,130 @@ function PanelProps() {
   );
 }
 
+function CombProps({ combId }: { combId: string }) {
+  const panel = useStore(selectActivePanel);
+  const project = useStore((st) => st.project);
+  const { mutate, select } = useStore.getState();
+  const comb = panel.combs?.find((c) => c.id === combId);
+  if (!comb) return null;
+  const layout = layoutPanel(panel);
+  const pins = combPins(panel, layout, comb).length;
+  return (
+    <div className="props">
+      <h3>{connectorOf(project, comb.def, 'comb', comb.phases).name}</h3>
+      <p className="desc">Joins the {comb.side === 'top' ? 'line' : 'load'} side terminals of neighbouring breakers, RCDs and isolators. {pins ? `${pins} pins.` : 'No device sits under it.'}</p>
+      <Field label="Part">
+        <select aria-label="Connector part" value={connectorOf(project, comb.def, 'comb', comb.phases).id} onChange={(e) => { const d = allConnectors(project).find((c) => c.id === e.target.value); if (d) mutate((x) => updateComb(panelIn(x, panel.id), comb.id, { def: d.id, phases: d.phases })); }}>
+          {allConnectors(project).filter((c) => c.kind === 'comb').map((c) => (
+            <option key={c.id} value={c.id}>
+              {c.name}
+            </option>
+          ))}
+        </select>
+      </Field>
+      <Field label="Phases">
+        <select value={comb.phases} onChange={(e) => mutate((d) => updateComb(panelIn(d, panel.id), comb.id, { phases: Number(e.target.value) as 1 | 2 | 3 | 4 }))}>
+          {COMB_PHASES.map((n) => (
+            <option key={n} value={n}>
+              {n === 1 ? '1 (one conductor)' : `${n} (pins take turns)`}
+            </option>
+          ))}
+        </select>
+      </Field>
+      <Field label="Side">
+        <select value={comb.side} onChange={(e) => mutate((d) => updateComb(panelIn(d, panel.id), comb.id, { side: e.target.value as 'top' | 'bottom' }))}>
+          <option value="top">Line side (top)</option>
+          <option value="bottom">Load side (bottom)</option>
+        </select>
+      </Field>
+      <label className="check">
+        <input type="checkbox" checked={comb.neutral !== false} onChange={(e) => mutate((d) => updateComb(panelIn(d, panel.id), comb.id, { neutral: e.target.checked }))} /> Neutral poles get a pin too
+      </label>
+      <Field label="Starts at module">
+        <NumberField value={comb.slot} min={0} max={60} step={1} onCommit={(v) => mutate((d) => updateComb(panelIn(d, panel.id), comb.id, { slot: v }))} />
+      </Field>
+      <Field label="Length (modules)">
+        <NumberField value={comb.modules} min={1} max={60} step={1} onCommit={(v) => mutate((d) => updateComb(panelIn(d, panel.id), comb.id, { modules: v }))} />
+      </Field>
+      <button
+        className="danger"
+        onClick={() => {
+          mutate((d) => removeComb(panelIn(d, panel.id), comb.id));
+          select({ kind: null, ids: [] });
+        }}
+      >
+        <Icon name="trash" size={16} /> Delete comb bar
+      </button>
+    </div>
+  );
+}
+
+function RowLinkProps({ linkId }: { linkId: string }) {
+  const panel = useStore(selectActivePanel);
+  const project = useStore((st) => st.project);
+  const { mutate, select, notify } = useStore.getState();
+  const link = panel.rowLinks?.find((k) => k.id === linkId);
+  if (!link) return null;
+  const rowLinkUpdate = (patch: Parameters<typeof updateRowLink>[2]) => {
+    let msg: string | null = null;
+    mutate((d) => {
+      msg = updateRowLink(panelIn(d, panel.id), link.id, patch);
+    });
+    if (msg) notify(msg, 'error');
+  };
+  const pairs = rowLinkPairs(panel, layoutPanel(panel), link).length;
+  return (
+    <div className="props">
+      <h3>{connectorOf(project, link.def, 'row', link.count).name}</h3>
+      <p className="desc">Joins the {link.side} terminals of the devices on this rail to the {link.side} terminals of the devices in the same columns on the rail below. {pairs} of {link.count} contacts have a device at both ends.</p>
+      <Field label="Part">
+        <select aria-label="Connector part" value={connectorOf(project, link.def, 'row', link.count).id} onChange={(e) => { const d = allConnectors(project).find((c) => c.id === e.target.value); if (d) rowLinkUpdate({ def: d.id, count: d.contacts, side: d.side }); }}>
+          {allConnectors(project).filter((c) => c.kind === 'row').map((c) => (
+            <option key={c.id} value={c.id}>
+              {c.name}
+            </option>
+          ))}
+        </select>
+      </Field>
+      <Field label="Joins">
+        <select value={link.side} onChange={(e) => rowLinkUpdate({ side: e.target.value as 'top' | 'bottom' })}>
+          <option value="top">Top to top (line side)</option>
+          <option value="bottom">Bottom to bottom (load side)</option>
+        </select>
+      </Field>
+      <Field label="Contacts">
+        <select value={link.count} onChange={(e) => rowLinkUpdate({ count: Number(e.target.value) as 1 | 2 | 3 | 4 })}>
+          {[1, 2, 3, 4].map((n) => (
+            <option key={n} value={n}>
+              {n}
+            </option>
+          ))}
+        </select>
+      </Field>
+      <label className="check">
+        <input type="checkbox" checked={link.neutral !== false} onChange={(e) => rowLinkUpdate({ neutral: e.target.checked })} /> Neutral poles are joined too
+      </label>
+      <Field label="Starts at module">
+        <NumberField value={link.slot} min={0} max={60} step={1} onCommit={(v) => rowLinkUpdate({ slot: v })} />
+      </Field>
+      <button
+        className="danger"
+        onClick={() => {
+          mutate((d) => removeRowLink(panelIn(d, panel.id), link.id));
+          select({ kind: null, ids: [] });
+        }}
+      >
+        <Icon name="trash" size={16} /> Delete row connector
+      </button>
+    </div>
+  );
+}
+
 export function Properties() {
   const selection = useStore((s) => s.selection);
   usePanelId();
-  if (selection.kind === 'item' && selection.ids.length === 1) return <ItemProps key={selection.ids[0]} itemId={selection.ids[0]} />;
+  if (selection.kind === 'item' && selection.ids.length === 1)
+    return <ItemProps key={selection.ids[0]} itemId={selection.ids[0]} />;
   if (selection.kind === 'item')
     return (
       <div className="props">
@@ -715,6 +837,8 @@ export function Properties() {
       </div>
     );
   if (selection.kind === 'wire') return <WireProps key={selection.ids[0]} wireId={selection.ids[0]} />;
+  if (selection.kind === 'link') return <RowLinkProps key={selection.ids[0]} linkId={selection.ids[0]} />;
+  if (selection.kind === 'comb') return <CombProps key={selection.ids[0]} combId={selection.ids[0]} />;
   if (selection.kind === 'rail') return <RailProps key={selection.ids[0]} railId={selection.ids[0]} />;
   return <PanelProps />;
 }

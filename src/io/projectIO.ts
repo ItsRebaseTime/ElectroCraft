@@ -1,5 +1,5 @@
 import { createProject, parseProject, serializeProject } from '../model/project';
-import { sampleProject, sampleUsProject } from '../model/sample';
+import { loadExampleText } from './examples';
 import { useStore } from '../store/store';
 import { ask } from '../ui/dialogs';
 import { EC_FILE, forgetHandle, openTextFile, saveFile } from './files';
@@ -16,16 +16,20 @@ export async function newProject() {
   useStore.getState().setProject(createProject(), null);
 }
 
-export async function loadSample() {
+/** Open one of the example projects shipped with the app (src/assets/examples). */
+export async function loadExample(id: string) {
   if (!(await discardOk())) return;
-  forgetHandle();
-  useStore.getState().setProject(sampleProject(), null);
-}
-
-export async function loadUsSample() {
-  if (!(await discardOk())) return;
-  forgetHandle();
-  useStore.getState().setProject(sampleUsProject(), null);
+  const st = useStore.getState();
+  try {
+    const text = await loadExampleText(id);
+    if (!text) throw new Error(`There is no example "${id}".`);
+    const { project, warnings } = parseProject(text);
+    forgetHandle();
+    st.setProject(project, null);
+    if (warnings.length) st.notify(warnings[0], 'error');
+  } catch (e) {
+    st.notify(`Could not open the example: ${(e as Error).message}`, 'error');
+  }
 }
 
 export async function openProject() {

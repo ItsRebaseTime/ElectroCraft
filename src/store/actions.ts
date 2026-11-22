@@ -3,12 +3,14 @@
 import { bridgesOf, getAsset, getDef, poleKinds } from '../model/defs';
 import {
   MODULE, STUB, RAIL_X0, barSectionId, sectionGeometry, sectionIdOfRail, sectionsOf, US_BAR_TILE, US_MAIN_Y, US_SPACE_H, enclosureRect, findSlot, isRailMounted, isUs, itemWidthModules, layoutPanel,
-  nearestRail, nearestUsColumn, termKey, usRowTop,
+  nearestRail, nearestUsColumn, railIndex, termKey, usRowTop,
 } from '../model/geometry';
 import { createItem, createPanel, createRail, createUsPanel, uid } from '../model/project';
 import { FLOOR_PORT } from '../model/floorSync';
 import { PATCH_ID, PATCH_PITCH_X, patchDims, patchPorts } from '../model/patch';
-import type { InputMode, Item, Panel, Project, Section, TerminalRef, Vec, Wire } from '../model/types';
+import { autoRowSide, isCombDef, railBelow, rowLinkOverlaps } from '../model/comb';
+import { allConnectors } from '../model/connectors';
+import type { CombBar, ConnectorDef, RowLink, InputMode, Item, Panel, Project, Section, TerminalRef, Vec, Wire } from '../model/types';
 
 const snap = (v: number, step: number) => Math.round(v / step) * step;
 
@@ -243,6 +245,8 @@ export function removeRail(panel: Panel, railId: string): string | null {
   const sec = sectionIdOfRail(panel, rail);
   if (panel.rails.filter((r) => sectionIdOfRail(panel, r) === sec).length <= 1) return 'A section needs at least one rail. Delete the section instead.';
   if (panel.items.some((i) => i.railId === railId)) return 'Remove or move the devices on this rail first.';
+  if (panel.combs) panel.combs = panel.combs.filter((c) => c.railId !== railId);
+  if (panel.rowLinks) panel.rowLinks = panel.rowLinks.filter((k) => k.railId !== railId && railBelow(panel, k.railId) !== railId);
   keepOutside(panel, () => void (panel.rails = panel.rails.filter((r) => r.id !== railId)));
   return null;
 }
@@ -349,8 +353,13 @@ function keepOutside(panel: Panel, change: () => void) {
 /** Switch a N or PE bar along the top or bottom edge of a section on or off. */
 export function setSectionBar(panel: Panel, sectionId: string, edge: 'top' | 'bottom', role: 'N' | 'PE', on: boolean) {
   if (isUs(panel)) return;
+  if (on && findSectionPatch(panel, sectionId, edge)) return; // a patch panel and bus bars do not share an edge
   keepOutside(panel, () => setBar(panel, sectionId, edge, role, on));
 }
+
+/** Whether a bus bar (N, PE ...) is along an edge of a section. */
+export const hasSectionBusBar = (panel: Panel, sectionId: string, edge: 'top' | 'bottom') =>
+  panel.items.some((i) => i.bar && i.bar.edge === edge && barSectionId(panel, i) === sectionId && getDef(i.defId)?.role === 'bus');
 
 /** The keystone patch panel along an edge of a section, if there is one. */
 export const findSectionPatch = (panel: Panel, sectionId: string, edge: 'top' | 'bottom') =>
@@ -359,6 +368,7 @@ export const findSectionPatch = (panel: Panel, sectionId: string, edge: 'top' | 
 /** Switch a keystone patch panel along the top or bottom edge of a section on or off. */
 export function setSectionPatch(panel: Panel, sectionId: string, edge: 'top' | 'bottom', on: boolean, rows = 2, cols?: number) {
   if (isUs(panel)) return;
+  if (on && hasSectionBusBar(panel, sectionId, edge)) return; // a patch panel and bus bars do not share an edge
   keepOutside(panel, () => {
     const have = findSectionPatch(panel, sectionId, edge);
     if (!on) {
@@ -374,7 +384,7 @@ export function setSectionPatch(panel: Panel, sectionId: string, edge: 'top' | '
 }
 
 /** Colour of the wire of a floor plan cable, by what it carries. */
-const FLOOR_CABLE_COLOR: Record<string, string> = { network: 'blue', coax: 'violet', audio: 'turquoise', fiber: 'orange', phone: 'grey', other: 'grey' };
+const FLOOR_CABLE_COLOR: Record<string, string> = { network: 'blue', coax: 'violet', audio: 'turquoise', fiber: 'green', phone: 'grey', other: 'grey' };
 
 /**
  * Wire the cables that come from the floor plan (the cable items of this panel that are not wired yet) to the free jacks of a
@@ -428,6 +438,19 @@ export function toggleBridge(panel: Panel, itemId: string, gap: number) {
   item.params.bridges = Array.from(set).sort((a, b) => a - b).join(',');
 }
 
+/** Set the comb bridges of gaps `lo..hi` on (or off), keeping the others as they were in `orig`. */
+export function setBridgeRange(panel: Panel, itemId: string, orig: number[], lo: number, hi: number, on: boolean) {
+  const item = panel.items.find((i) => i.id === itemId);
+  const def = item && getDef(item.defId);
+  if (!item || !def || def.role !== 'terminal') return;
+  const set = new Set(orig);
+  for (let g = lo; g <= hi; g++) {
+    if (on) set.add(g);
+    else set.delete(g);
+  }
+  item.params.bridges = Array.from(set).sort((a, b) => a - b).join(',');
+}
+
 export function setBridges(panel: Panel, itemId: string, all: boolean) {
   const item = panel.items.find((i) => i.id === itemId);
   const def = item && getDef(item.defId);
@@ -474,4 +497,204 @@ export function setInputMode(panel: Panel, itemId: string, inputId: string, mode
   if (mode) next[inputId] = mode;
   else delete next[inputId];
   item.inputModes = Object.keys(next).length ? next : undefined;
+}
+
+// ---- comb bars and row connectors (EU DIN devices)
+
+const combItems = (panel: Panel, ids: string[]): Item[] => ids.map((id) => panel.items.find((i) => i.id === id)).filter((i): i is Item => !!i);
+
+/**
+ * Add a comb bar across the selected devices, which must stand on one rail and be breakers, residual current devices or
+ * isolators. The bar covers them and the gaps between them.
+ */
+export function addComb(panel: Panel, itemIds: string[], phases: 1 | 2 | 3 | 4, side: 'top' | 'bottom' = 'top', def?: string, length?: number, neutral = true): string | CombBar {
+  if (isUs(panel)) return 'Comb bars are for DIN rails.';
+  const items = combItems(panel, itemIds);
+  if (!items.length) return 'Select the devices the comb bar goes across.';
+  if (items.some((i) => !isCombDef(i.defId) || i.bar)) return 'A comb bar fits breakers, RCDs and isolators only.';
+  const rail = items[0].railId;
+  if (!rail || items.some((i) => i.railId !== rail)) return 'The devices must be on the same rail.';
+  let lo = Infinity;
+  let hi = 0;
+  for (const it of items) {
+    const def = getDef(it.defId)!;
+    lo = Math.min(lo, it.slot ?? 0);
+    hi = Math.max(hi, (it.slot ?? 0) + itemWidthModules(it, def));
+  }
+  // a single device: the bar starts there and is as long as the part is (as far as the rail goes)
+  let modules = Math.max(1, Math.round(hi - lo));
+  if (items.length === 1 && length) modules = Math.max(modules, Math.min(length, Math.max(1, (panel.rails.find((r) => r.id === rail)?.modules ?? length) - lo)));
+  const comb: CombBar = { id: uid('c'), railId: rail, slot: lo, modules, phases, side, ...(def ? { def } : {}), ...(neutral ? {} : { neutral: false }) };
+  (panel.combs ??= []).push(comb);
+  return comb;
+}
+
+export function updateComb(panel: Panel, id: string, patch: Partial<Pick<CombBar, 'phases' | 'side' | 'slot' | 'modules' | 'def' | 'neutral'>>) {
+  const c = panel.combs?.find((x) => x.id === id);
+  if (!c) return;
+  if (patch.phases) c.phases = patch.phases;
+  if (patch.def !== undefined) c.def = patch.def || undefined;
+  if (patch.neutral !== undefined) {
+    if (patch.neutral) delete c.neutral;
+    else c.neutral = false;
+  }
+  if (patch.side) c.side = patch.side;
+  if (patch.slot !== undefined) c.slot = Math.max(0, Math.round(patch.slot));
+  if (patch.modules !== undefined) c.modules = Math.max(1, Math.round(patch.modules));
+}
+
+export function removeComb(panel: Panel, id: string) {
+  panel.combs = (panel.combs ?? []).filter((c) => c.id !== id);
+  if (!panel.combs.length) delete panel.combs;
+}
+
+/** Add a row connector from the top (or bottom) terminals of devices on `railId` to the same side of those in the same columns on the rail below. */
+export function addRowLink(panel: Panel, railId: string, slot: number, count: 1 | 2 | 3 | 4, side: 'top' | 'bottom' = 'top', def?: string, neutral = true): string | RowLink {
+  if (isUs(panel)) return 'Row connectors are for DIN rails.';
+  if (!panel.rails.some((r) => r.id === railId)) return 'Rail not found.';
+  if (!railBelow(panel, railId)) return 'There is no rail below this one.';
+  const link: RowLink = { id: uid('k'), railId, slot: Math.max(0, Math.round(slot)), count, side, ...(def ? { def } : {}), ...(neutral ? {} : { neutral: false }) };
+  if (rowLinkOverlaps(panel, link)) return 'A row connector does not fit there: two cannot cover the same columns between the same rails, and below a module with a row connector the only possible one is top to top above and bottom to bottom below. Move or remove the other one first.';
+  (panel.rowLinks ??= []).push(link);
+  return link;
+}
+
+export function updateRowLink(panel: Panel, id: string, patch: Partial<Pick<RowLink, 'count' | 'slot' | 'side' | 'def' | 'neutral'>>): string | null {
+  const k = panel.rowLinks?.find((x) => x.id === id);
+  if (!k) return null;
+  const next = { railId: k.railId, slot: patch.slot !== undefined ? Math.max(0, Math.round(patch.slot)) : k.slot, count: patch.count ?? k.count, side: patch.side ?? k.side };
+  if (rowLinkOverlaps(panel, next, id)) return 'A row connector does not fit there: two cannot cover the same columns between the same rails, and a module in the middle takes top to top above it and bottom to bottom below it, nothing else.';
+  k.slot = next.slot;
+  k.count = next.count;
+  k.side = next.side;
+  if (patch.def !== undefined) k.def = patch.def || undefined;
+  if (patch.neutral !== undefined) {
+    if (patch.neutral) delete k.neutral;
+    else k.neutral = false;
+  }
+  return null;
+}
+
+export function removeRowLink(panel: Panel, id: string) {
+  panel.rowLinks = (panel.rowLinks ?? []).filter((k) => k.id !== id);
+  if (!panel.rowLinks.length) delete panel.rowLinks;
+}
+
+/**
+ * Put a connector part on the devices: a comb bar across the selected devices (or from a single device on as far as the
+ * part is long), a row connector from the first device down to the rail below.
+ */
+export function placeConnector(panel: Panel, def: ConnectorDef, itemIds: string[]): string | CombBar | RowLink {
+  if (def.kind === 'comb') return addComb(panel, itemIds, def.phases, 'top', def.id, def.length, def.neutral);
+  const items = itemIds.map((id) => panel.items.find((i) => i.id === id)).filter((i): i is Item => !!i);
+  if (!items.length) return 'Select a device first.';
+  if (items.some((i) => !isCombDef(i.defId) || i.bar)) return 'A row connector fits breakers, RCDs and isolators only.';
+  const rail = items[0].railId;
+  if (!rail || items.some((i) => i.railId !== rail)) return 'The devices must be on the same rail.';
+  const slot = Math.min(...items.map((i) => i.slot ?? 0));
+  // under a top-to-top connector the only one that fits is bottom to bottom (and the other way round)
+  return addRowLink(panel, rail, slot, def.contacts, autoRowSide(panel, rail, slot, def.contacts, def.side), def.id, def.neutral);
+}
+
+// ---- the user's own connector parts (stored in the project)
+
+/** Add or replace a custom connector part. */
+export function saveConnector(project: Project, def: ConnectorDef) {
+  const list = (project.connectors ??= []);
+  const i = list.findIndex((c) => c.id === def.id);
+  if (i >= 0) list[i] = def;
+  else list.push(def);
+}
+
+/** A copy of a connector part under a new name (built-in or custom). */
+export function duplicateConnector(project: Project, id: string): ConnectorDef | null {
+  const src = allConnectors(project).find((c) => c.id === id);
+  if (!src) return null;
+  const copy: ConnectorDef = { ...src, id: uid('cn'), name: `${src.name} copy` };
+  saveConnector(project, copy);
+  return copy;
+}
+
+/** Remove a custom connector part; the bars and connectors made from it stay and fall back to the built-in look. */
+export function deleteConnector(project: Project, id: string) {
+  project.connectors = (project.connectors ?? []).filter((c) => c.id !== id);
+}
+
+/** How many comb bars and row connectors of the project are made from a connector part. */
+export function connectorUsage(project: Project, id: string): number {
+  return project.panels.reduce((n, p) => n + (p.combs ?? []).filter((c) => c.def === id).length + (p.rowLinks ?? []).filter((k) => k.def === id).length, 0);
+}
+
+// ---- copy and paste of devices (Ctrl+C / Ctrl+V)
+
+/** A copied device with where it stood relative to the first copied one. */
+export interface PanelClipEntry {
+  item: Item;
+  /** Rails below (or above) the first copied rail device. */
+  dRow: number;
+  /** Modules (or breaker spaces) from the first copied rail device. */
+  dSlot: number;
+  /** Diagram units from the first copied free device. */
+  dx: number;
+  dy: number;
+}
+
+/** What Ctrl+C takes: the selected devices (no section bars, no devices made from the floor plan), without their wires. */
+export function copyItems(panel: Panel, ids: string[]): PanelClipEntry[] {
+  const items = ids.map((id) => panel.items.find((i) => i.id === id)).filter((i): i is Item => !!i && !i.bar && !i.link && !!getDef(i.defId));
+  const rail = items.filter((i) => isRailMounted(getDef(i.defId)!)).sort((a, b) => railIndex(panel, a.railId) - railIndex(panel, b.railId) || (a.slot ?? 0) - (b.slot ?? 0))[0];
+  const free = items.filter((i) => !isRailMounted(getDef(i.defId)!)).sort((a, b) => a.y - b.y || a.x - b.x)[0];
+  return items.map((it) => ({
+    item: structuredClone(it),
+    dRow: isRailMounted(getDef(it.defId)!) && rail ? railIndex(panel, it.railId) - railIndex(panel, rail.railId) : 0,
+    dSlot: isRailMounted(getDef(it.defId)!) && rail ? (it.slot ?? 0) - (rail.slot ?? 0) : 0,
+    dx: !isRailMounted(getDef(it.defId)!) && free ? it.x - free.x : 0,
+    dy: !isRailMounted(getDef(it.defId)!) && free ? it.y - free.y : 0,
+  }));
+}
+
+/**
+ * Paste copied devices where `at` (diagram space, the mouse) is: a device on a rail goes to the free place closest to the
+ * pointer on the rail nearest to it, the others of a group keep their distances (rows below, modules apart); free devices
+ * keep their offsets. Returns the ids of the new devices.
+ */
+export function pasteItems(panel: Panel, clip: PanelClipEntry[], at: Vec): string[] {
+  const out: string[] = [];
+  const us = isUs(panel);
+  const geoms = sectionGeometry(panel);
+  const near = us ? null : nearestRail(panel, at.x, at.y);
+  const sec = near ? geoms.find((g) => g.rails.some((r) => r.id === near.railId)) : null;
+  // the first rail device is centred on the pointer, the rest follow it
+  let anchorSlot: number | null = null;
+  for (const e of clip) {
+    const def = getDef(e.item.defId);
+    if (!def || e.item.bar || e.item.link) continue;
+    const copy: Item = { ...structuredClone(e.item), id: uid('i'), marking: undefined };
+    if (def.mount === 'din') {
+      if (!near || !sec) continue;
+      const w = itemWidthModules(e.item, def);
+      if (anchorSlot === null) anchorSlot = Math.round(((at.x - near.x0) / MODULE - w / 2) * 2) / 2;
+      const rail = sec.rails[Math.max(0, Math.min(sec.rails.length - 1, near.index + e.dRow))];
+      const slot = findSlot(panel, rail.id, anchorSlot + e.dSlot, w);
+      if (slot === null) continue;
+      copy.railId = rail.id;
+      copy.slot = slot;
+    } else if (def.mount === 'us') {
+      const col = nearestUsColumn(panel, at.x);
+      if (!col) continue;
+      const w = itemWidthModules(e.item, def);
+      if (anchorSlot === null) anchorSlot = Math.round((at.y - usRowTop(0)) / US_SPACE_H - w / 2);
+      const rail = panel.rails[Math.max(0, Math.min(panel.rails.length - 1, col.index + e.dRow))];
+      const slot = findSlot(panel, rail.id, anchorSlot + e.dSlot, w);
+      if (slot === null) continue;
+      copy.railId = rail.id;
+      copy.slot = slot;
+    } else {
+      copy.x = Math.round((at.x + e.dx) / 5) * 5;
+      copy.y = Math.round((at.y + e.dy) / 5) * 5;
+    }
+    panel.items.push(copy);
+    out.push(copy.id);
+  }
+  return out;
 }

@@ -3,6 +3,7 @@ import { Builder, By, until, Key } from 'selenium-webdriver';
 import firefox from 'selenium-webdriver/firefox.js';
 import { mkdirSync, readFileSync, readdirSync, rmSync, writeFileSync } from 'node:fs';
 import { tmpdir } from 'node:os';
+import { SAMPLE_HOUSE } from './fixtures.mjs';
 
 const BASE = process.env.URL ?? 'http://localhost:4173/';
 const OUT = process.env.E2E_OUT ?? `${tmpdir()}/electrocraft-e2e/out`;
@@ -33,7 +34,7 @@ const dragOn = async (d, el, x0, y0, x1, y1) => {
 let d = await build(1600, 1000);
 try {
   await d.get(BASE + '?e2e');
-  await d.executeScript('localStorage.clear()');
+  await d.executeScript('localStorage.setItem("electrocraft.autosave", arguments[0])', SAMPLE_HOUSE);
   await d.get(BASE + '?e2e');
   await d.wait(until.elementLocated(By.css('.canvas g[data-hit^="i:"]')), 15000);
   await sleep(500);

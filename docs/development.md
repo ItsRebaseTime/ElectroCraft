@@ -43,6 +43,7 @@ Keep the working copy on a local disk: `node_modules` is slow and fragile on net
   sheets),
 * `modules`: designing, drawing, saving, placing, exporting and importing custom modules, desktop and phone,
 * `relays`: wired relay circuits (control relay follows its coil, impulse relay toggles and latches, reset),
+* `combs`: comb bars and row connectors (the Connectors group, drag and drop, the designer, Ctrl+C / Ctrl+V of devices),
 * `us-panel`: the US load center (sample, simulation, dragging between spaces and columns, AWG, creating a panel, PDF).
 
 ```bash
@@ -53,7 +54,7 @@ npm run test:e2e
 
 `node e2e/screenshots.mjs` regenerates the images in [images/](images), including the phone and module designer shots (it also
 needs `pdftoppm` from poppler).
-The example projects in [examples/](examples) are the inputs for those screenshots.
+The example projects in [src/assets/examples](../src/assets/examples) are the inputs for those screenshots (and they ship with the app: see the README there). The end-to-end tests start from `sample-house.ec` (`e2e/fixtures.mjs`), since the app opens the apartment on a first start.
 
 ## Adding a device
 

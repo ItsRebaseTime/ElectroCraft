@@ -5,6 +5,7 @@ import { Builder, By, Key, until } from 'selenium-webdriver';
 import firefox from 'selenium-webdriver/firefox.js';
 import { tmpdir } from 'node:os';
 import { mkdirSync, readdirSync, rmSync, writeFileSync } from 'node:fs';
+import { SAMPLE_HOUSE } from './fixtures.mjs';
 
 const URL = process.env.URL ?? 'http://localhost:4173/';
 const OUT = process.env.E2E_OUT ?? `${tmpdir()}/electrocraft-e2e/out`;
@@ -53,7 +54,7 @@ async function dragTo(from, to) {
 
 try {
   await driver.get(URL);
-  await driver.executeScript('localStorage.clear()');
+  await driver.executeScript('localStorage.setItem("electrocraft.autosave", arguments[0])', SAMPLE_HOUSE);
   await driver.get(URL); // fresh: sample project
   await driver.wait(until.elementLocated(By.css('.canvas g[data-hit^="i:"]')), 10000);
   await sleep(600);

@@ -5,7 +5,7 @@ import { circuitCables, circuitOf } from './floor';
 import { layoutPanel, termKey } from './geometry';
 import { parseProject } from './project';
 
-const dir = 'docs/examples/';
+const dir = 'src/assets/examples/';
 const files = readdirSync(dir).filter((f) => f.endsWith('.ec'));
 
 describe('the example projects', () => {

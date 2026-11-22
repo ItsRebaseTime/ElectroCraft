@@ -1,13 +1,13 @@
 import { useCallback, useEffect, useRef, useState, type PointerEvent as RPointerEvent } from 'react';
 import {
   addBendToCircuit, addFloorPoint, addPointToCircuit, attachHub, attachPanel, circuitLayer, circuitRoutes, insertRouteBend, moveRouteBend, orthogonal, removeRouteBend, type BendRef, circuitMetres, circuitOf, pointPhases, circuitPaths, circuitTopology, layerIndex, pointLayer, createFloorPlan, floorKind, mediumInfo, placeFloorPanel, planSize, pointCount,
-  removeFloorCircuit, removeFloorMarker, removeFloorPoint, startFloorCircuit,
+  removeFloorCircuit, removeFloorMarker, removeFloorPoint, startFloorCircuit, addFloorShape, normalizeFloorShape, removeFloorShape, shapeBounds, shapeLayer, DEFAULT_SHAPE_SIZE, shapeInfo,
 } from '../../model/floor';
-import type { FloorCircuit, FloorPanelMarker, FloorPlan, FloorPoint, Project, Vec } from '../../model/types';
+import type { FloorCircuit, FloorPanelMarker, FloorPlan, FloorPoint, FloorShape, Project, Vec } from '../../model/types';
 import { useStore } from '../../store/store';
 import { Icon, iconPath } from '../Icon';
 import { copySelectedOutlets, pasteOutlets } from './floorClipboard';
-import { activePlan, circuitVisibility, markerVisibility, NONE, pointVisibility, selectedIds, useFloorUI, type FloorViewport } from './floorState';
+import { activePlan, circuitVisibility, imageVisibility, markerVisibility, NONE, pointVisibility, selectedIds, shapeVisibility, useFloorUI, type FloorViewport } from './floorState';
 
 const MIN_Z = 0.05;
 const MAX_Z = 10;
@@ -16,6 +16,9 @@ const CLICK_SLOP = 6;
 type Drag =
   | { type: 'pan'; sx: number; sy: number; vx: number; vy: number; moved: boolean }
   | { type: 'move'; kind: 'point' | 'marker'; id: string; sx: number; sy: number; ox: number; oy: number; started: boolean; group?: { id: string; x: number; y: number }[] }
+  // shapes: moved (all the selected ones), or resized by a handle (a new shape is 'fresh' until it has a size)
+  | { type: 'shapemove'; start: { id: string; x: number; y: number }[]; sx: number; sy: number; started: boolean }
+  | { type: 'shaperesize'; id: string; handle: string; orig: { x: number; y: number; w: number; h: number }; sx: number; sy: number; started: boolean; fresh: boolean }
   // a box dragged over empty space (Ctrl or Shift held) to select the outlets inside it
   | { type: 'marquee'; sx: number; sy: number; a: Vec; additive: boolean; moved: boolean }
   // a bend of the selected cable being moved, and a new bend being pulled out of a run (it becomes a 'bend' drag once it exists)
@@ -114,6 +117,60 @@ function PanelMarker({ marker, name, r, selected }: { marker: FloorPanelMarker; 
         {name}
       </text>
       <title>{marker.panelId}</title>
+    </g>
+  );
+}
+
+/** The new geometry of a shape whose handle is dragged to `pt`. Rectangles and ellipses are kept positive; lines snap to the axes. */
+function resizedShape(type: FloorShape['type'], orig: { x: number; y: number; w: number; h: number }, handle: string, pt: Vec, z: number) {
+  if (type === 'line') {
+    const [ax, ay, bx, by] = handle === 'a' ? [pt.x, pt.y, orig.x + orig.w, orig.y + orig.h] : [orig.x, orig.y, pt.x, pt.y];
+    let w = bx - ax;
+    let h = by - ay;
+    if (Math.abs(h) < 6 / z) h = 0; // a wall that is nearly level or upright becomes level or upright
+    if (Math.abs(w) < 6 / z) w = 0;
+    return { x: Math.round(ax), y: Math.round(ay), w: Math.round(w), h: Math.round(h) };
+  }
+  const left = Math.min(orig.x, orig.x + orig.w);
+  const top = Math.min(orig.y, orig.y + orig.h);
+  const right = left + Math.abs(orig.w);
+  const bottom = top + Math.abs(orig.h);
+  const fx = handle.includes('w') ? right : left; // the corner opposite to the handle stays
+  const fy = handle.includes('n') ? bottom : top;
+  return { x: Math.round(Math.min(fx, pt.x)), y: Math.round(Math.min(fy, pt.y)), w: Math.round(Math.abs(pt.x - fx)), h: Math.round(Math.abs(pt.y - fy)) };
+}
+
+/** A shape drawn on the plan; a wide invisible copy of its outline (or of its inside, when filled) is what can be clicked. */
+function ShapeView({ s, k, selected, faded }: { s: FloorShape; k: number; selected: boolean; faded: boolean }) {
+  const filled = s.fill !== 'none' && (s.type === 'rect' || s.type === 'ellipse');
+  const hitW = Math.max(s.strokeWidth, 12 * k);
+  const paint = { fill: filled ? s.fill : 'none', fillOpacity: s.fillOpacity, stroke: s.stroke, strokeWidth: s.strokeWidth };
+  const hit = filled ? { fill: 'transparent', pointerEvents: 'all' as const } : { fill: 'none', stroke: 'transparent', strokeWidth: hitW, pointerEvents: 'stroke' as const };
+  const b = shapeBounds(s);
+  let body;
+  let hitEl;
+  if (s.type === 'rect') {
+    body = <rect x={s.x} y={s.y} width={Math.abs(s.w)} height={Math.abs(s.h)} {...paint} />;
+    hitEl = <rect x={s.x} y={s.y} width={Math.abs(s.w)} height={Math.abs(s.h)} {...hit} />;
+  } else if (s.type === 'ellipse') {
+    body = <ellipse cx={s.x + s.w / 2} cy={s.y + s.h / 2} rx={Math.abs(s.w) / 2} ry={Math.abs(s.h) / 2} {...paint} />;
+    hitEl = <ellipse cx={s.x + s.w / 2} cy={s.y + s.h / 2} rx={Math.abs(s.w) / 2} ry={Math.abs(s.h) / 2} {...hit} />;
+  } else if (s.type === 'line') {
+    body = <line x1={s.x} y1={s.y} x2={s.x + s.w} y2={s.y + s.h} stroke={s.stroke} strokeWidth={s.strokeWidth} strokeLinecap="round" />;
+    hitEl = <line x1={s.x} y1={s.y} x2={s.x + s.w} y2={s.y + s.h} stroke="transparent" strokeWidth={hitW} strokeLinecap="round" pointerEvents="stroke" />;
+  } else {
+    body = (
+      <text x={s.x} y={s.y} fontSize={s.fontSize ?? 28} dominantBaseline="central" fill={s.stroke} fontFamily="Helvetica, Arial, sans-serif" style={{ userSelect: 'none' }}>
+        {s.text}
+      </text>
+    );
+    hitEl = <rect x={b.x} y={b.y} width={b.w} height={b.h} fill="transparent" pointerEvents="all" />;
+  }
+  return (
+    <g opacity={faded && !selected ? 0.28 : undefined} {...{ 'data-hit': `sh:${s.id}` }}>
+      {body}
+      {hitEl}
+      {selected && <rect x={b.x - 4 * k} y={b.y - 4 * k} width={b.w + 8 * k} height={b.h + 8 * k} fill="none" stroke="#1d4ed8" strokeWidth={1.4 * k} strokeDasharray={`${5 * k} ${3 * k}`} pointerEvents="none" />}
     </g>
   );
 }
@@ -233,7 +290,8 @@ export function FloorEditor() {
     const p = selKind === 'point' ? plan.points.find((x) => x.id === selId) : undefined;
     const c = selKind === 'circuit' ? plan.circuits.find((x) => x.id === selId) : undefined;
     const m = selKind === 'marker' ? plan.panels.find((x) => x.id === selId) : undefined;
-    if ((p && pointVisibility(u, plan, p) === 'hide') || (c && circuitVisibility(u, plan, c) === 'hide') || (m && markerVisibility(u, plan, m) === 'hide')) u.select(NONE);
+    const sh = selKind === 'shape' ? plan.shapes.find((x) => x.id === selId) : undefined;
+    if ((sh && shapeVisibility(u, plan, sh) === 'hide') || (p && pointVisibility(u, plan, p) === 'hide') || (c && circuitVisibility(u, plan, c) === 'hide') || (m && markerVisibility(u, plan, m) === 'hide')) u.select(NONE);
   }, [plan, selKind, selId, ui.layerVis, ui.objVis]);
 
   // ---- keyboard
@@ -248,7 +306,7 @@ export function FloorEditor() {
         e.preventDefault();
         selectAll();
       } else if (mod && e.key.toLowerCase() === 'c') {
-        if (selectedIds(u.selection).length && u.selection.kind === 'point') {
+        if (selectedIds(u.selection).length && (u.selection.kind === 'point' || u.selection.kind === 'shape')) {
           e.preventDefault();
           copySelection();
         }
@@ -307,7 +365,8 @@ export function FloorEditor() {
     if (!s.id) return;
     const ids = selectedIds(s);
     edit((p) => {
-      if (s.kind === 'point') for (const id of ids) removeFloorPoint(p, id);
+      if (s.kind === 'shape') for (const id of ids) removeFloorShape(p, id);
+      else if (s.kind === 'point') for (const id of ids) removeFloorPoint(p, id);
       else if (s.kind === 'marker') removeFloorMarker(p, s.id!);
       else if (s.kind === 'circuit') removeFloorCircuit(p, s.id!);
     });
@@ -348,6 +407,51 @@ export function FloorEditor() {
           hit.kind === 'n'
             ? { type: 'bend', cid, ref: { list: a.list, key: a.key, index: a.index }, sx: e.clientX, sy: e.clientY, ox: a.x, oy: a.y, started: false }
             : { type: 'newbend', cid, pi: Number(pi), ai: Number(ai), sx: e.clientX, sy: e.clientY, started: false };
+        return;
+      }
+    }
+    // drawing a shape: it is created where the pointer goes down and sized by dragging
+    if (!panning && u.tool === 'shape') {
+      const at = toPlan(e.clientX, e.clientY);
+      let id = '';
+      edit((pl) => {
+        id = addFloorShape(pl, u.shapeType, at.x, at.y, 0, 0, u.activeLayer[pl.id]).id;
+      });
+      useFloorUI.getState().select({ kind: 'shape', id, ids: [id] });
+      if (u.shapeType === 'text') {
+        dragRef.current = null;
+        downAt.current = null;
+        useFloorUI.getState().setTool('select'); // type the text in the properties
+        return;
+      }
+      dragRef.current = { type: 'shaperesize', id, handle: u.shapeType === 'line' ? 'b' : 'se', orig: { x: Math.round(at.x), y: Math.round(at.y), w: 0, h: 0 }, sx: e.clientX, sy: e.clientY, started: true, fresh: true };
+      return;
+    }
+    // the handles of the selected shape
+    if (!panning && hit?.kind === 'shh' && u.tool === 'select') {
+      const [sid, handle] = hit.id.split(':');
+      const sh = plan.shapes.find((x) => x.id === sid);
+      if (sh) {
+        dragRef.current = { type: 'shaperesize', id: sid, handle, orig: { x: sh.x, y: sh.y, w: sh.w, h: sh.h }, sx: e.clientX, sy: e.clientY, started: false, fresh: false };
+        return;
+      }
+    }
+    // a shape: select it (Ctrl or Shift adds it to the selection) and drag to move
+    if (!panning && hit?.kind === 'sh' && u.tool === 'select') {
+      const sh = plan.shapes.find((x) => x.id === hit.id);
+      if (sh) {
+        const fl = useFloorUI.getState();
+        const current = fl.selection.kind === 'shape' ? selectedIds(fl.selection) : [];
+        if (additive) {
+          const ids = current.includes(sh.id) ? current.filter((x) => x !== sh.id) : [...current, sh.id];
+          fl.select(ids.length ? { kind: 'shape', id: ids[ids.length - 1], ids } : NONE);
+          dragRef.current = null;
+          downAt.current = null;
+          return;
+        }
+        const group = current.length > 1 && current.includes(sh.id) ? current : [sh.id];
+        if (group.length === 1) fl.select({ kind: 'shape', id: sh.id, ids: [sh.id] });
+        dragRef.current = { type: 'shapemove', start: plan.shapes.filter((q) => group.includes(q.id)).map((q) => ({ id: q.id, x: q.x, y: q.y })), sx: e.clientX, sy: e.clientY, started: false };
         return;
       }
     }
@@ -406,6 +510,39 @@ export function FloorEditor() {
     if (u.tool === 'circuit' || u.tool === 'scale') setCursor(pointerAt.current);
     const d = dragRef.current;
     if (!d) return;
+    if (d.type === 'shapemove') {
+      const dx = e.clientX - d.sx;
+      const dy = e.clientY - d.sy;
+      if (!d.started) {
+        if (Math.hypot(dx, dy) < CLICK_SLOP) return;
+        d.started = true;
+        useStore.getState().checkpoint();
+      }
+      const z = vpRef.current.z;
+      edit((p) => {
+        for (const s of d.start) {
+          const q = p.shapes.find((x) => x.id === s.id);
+          if (q) {
+            q.x = Math.round(s.x + dx / z);
+            q.y = Math.round(s.y + dy / z);
+          }
+        }
+      }, false);
+      return;
+    }
+    if (d.type === 'shaperesize') {
+      if (!d.started) {
+        if (Math.hypot(e.clientX - d.sx, e.clientY - d.sy) < CLICK_SLOP) return;
+        d.started = true;
+        useStore.getState().checkpoint();
+      }
+      const pt = toPlan(e.clientX, e.clientY);
+      edit((p) => {
+        const q = p.shapes.find((x) => x.id === d.id);
+        if (q) Object.assign(q, resizedShape(q.type, d.orig, d.handle, pt, vpRef.current.z));
+      }, false);
+      return;
+    }
     if (d.type === 'marquee') {
       if (!d.moved && Math.hypot(e.clientX - d.sx, e.clientY - d.sy) < CLICK_SLOP) return;
       d.moved = true;
@@ -477,6 +614,17 @@ export function FloorEditor() {
     const down = downAt.current;
     dragRef.current = null;
     downAt.current = null;
+    if (d?.type === 'shapemove') return;
+    if (d?.type === 'shaperesize') {
+      // a new shape that was only clicked gets the usual size; the others are turned the right way round
+      edit((p) => {
+        const q = p.shapes.find((x) => x.id === d.id);
+        if (!q) return;
+        if (d.fresh && Math.abs(q.w) < 8 && Math.abs(q.h) < 8) Object.assign(q, DEFAULT_SHAPE_SIZE[q.type]);
+        normalizeFloorShape(q);
+      }, false);
+      return;
+    }
     if (d?.type === 'marquee') {
       setMarquee(null);
       if (plan && d.moved) {
@@ -620,8 +768,11 @@ export function FloorEditor() {
   const showLabels = vp.z >= 0.45;
   const sel = ui.selection;
   const selSet = new Set(sel.kind === 'point' ? selectedIds(sel) : []);
+  const selShapes = new Set(sel.kind === 'shape' ? selectedIds(sel) : []);
+  const shownShapes = plan.shapes.filter((s) => shapeVisibility(ui, plan, s) !== 'hide').sort((a, b) => layerIndex(plan, shapeLayer(plan, a)) - layerIndex(plan, shapeLayer(plan, b)));
+  const picture = imageVisibility(ui, plan);
   // layers: hidden ones are not drawn (and cannot be clicked), faded ones are drawn light; the stack is drawn bottom to top
-  const shownCircuits = plan.circuits.filter((c) => circuitVisibility(ui, plan, c) !== 'hide').sort((a, b) => layerIndex(plan, circuitLayer(plan, a)) - layerIndex(plan, circuitLayer(plan, b)));
+  const shownCircuits = plan.circuits.filter((c) => circuitVisibility(ui, plan, c) !== 'hide').sort((a, b) => layerIndex(plan, circuitLayer(plan, a)) - layerIndex(plan, circuitLayer(plan, b)) || Number(sel.kind === 'circuit' && sel.id === a.id) - Number(sel.kind === 'circuit' && sel.id === b.id)); // the selected cable is drawn last (on top of the other cables)
   const shownPoints = plan.points.filter((p) => pointVisibility(ui, plan, p) !== 'hide').sort((a, b) => layerIndex(plan, pointLayer(plan, a)) - layerIndex(plan, pointLayer(plan, b)));
   const drawing = plan.circuits.find((c) => c.id === ui.circuitId);
   const lastNode = (c: FloorCircuit): Vec | null => {
@@ -669,7 +820,12 @@ export function FloorEditor() {
         </defs>
         <g transform={`translate(${vp.x} ${vp.y}) scale(${vp.z})`}>
           <rect x={0} y={0} width={w} height={h} fill="#ffffff" stroke="#9aa4af" strokeWidth={k} />
-          {plan.image ? <image href={plan.image.data} x={0} y={0} width={w} height={h} preserveAspectRatio="none" /> : <rect x={0} y={0} width={w} height={h} fill="url(#floor-grid)" />}
+          {plan.image && picture !== 'hide' ? <image href={plan.image.data} x={0} y={0} width={w} height={h} preserveAspectRatio="none" opacity={picture === 'fade' ? 0.28 : undefined} /> : <rect x={0} y={0} width={w} height={h} fill="url(#floor-grid)" />}
+
+          {/* shapes: walls, rooms and notes, below the cables */}
+          {shownShapes.map((s) => (
+            <ShapeView key={s.id} s={s} k={k} selected={selShapes.has(s.id)} faded={shapeVisibility(ui, plan, s) === 'fade'} />
+          ))}
 
           {/* cables */}
           {shownCircuits.map((c) => {
@@ -739,6 +895,24 @@ export function FloorEditor() {
             </g>
           ))}
 
+          {/* the handles of the selected shape: corners of a rectangle or ellipse, ends of a line */}
+          {sel.kind === 'shape' && selShapes.size === 1 && ui.tool === 'select' &&
+            (() => {
+              const s = plan.shapes.find((x) => x.id === sel.id);
+              if (!s || s.type === 'text' || shapeVisibility(ui, plan, s) === 'hide') return null;
+              const spots: [string, number, number][] =
+                s.type === 'line'
+                  ? [['a', s.x, s.y], ['b', s.x + s.w, s.y + s.h]]
+                  : [['nw', s.x, s.y], ['ne', s.x + s.w, s.y], ['sw', s.x, s.y + s.h], ['se', s.x + s.w, s.y + s.h]];
+              return (
+                <g>
+                  {spots.map(([hd, hx, hy]) => (
+                    <rect key={hd} x={hx - 5 * k} y={hy - 5 * k} width={10 * k} height={10 * k} rx={2 * k} fill="#ffffff" stroke="#1d4ed8" strokeWidth={1.8 * k} style={{ cursor: hd === 'nw' || hd === 'se' ? 'nwse-resize' : hd === 'ne' || hd === 'sw' ? 'nesw-resize' : 'move' }} {...{ 'data-hit': `shh:${s.id}:${hd}` }} />
+                  ))}
+                </g>
+              );
+            })()}
+
           {/* the selected cable: handles on its bends, and a grab point on every run to pull a new bend out of */}
           {sel.kind === 'circuit' && (ui.tool === 'select' || ui.tool === 'circuit') &&
             (() => {
@@ -800,6 +974,7 @@ export function FloorEditor() {
           {selSet.size} outlets selected: drag to move them, Ctrl+C to copy, Delete to remove. Ctrl+click adds or removes one.
         </div>
       )}
+      {ui.tool === 'shape' && <div className="floor-hint">{ui.shapeType === 'text' ? 'Click the plan to place a text, then type it in the properties.' : `Drag on the plan to draw: ${shapeInfo(ui.shapeType).label}. Click for the usual size.`}</div>}
       {ui.tool === 'point' && <div className="floor-hint">Click the plan to place: {floorKind(ui.kind).label}.</div>}
       {ui.tool === 'panel' && <div className="floor-hint">Click the plan to place the panel.</div>}
       {ui.tool === 'scale' && <div className="floor-hint">{ui.scaleDraft?.b ? 'Enter the real distance in the properties panel.' : ui.scaleDraft ? 'Click the other end of something you know the length of.' : 'Click one end of something you know the length of (a wall, a door).'}</div>}

@@ -4,6 +4,7 @@ import { Builder, By, until } from 'selenium-webdriver';
 import firefox from 'selenium-webdriver/firefox.js';
 import { mkdirSync, writeFileSync } from 'node:fs';
 import { tmpdir } from 'node:os';
+import { SAMPLE_HOUSE } from './fixtures.mjs';
 
 const BASE = process.env.URL ?? 'http://localhost:4173/';
 const OUT = process.env.E2E_OUT ?? `${tmpdir()}/electrocraft-e2e/out`;
@@ -17,7 +18,7 @@ const click = async (d, xp) => { await (await d.findElement(By.xpath(xp))).click
 const d = await new Builder().forBrowser('firefox').setFirefoxOptions(new firefox.Options().addArguments('-headless').windowSize({ width: 1600, height: 950 })).build();
 try {
   await d.get(BASE);
-  await d.executeScript('localStorage.clear()');
+  await d.executeScript('localStorage.setItem("electrocraft.autosave", arguments[0])', SAMPLE_HOUSE);
   await d.get(BASE);
   await d.wait(until.elementLocated(By.css('.canvas g[data-hit^="i:"]')), 15000);
   await sleep(600);

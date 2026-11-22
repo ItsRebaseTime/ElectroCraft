@@ -1,4 +1,4 @@
-import { FLOOR_KINDS, FLOOR_MEDIA, floorKind, mediumInfo } from '../../model/floor';
+import { FLOOR_KINDS, FLOOR_MEDIA, floorKind, mediumInfo, shapeInfo } from '../../model/floor';
 import type { FloorPlan } from '../../model/types';
 import { Icon } from '../Icon';
 import { FloorLayers } from './FloorLayers';
@@ -51,14 +51,23 @@ export function FloorVisibility({ plan }: { plan: FloorPlan }) {
   const media = FLOOR_MEDIA.filter((m) => plan.circuits.some((c) => c.medium === m.id));
   return (
     <div className="viewopts floor-vis">
+      {plan.image && (
+        <>
+          <div className="menu-heading">Picture</div>
+          <div className="wirevis">{row('image', 'Floor plan picture')}</div>
+        </>
+      )}
       <div className="menu-heading">Layers</div>
       <FloorLayers plan={plan} />
       {kinds.length > 0 && <div className="menu-heading">Outlets</div>}
       <div className="wirevis">{kinds.map((k) => row(`kind:${k.id}`, k.label, `${plan.points.filter((p) => p.kind === k.id).length}`))}</div>
       {media.length > 0 && <div className="menu-heading">Cables</div>}
       <div className="wirevis">{media.map((m) => row(`medium:${m.id}`, `${m.label} cables`, `${plan.circuits.filter((c) => c.medium === m.id).length}`))}</div>
-      <div className="menu-heading">Panels</div>
-      <div className="wirevis">{row('panels', 'Panels')}</div>
+      <div className="menu-heading">Panels and shapes</div>
+      <div className="wirevis">
+        {row('panels', 'Panels')}
+        {row('shapes', 'Shapes', `${plan.shapes.length}`)}
+      </div>
       <div className="menu-pad">
         <button
           className="small"
@@ -83,6 +92,8 @@ export function HiddenObjects({ plan }: { plan: FloorPlan }) {
     if (p) return `${p.label} (${floorKind(p.kind).label})`;
     const c = plan.circuits.find((x) => x.id === id);
     if (c) return `${c.name} (${mediumInfo(c.medium).label.toLowerCase()} cable)`;
+    const sh = plan.shapes.find((x) => x.id === id);
+    if (sh) return `${shapeInfo(sh.type).label.split(' ')[0]} shape${sh.type === 'text' && sh.text ? ` "${sh.text.slice(0, 20)}"` : ''}`;
     return plan.panels.some((m) => m.id === id) ? 'A panel' : null;
   };
   const items = Object.entries(ui.objVis)

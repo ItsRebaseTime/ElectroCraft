@@ -1,6 +1,6 @@
 import { describe, expect, it } from 'vitest';
 import {
-  addBendToCircuit, circuitPhases, pointPhases, ampChannelsUsed, attachHub, attachPanel, circuitHub, copyFloorPoints, pasteFloorPoints, circuitRoutes, insertRouteBend, moveRouteBend, removeRouteBend, addFloorLayer, addFloorPoint, circuitLayer, defaultLayerFor, layerContents, moveFloorLayer, pointLayer, removeFloorLayer, renameFloorLayer, resolveLayer, addPointToCircuit, circuitCables, circuitMetres, circuitPaths, circuitWatts, createFloorPlan, movePointInCircuit, placeFloorPanel, planSummary,
+  addBendToCircuit, addFloorShape, copyFloorShapes, normalizeFloorShape, pasteFloorShapes, removeFloorShape, shapeBounds, shapeLayer, circuitPhases, pointPhases, ampChannelsUsed, attachHub, attachPanel, circuitHub, copyFloorPoints, pasteFloorPoints, circuitRoutes, insertRouteBend, moveRouteBend, removeRouteBend, addFloorLayer, addFloorPoint, circuitLayer, defaultLayerFor, layerContents, moveFloorLayer, pointLayer, removeFloorLayer, renameFloorLayer, resolveLayer, addPointToCircuit, circuitCables, circuitMetres, circuitPaths, circuitWatts, createFloorPlan, movePointInCircuit, placeFloorPanel, planSummary,
   removeFloorCircuit, removeFloorMarker, removeFloorPoint, removePointFromCircuit, sanitizeFloorPlans, setCircuitFeed, startFloorCircuit,
 } from './floor';
 import { FLOOR_PORT, floorLinkOf, syncFloorLinks } from './floorSync';
@@ -685,5 +685,64 @@ describe('phases of appliances', () => {
     expect(pasteFloorPoints(plan, copyFloorPoints(plan, [a.id]), 5, 5)[0].phases).toBe(2);
     const back = parseProject(serializeProject(project)).project.floorPlans[0];
     expect(back.points.find((p) => p.id === a.id)!.phases).toBe(2);
+  });
+});
+
+describe('shapes on a floor plan', () => {
+  it('rectangles, ellipses, lines and text, on the walls layer unless told otherwise', () => {
+    const plan = createFloorPlan('F');
+    const r = addFloorShape(plan, 'rect', 10, 20, 100, 50);
+    const t = addFloorShape(plan, 'text', 5, 5, 0, 0, 'ceiling');
+    const l = addFloorShape(plan, 'line', 0, 0, 200, 0);
+    expect(r).toMatchObject({ type: 'rect', fill: 'none', strokeWidth: 3 });
+    expect(shapeLayer(plan, r)).toBe('walls');
+    expect(shapeLayer(plan, t)).toBe('ceiling');
+    expect(t).toMatchObject({ text: 'Text', fontSize: 28 });
+    expect(l.strokeWidth).toBe(6);
+    expect(plan.shapes).toHaveLength(3);
+    removeFloorShape(plan, r.id);
+    expect(plan.shapes).toHaveLength(2);
+  });
+
+  it('a shape drawn backwards is turned the right way round; lines keep their direction', () => {
+    const plan = createFloorPlan('F');
+    const r = addFloorShape(plan, 'rect', 100, 100, -40, -30);
+    normalizeFloorShape(r);
+    expect(r).toMatchObject({ x: 60, y: 70, w: 40, h: 30 });
+    const l = addFloorShape(plan, 'line', 100, 100, -40, -30);
+    normalizeFloorShape(l);
+    expect(l).toMatchObject({ x: 100, y: 100, w: -40, h: -30 });
+    expect(shapeBounds(l)).toEqual({ x: 60, y: 70, w: 40, h: 30 });
+    expect(shapeBounds(addFloorShape(plan, 'text', 10, 50)).x).toBe(10);
+  });
+
+  it('move to the layer below with their layer, and can be copied and pasted', () => {
+    const plan = createFloorPlan('F');
+    const s = addFloorShape(plan, 'ellipse', 0, 0, 50, 50, 'ceiling');
+    expect(removeFloorLayer(plan, 'ceiling')).toBeNull();
+    expect(shapeLayer(plan, s)).toBe('walls');
+    const clip = copyFloorShapes(plan, [s.id]);
+    const [copy] = pasteFloorShapes(plan, clip, 30, 40);
+    expect(copy).toMatchObject({ type: 'ellipse', x: 30, y: 40, w: 50 });
+    expect(copy.id).not.toBe(s.id);
+    copy.stroke = '#ff0000';
+    expect(s.stroke).toBe('#1f2937');
+    const other = createFloorPlan('Other');
+    other.layers = [{ id: 'only', name: 'Only' }];
+    expect(pasteFloorShapes(other, clip, 0, 0)[0].layer).toBe('only');
+  });
+
+  it('survive a file; bad shapes and colours are repaired', () => {
+    const { project, plan } = rig();
+    addFloorShape(plan, 'rect', 1, 2, 30, 40).fill = '#ccddee';
+    const back = parseProject(serializeProject(project)).project.floorPlans[0];
+    expect(back.shapes[0]).toMatchObject({ type: 'rect', x: 1, y: 2, w: 30, h: 40, fill: '#ccddee' });
+    const raw = JSON.parse(JSON.stringify(plan));
+    raw.shapes = [{ id: 'a', type: 'rect', x: 10, y: 10, w: -20, h: 5, stroke: 'javascript:1', fill: 'red', layer: 'gone' }, { id: 'b', type: 'star' }, 'junk', { id: 'c', type: 'text', text: 'x'.repeat(500) }];
+    const fixed = sanitizeFloorPlans([raw])[0].shapes;
+    expect(fixed).toHaveLength(2);
+    expect(fixed[0]).toMatchObject({ x: -10, w: 20, h: 5, stroke: '#1f2937', fill: 'none', layer: 'walls' });
+    expect(fixed[1].text).toHaveLength(200);
+    expect(sanitizeFloorPlans([{ id: 'old', points: [] }])[0].shapes).toEqual([]); // old files
   });
 });

@@ -6,6 +6,7 @@ import { mkdirSync, readFileSync, writeFileSync } from 'node:fs';
 import { tmpdir } from 'node:os';
 import { fileURLToPath } from 'node:url';
 import { dirname, join } from 'node:path';
+import { SAMPLE_HOUSE } from './fixtures.mjs';
 
 const BASE = process.env.URL ?? 'http://localhost:4173/';
 const OUT = process.env.E2E_OUT ?? `${tmpdir()}/electrocraft-e2e/out`;
@@ -34,7 +35,7 @@ const o = new firefox.Options().addArguments('-headless').windowSize({ width: 16
 const d = await new Builder().forBrowser('firefox').setFirefoxOptions(o).build();
 try {
   await d.get(BASE);
-  await d.executeScript('localStorage.clear()');
+  await d.executeScript('localStorage.setItem("electrocraft.autosave", arguments[0])', SAMPLE_HOUSE);
   await d.get(BASE);
   await d.wait(until.elementLocated(By.css('.canvas g[data-hit^="i:"]')), 15000);
   await sleep(500);
@@ -320,6 +321,65 @@ try {
   const hobCircuit = st.floorPlans[0].circuits.find((c) => c.nodes.some((n) => n.point === hob.id));
   check('and so does the load that appears in the panel', st.panels[0].items.some((i) => i.link?.circuit === hobCircuit.id && i.params.phases === 3 && i.params.kind === 'heater'));
 
+  // shapes: draw a rectangle, a line and a text; move, resize, copy and hide them; fade and hide the picture
+  const shapesNow = async () => (await state(d)).floorPlans[0].shapes;
+  const drag = async (from, to) => {
+    const [ax, ay] = await screenAt(...from);
+    const [bx, by] = await screenAt(...to);
+    await d.actions({ async: true }).move({ x: ax, y: ay }).press().move({ x: Math.round((ax + bx) / 2), y: Math.round((ay + by) / 2), duration: 100 }).move({ x: bx, y: by, duration: 100 }).release().perform();
+    await sleep(400);
+  };
+  await click(d, "//button[contains(@class,'kind')][contains(., 'Rectangle')]");
+  await drag([1060, 250], [1260, 340]);
+  let shp = await shapesNow();
+  check('a rectangle is drawn by dragging on the plan', shp.length === 1 && shp[0].type === 'rect' && shp[0].w > 150 && shp[0].h > 60, JSON.stringify(shp[0]));
+  const rectId = shp[0].id;
+  await click(d, "//button[@aria-label='Select / move']");
+  const cornerHandle = await d.findElement(By.css(`svg.floor-canvas [data-hit="shh:${rectId}:se"]`));
+  const hr = await cornerHandle.getRect();
+  await d.actions({ async: true }).move({ x: Math.round(hr.x + hr.width / 2), y: Math.round(hr.y + hr.height / 2) }).press().move({ x: Math.round(hr.x + hr.width / 2) + 30, y: Math.round(hr.y + hr.height / 2) + 30, duration: 100 }).release().perform();
+  await sleep(400);
+  const grown = (await shapesNow())[0];
+  check('its corner handle resizes it', grown.w > shp[0].w && grown.h > shp[0].h, `${shp[0].w}x${shp[0].h} -> ${grown.w}x${grown.h}`);
+  await d.executeScript(`const el = Array.from(document.querySelectorAll('.props input[type=color]')).find((e) => e.getAttribute('aria-label') === 'Outline colour');
+    Object.getOwnPropertyDescriptor(HTMLInputElement.prototype, 'value').set.call(el, '#dc2626'); el.dispatchEvent(new Event('input', { bubbles: true }));`);
+  await sleep(300);
+  check('its outline colour can be changed in the properties', (await shapesNow())[0].stroke === '#dc2626');
+  await pressCtrl('c');
+  await pressCtrl('v');
+  check('Ctrl+C and Ctrl+V copy a shape', (await shapesNow()).length === 2 && /1? ?shape|Rectangle/i.test(await selectedText()));
+  await d.findElement(By.css('body')).sendKeys(Key.DELETE);
+  await sleep(300);
+  check('and Delete removes the selected shape', (await shapesNow()).length === 1);
+  await click(d, "//button[contains(@class,'kind')][contains(., 'Line')]");
+  await clickPlan(d, 300, 700);
+  shp = await shapesNow();
+  const line = shp.find((q) => q.type === 'line');
+  check('clicking with the line tool draws a level line of the usual length', !!line && line.w === 160 && line.h === 0, JSON.stringify(line));
+  await click(d, "//button[contains(@class,'kind')][contains(., 'Text')]");
+  await clickPlan(d, 700, 780);
+  await d.executeScript(`const el = document.querySelector('.props textarea'); el.focus();
+    Object.getOwnPropertyDescriptor(HTMLTextAreaElement.prototype, 'value').set.call(el, 'Bike storage'); el.dispatchEvent(new Event('input', { bubbles: true })); el.blur();`);
+  await sleep(400);
+  check('a text is placed and typed in the properties', (await shapesNow()).some((q) => q.type === 'text' && q.text === 'Bike storage'));
+  const shapeGroups = async () => (await d.findElements(By.css('svg.floor-canvas g[data-hit^="sh:"]'))).length;
+  const nShapes = await shapeGroups();
+  await d.findElement(By.css('body')).sendKeys(Key.ESCAPE);
+  await click(d, "//button[@aria-label='Shapes: shown']");
+  await click(d, "//button[@aria-label='Shapes: faded']");
+  check('all shapes can be hidden at once', nShapes === 3 && (await shapeGroups()) === 0, `${nShapes} -> ${await shapeGroups()}`);
+  await click(d, "//button[@aria-label='Shapes: hidden']");
+  check('and shown again', (await shapeGroups()) === 3);
+  const picture = async () => (await d.findElements(By.css('svg.floor-canvas image'))).length;
+  await click(d, "//button[@aria-label='Floor plan picture: shown']");
+  const pictureOpacity = await d.executeScript(`return document.querySelector('svg.floor-canvas image')?.getAttribute('opacity')`);
+  check('the picture of the plan can be faded', pictureOpacity === '0.28', String(pictureOpacity));
+  await click(d, "//button[@aria-label='Floor plan picture: faded']");
+  check('and hidden: the plan is a blank sheet with the outlets and shapes on it', (await picture()) === 0 && (await shapeGroups()) === 3);
+  await click(d, "//button[@aria-label='Floor plan picture: hidden']");
+  check('and shown again', (await picture()) === 1);
+  writeFileSync(`${OUT}/floor-shapes.png`, await d.takeScreenshot(), 'base64');
+
   // data outlets: one cable per port, never chained
   await setCount(2);
   await click(d, "//button[contains(@class,'kind')][contains(., 'Network outlet')]");
@@ -361,7 +421,7 @@ mo.setPreference('general.useragent.override', IPHONE);
 const m = await new Builder().forBrowser('firefox').setFirefoxOptions(mo).build();
 try {
   await m.get(BASE);
-  await m.executeScript('localStorage.setItem("electrocraft.autosave", arguments[0])', readFileSync(join(ROOT, 'docs/examples/house-floorplan.ec'), 'utf8'));
+  await m.executeScript('localStorage.setItem("electrocraft.autosave", arguments[0])', readFileSync(join(ROOT, 'src/assets/examples/house-floorplan.ec'), 'utf8'));
   await m.get(BASE);
   await m.navigate().refresh();
   await m.wait(until.elementLocated(By.css('.m-app')), 15000);
