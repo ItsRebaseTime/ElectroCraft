@@ -1,0 +1,711 @@
+{
+  "format": "electrocraft-modules",
+  "version": 1,
+  "modules": [
+    {
+      "id": "waveshare-esp32-s3-relay-6ch",
+      "name": "Waveshare ESP32-S3-Relay-6CH",
+      "description": "Industrial ESP32-S3 relay module: 6 relays (NO COM NC, 10 A), isolated RS485, Pico HAT header, 7-36 V. 122 x 88 mm DIN case (the size is given as 145 x 90 elsewhere).",
+      "designation": "A",
+      "widthModules": 7.0,
+      "widthMm": 122,
+      "heightMm": 88,
+      "color": "#18181a",
+      "stroke": "#69747f",
+      "rating": {
+        "In": 0,
+        "Un": 24
+      },
+      "behaviour": "isolated",
+      "switchable": false,
+      "trips": false,
+      "switches": [
+        {
+          "id": "s1",
+          "name": "K6",
+          "no": [
+            "B0_1",
+            "B0_0"
+          ],
+          "nc": [
+            "B0_1",
+            "B0_2"
+          ],
+          "visible": false,
+          "x": 14,
+          "y": 56
+        },
+        {
+          "id": "s2",
+          "name": "K5",
+          "no": [
+            "B0_4",
+            "B0_3"
+          ],
+          "nc": [
+            "B0_4",
+            "B0_5"
+          ],
+          "visible": false,
+          "x": 33,
+          "y": 56
+        },
+        {
+          "id": "s3",
+          "name": "K4",
+          "no": [
+            "B0_7",
+            "B0_6"
+          ],
+          "nc": [
+            "B0_7",
+            "B0_8"
+          ],
+          "visible": false,
+          "x": 52,
+          "y": 56
+        },
+        {
+          "id": "s4",
+          "name": "K3",
+          "no": [
+            "B0_10",
+            "B0_9"
+          ],
+          "nc": [
+            "B0_10",
+            "B0_11"
+          ],
+          "visible": false,
+          "x": 70,
+          "y": 56
+        },
+        {
+          "id": "s5",
+          "name": "K2",
+          "no": [
+            "B0_13",
+            "B0_12"
+          ],
+          "nc": [
+            "B0_13",
+            "B0_14"
+          ],
+          "visible": false,
+          "x": 89,
+          "y": 56
+        },
+        {
+          "id": "s6",
+          "name": "K1",
+          "no": [
+            "B0_16",
+            "B0_15"
+          ],
+          "nc": [
+            "B0_16",
+            "B0_17"
+          ],
+          "visible": false,
+          "x": 108,
+          "y": 56
+        }
+      ],
+      "inputs": [],
+      "top": {
+        "rows": 1,
+        "cols": 5,
+        "box": {
+          "x": 5,
+          "y": 0,
+          "w": 38,
+          "h": 11.5
+        },
+        "sizes": [
+          2.5
+        ]
+      },
+      "bottom": {
+        "rows": 1,
+        "cols": 18,
+        "box": {
+          "x": 5,
+          "y": 76.5,
+          "w": 112,
+          "h": 11.5
+        },
+        "sizes": [
+          2.5
+        ]
+      },
+      "terminals": [
+        {
+          "id": "T0_0",
+          "side": "top",
+          "row": 0,
+          "col": 0,
+          "label": "PE",
+          "net": "solo:T0_0"
+        },
+        {
+          "id": "T0_1",
+          "side": "top",
+          "row": 0,
+          "col": 1,
+          "label": "B-",
+          "net": "solo:T0_1"
+        },
+        {
+          "id": "T0_2",
+          "side": "top",
+          "row": 0,
+          "col": 2,
+          "label": "A+",
+          "net": "solo:T0_2"
+        },
+        {
+          "id": "T0_3",
+          "side": "top",
+          "row": 0,
+          "col": 3,
+          "label": "-",
+          "net": "solo:T0_3"
+        },
+        {
+          "id": "T0_4",
+          "side": "top",
+          "row": 0,
+          "col": 4,
+          "label": "+",
+          "net": "solo:T0_4"
+        },
+        {
+          "id": "B0_0",
+          "side": "bottom",
+          "row": 0,
+          "col": 0,
+          "label": "NO",
+          "net": "solo:B0_0"
+        },
+        {
+          "id": "B0_1",
+          "side": "bottom",
+          "row": 0,
+          "col": 1,
+          "label": "COM",
+          "net": "solo:B0_1"
+        },
+        {
+          "id": "B0_2",
+          "side": "bottom",
+          "row": 0,
+          "col": 2,
+          "label": "NC",
+          "net": "solo:B0_2"
+        },
+        {
+          "id": "B0_3",
+          "side": "bottom",
+          "row": 0,
+          "col": 3,
+          "label": "NO",
+          "net": "solo:B0_3"
+        },
+        {
+          "id": "B0_4",
+          "side": "bottom",
+          "row": 0,
+          "col": 4,
+          "label": "COM",
+          "net": "solo:B0_4"
+        },
+        {
+          "id": "B0_5",
+          "side": "bottom",
+          "row": 0,
+          "col": 5,
+          "label": "NC",
+          "net": "solo:B0_5"
+        },
+        {
+          "id": "B0_6",
+          "side": "bottom",
+          "row": 0,
+          "col": 6,
+          "label": "NO",
+          "net": "solo:B0_6"
+        },
+        {
+          "id": "B0_7",
+          "side": "bottom",
+          "row": 0,
+          "col": 7,
+          "label": "COM",
+          "net": "solo:B0_7"
+        },
+        {
+          "id": "B0_8",
+          "side": "bottom",
+          "row": 0,
+          "col": 8,
+          "label": "NC",
+          "net": "solo:B0_8"
+        },
+        {
+          "id": "B0_9",
+          "side": "bottom",
+          "row": 0,
+          "col": 9,
+          "label": "NO",
+          "net": "solo:B0_9"
+        },
+        {
+          "id": "B0_10",
+          "side": "bottom",
+          "row": 0,
+          "col": 10,
+          "label": "COM",
+          "net": "solo:B0_10"
+        },
+        {
+          "id": "B0_11",
+          "side": "bottom",
+          "row": 0,
+          "col": 11,
+          "label": "NC",
+          "net": "solo:B0_11"
+        },
+        {
+          "id": "B0_12",
+          "side": "bottom",
+          "row": 0,
+          "col": 12,
+          "label": "NO",
+          "net": "solo:B0_12"
+        },
+        {
+          "id": "B0_13",
+          "side": "bottom",
+          "row": 0,
+          "col": 13,
+          "label": "COM",
+          "net": "solo:B0_13"
+        },
+        {
+          "id": "B0_14",
+          "side": "bottom",
+          "row": 0,
+          "col": 14,
+          "label": "NC",
+          "net": "solo:B0_14"
+        },
+        {
+          "id": "B0_15",
+          "side": "bottom",
+          "row": 0,
+          "col": 15,
+          "label": "NO",
+          "net": "solo:B0_15"
+        },
+        {
+          "id": "B0_16",
+          "side": "bottom",
+          "row": 0,
+          "col": 16,
+          "label": "COM",
+          "net": "solo:B0_16"
+        },
+        {
+          "id": "B0_17",
+          "side": "bottom",
+          "row": 0,
+          "col": 17,
+          "label": "NC",
+          "net": "solo:B0_17"
+        }
+      ],
+      "shapes": [
+        {
+          "id": "szhmptiw5",
+          "name": "Terminal block",
+          "type": "rect",
+          "x": 3.8,
+          "y": 0.6,
+          "w": 40.4,
+          "h": 11.5,
+          "r": 4,
+          "rx": 0.8,
+          "fill": "#62b94a",
+          "stroke": "none",
+          "strokeWidth": 0.3,
+          "opacity": 1,
+          "text": "",
+          "fontSize": 4,
+          "show": "always",
+          "activeWhen": "never",
+          "activeFill": "#3ddc5a"
+        },
+        {
+          "id": "s968d6voj",
+          "name": "Terminal block",
+          "type": "rect",
+          "x": 3.8,
+          "y": 75.9,
+          "w": 114.4,
+          "h": 11.5,
+          "r": 4,
+          "rx": 0.8,
+          "fill": "#62b94a",
+          "stroke": "none",
+          "strokeWidth": 0.3,
+          "opacity": 1,
+          "text": "",
+          "fontSize": 4,
+          "show": "always",
+          "activeWhen": "never",
+          "activeFill": "#3ddc5a"
+        },
+        {
+          "id": "sneb3jrh9",
+          "name": "Logo",
+          "type": "text",
+          "x": 61.0,
+          "y": 26,
+          "w": 10,
+          "h": 8,
+          "r": 4,
+          "rx": 0.8,
+          "fill": "#ffffff",
+          "stroke": "none",
+          "strokeWidth": 0.3,
+          "opacity": 1,
+          "text": "WAVESHARE",
+          "fontSize": 5.0,
+          "show": "always",
+          "activeWhen": "never",
+          "activeFill": "#d1342f"
+        },
+        {
+          "id": "sxiozyzn2",
+          "name": "Tagline",
+          "type": "text",
+          "x": 61.0,
+          "y": 30.2,
+          "w": 10,
+          "h": 8,
+          "r": 4,
+          "rx": 0.8,
+          "fill": "#9aa4af",
+          "stroke": "none",
+          "strokeWidth": 0.3,
+          "opacity": 1,
+          "text": "share awesome hardware",
+          "fontSize": 1.9,
+          "show": "always",
+          "activeWhen": "never",
+          "activeFill": "#d1342f"
+        },
+        {
+          "id": "ssybvq9l5",
+          "name": "Model",
+          "type": "text",
+          "x": 61.0,
+          "y": 36.5,
+          "w": 10,
+          "h": 8,
+          "r": 4,
+          "rx": 0.8,
+          "fill": "#e8eaee",
+          "stroke": "none",
+          "strokeWidth": 0.3,
+          "opacity": 1,
+          "text": "ESP32-S3-Relay-6CH",
+          "fontSize": 3.4,
+          "show": "always",
+          "activeWhen": "never",
+          "activeFill": "#d1342f"
+        },
+        {
+          "id": "s1fb2zo4f",
+          "name": "Chip RS485",
+          "type": "rect",
+          "x": 5,
+          "y": 13.5,
+          "w": 13,
+          "h": 6.5,
+          "r": 4,
+          "rx": 0.8,
+          "fill": "#3b9fe6",
+          "stroke": "none",
+          "strokeWidth": 0.3,
+          "opacity": 1,
+          "text": "",
+          "fontSize": 4,
+          "show": "always",
+          "activeWhen": "never",
+          "activeFill": "#3ddc5a"
+        },
+        {
+          "id": "sdywy8gts",
+          "name": "Chip label RS485",
+          "type": "text",
+          "x": 11.5,
+          "y": 18.3,
+          "w": 10,
+          "h": 8,
+          "r": 4,
+          "rx": 0.8,
+          "fill": "#ffffff",
+          "stroke": "none",
+          "strokeWidth": 0.3,
+          "opacity": 1,
+          "text": "RS485",
+          "fontSize": 2.0,
+          "show": "always",
+          "activeWhen": "never",
+          "activeFill": "#d1342f"
+        },
+        {
+          "id": "svx3zz9k7",
+          "name": "Chip power",
+          "type": "rect",
+          "x": 20,
+          "y": 13.5,
+          "w": 9,
+          "h": 6.5,
+          "r": 4,
+          "rx": 0.8,
+          "fill": "#3b9fe6",
+          "stroke": "none",
+          "strokeWidth": 0.3,
+          "opacity": 1,
+          "text": "",
+          "fontSize": 4,
+          "show": "always",
+          "activeWhen": "never",
+          "activeFill": "#3ddc5a"
+        },
+        {
+          "id": "s6x6oz399",
+          "name": "Chip label power",
+          "type": "text",
+          "x": 24.5,
+          "y": 18.3,
+          "w": 10,
+          "h": 8,
+          "r": 4,
+          "rx": 0.8,
+          "fill": "#ffffff",
+          "stroke": "none",
+          "strokeWidth": 0.3,
+          "opacity": 1,
+          "text": "7~36V",
+          "fontSize": 2.0,
+          "show": "always",
+          "activeWhen": "never",
+          "activeFill": "#d1342f"
+        },
+        {
+          "id": "s0c0a41os",
+          "name": "Chip USB",
+          "type": "rect",
+          "x": 70,
+          "y": 13.5,
+          "w": 11,
+          "h": 9,
+          "r": 4,
+          "rx": 0.8,
+          "fill": "#3b9fe6",
+          "stroke": "none",
+          "strokeWidth": 0.3,
+          "opacity": 1,
+          "text": "",
+          "fontSize": 4,
+          "show": "always",
+          "activeWhen": "never",
+          "activeFill": "#3ddc5a"
+        },
+        {
+          "id": "s8rtqgkw4",
+          "name": "Chip label USB",
+          "type": "text",
+          "x": 75.5,
+          "y": 19.8,
+          "w": 10,
+          "h": 8,
+          "r": 4,
+          "rx": 0.8,
+          "fill": "#ffffff",
+          "stroke": "none",
+          "strokeWidth": 0.3,
+          "opacity": 1,
+          "text": "USB",
+          "fontSize": 2.0,
+          "show": "always",
+          "activeWhen": "never",
+          "activeFill": "#d1342f"
+        },
+        {
+          "id": "sgtde9tlc",
+          "name": "Chip ANT",
+          "type": "rect",
+          "x": 83,
+          "y": 13.5,
+          "w": 11,
+          "h": 9,
+          "r": 4,
+          "rx": 0.8,
+          "fill": "#3b9fe6",
+          "stroke": "none",
+          "strokeWidth": 0.3,
+          "opacity": 1,
+          "text": "",
+          "fontSize": 4,
+          "show": "always",
+          "activeWhen": "never",
+          "activeFill": "#3ddc5a"
+        },
+        {
+          "id": "ssy4tj3ll",
+          "name": "Chip label ANT",
+          "type": "text",
+          "x": 88.5,
+          "y": 19.8,
+          "w": 10,
+          "h": 8,
+          "r": 4,
+          "rx": 0.8,
+          "fill": "#ffffff",
+          "stroke": "none",
+          "strokeWidth": 0.3,
+          "opacity": 1,
+          "text": "ANT",
+          "fontSize": 2.0,
+          "show": "always",
+          "activeWhen": "never",
+          "activeFill": "#d1342f"
+        },
+        {
+          "id": "suml8emi4",
+          "name": "Label CH6",
+          "type": "text",
+          "x": 14.3,
+          "y": 73.6,
+          "w": 10,
+          "h": 8,
+          "r": 4,
+          "rx": 0.8,
+          "fill": "#ffffff",
+          "stroke": "none",
+          "strokeWidth": 0.3,
+          "opacity": 1,
+          "text": "CH6",
+          "fontSize": 2.3,
+          "show": "always",
+          "activeWhen": "never",
+          "activeFill": "#d1342f"
+        },
+        {
+          "id": "sahlpxbtr",
+          "name": "Label CH5",
+          "type": "text",
+          "x": 33.0,
+          "y": 73.6,
+          "w": 10,
+          "h": 8,
+          "r": 4,
+          "rx": 0.8,
+          "fill": "#ffffff",
+          "stroke": "none",
+          "strokeWidth": 0.3,
+          "opacity": 1,
+          "text": "CH5",
+          "fontSize": 2.3,
+          "show": "always",
+          "activeWhen": "never",
+          "activeFill": "#d1342f"
+        },
+        {
+          "id": "spmedyvn9",
+          "name": "Label CH4",
+          "type": "text",
+          "x": 51.7,
+          "y": 73.6,
+          "w": 10,
+          "h": 8,
+          "r": 4,
+          "rx": 0.8,
+          "fill": "#ffffff",
+          "stroke": "none",
+          "strokeWidth": 0.3,
+          "opacity": 1,
+          "text": "CH4",
+          "fontSize": 2.3,
+          "show": "always",
+          "activeWhen": "never",
+          "activeFill": "#d1342f"
+        },
+        {
+          "id": "sb86vikf1",
+          "name": "Label CH3",
+          "type": "text",
+          "x": 70.3,
+          "y": 73.6,
+          "w": 10,
+          "h": 8,
+          "r": 4,
+          "rx": 0.8,
+          "fill": "#ffffff",
+          "stroke": "none",
+          "strokeWidth": 0.3,
+          "opacity": 1,
+          "text": "CH3",
+          "fontSize": 2.3,
+          "show": "always",
+          "activeWhen": "never",
+          "activeFill": "#d1342f"
+        },
+        {
+          "id": "s1x6i5zcz",
+          "name": "Label CH2",
+          "type": "text",
+          "x": 89.0,
+          "y": 73.6,
+          "w": 10,
+          "h": 8,
+          "r": 4,
+          "rx": 0.8,
+          "fill": "#ffffff",
+          "stroke": "none",
+          "strokeWidth": 0.3,
+          "opacity": 1,
+          "text": "CH2",
+          "fontSize": 2.3,
+          "show": "always",
+          "activeWhen": "never",
+          "activeFill": "#d1342f"
+        },
+        {
+          "id": "swavf1yd3",
+          "name": "Label CH1",
+          "type": "text",
+          "x": 107.7,
+          "y": 73.6,
+          "w": 10,
+          "h": 8,
+          "r": 4,
+          "rx": 0.8,
+          "fill": "#ffffff",
+          "stroke": "none",
+          "strokeWidth": 0.3,
+          "opacity": 1,
+          "text": "CH1",
+          "fontSize": 2.3,
+          "show": "always",
+          "activeWhen": "never",
+          "activeFill": "#d1342f"
+        }
+      ]
+    }
+  ]
+}

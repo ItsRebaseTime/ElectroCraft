@@ -256,6 +256,10 @@ you select it**. Only one arrangement fits physically when row connectors hang o
 bottom-to-bottom connector / module**. Anything else (two top-to-top ones in a row, a bottom-to-bottom above a top-to-top, ...) is refused,
 and two row connectors cannot cover the same columns between the same two rails. When you place a row connector below a module that already has a top-to-top one, it is placed **bottom to bottom by itself** (and top to top above a bottom-to-bottom one).
 
+**Drag a placed comb bar or row connector** to move it: along its rail (it snaps to whole modules and stays inside the rail), or to another rail (a
+row connector only to a rail that has another rail below it, and never onto another connector or into an arrangement that does not fit). The move is one
+undo step.
+
 Click a placed bar or connector to change its part, phases or contacts, side, start and length, or to delete it. Joined
 terminals are one conductor in the simulation.
 
@@ -446,8 +450,14 @@ In the phone layout:
   *In ...* boxes above the canvas preview an energised input (the preview does not remember earlier pulses).
 * **Inside the module:** *Top joined to bottom, per column*, *All terminals joined* (a bar), *Nothing joined*, or *Custom
   nets*, where terminals with the same net name are joined. The simulation follows these connections.
+* **Connections:** each side (top, bottom) has rows and columns of terminals. The screws of every row can be made for a **conductor size**
+  picked from the common cross-sections (0.5, 0.75, 1, 1.5, 2.5, 4, 6, 10, 16, 25 ... 95 mm²; a bigger section is a bigger screw), or left
+  automatic. *Own box for the terminals* places the terminals of a side in a box you set (its x, y, width and height in mm, drawn as a dashed
+  guide in the designer): the columns share its width and the rows its height, so a block of terminals can sit anywhere on the face and be as
+  small or large as the real one.
 * **Design:** draw with the **rectangle**, **circle** and **text** tools, drag to move, use the handle to resize, and set
-  colours, outline, opacity and the corner radius in the shape panel. Shapes can be reordered. Text may use tokens such as
+  colours, outline, opacity and the corner radius in the shape panel. Shapes can be reordered. A text can be **rotated** (the *Rotation* field in degrees, or the -90° and +90° buttons: -90° reads upwards, good for narrow
+  19 mm faces). Text may use tokens such as
   `{{In}}`, `{{Un}}` and `{{marking}}`. Each shape can be shown **always**, with the master lever **on** or **off**, when
   **tripped**, when **carrying current** or **not powered**, or by the state of one of the module's switches (*actuated*,
   *released*, *contact closed*, *contact open*): these are the animation layers. The *On / Tripped / Current* boxes and one
@@ -479,6 +489,19 @@ every placed copy; wires to connections that no longer exist are dropped.
 The app also ships a **Module library**: ready-made modules (a fused distribution block, a pushbutton contact block, a
 changeover selector, a control relay, an impulse relay) in their own palette group. They are read-only; the copy button
 (or *Copy to project to edit...* on a placed one) turns one into a normal, editable project module.
+
+**Manufacturer modules.** Real products are kept in a folder per manufacturer and listed in a palette group of their own. **Schneider** has the
+Easy9 and Resi9 home devices (MCB, RCBO, RCCB, SPD, switch disconnectors, plus Acti9 contactors, impulse relays and meters, with their module widths and
+rating / curve choices). **Waveshare** has the industrial ESP32 / RP2350 relay, input and CAN / RS485 controllers (8 and 6 relay boards, the 8 input / 8 output board and the 23 mm wide DIN modules). **Shelly**: the Pro series for the DIN rail, with their real terminal names and widths (Pro 1, 1PM, 2, 2PM, 3, 4PM, Dual Cover PM,
+Dimmer 1PM, 2PM and 0/1-10V PM, RGBWW PM, 3EM, 3EM-400, 3EM-3CT63, EM-50, the 3EM Switch and Modbus add-ons and the Pro 1CB to 4CB smart breakers). Each hardware revision on the market is its own module (*Pro 4PM (V1)* and *(V2)* have different
+terminals), so pick the one on the label of the unit. A placed unit carries the manufacturer and model for the equipment
+list of the exports. The relays follow their switch inputs in the simulation (feed SW1 and the relay of channel 1 closes, a
+lamp light on the module shows it), the dimmers pass their supply to the output while the channel is on, and the energy meters
+only show their terminals. Units are not all a whole number of modules wide: a Shelly Pro 1, 2 or a meter is **19 mm**, a
+Pro 3 or 4PM about 53 mm; devices that are not whole half-modules wide sit right against their neighbours on the rail.
+The designer's width is in millimetres for the same reason.
+
+![Shelly Pro units on a rail, and the Shelly group of the equipment list](images/shelly-modules.png)
 
 **Export modules...** writes a `.ecm` file; **Import modules...** accepts a `.ecm` file or a whole `.ec` project and lets
 you choose which modules to add (ids and names are made unique). There is an example in

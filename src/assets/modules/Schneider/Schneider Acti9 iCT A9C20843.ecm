@@ -1,0 +1,311 @@
+{
+  "format": "electrocraft-modules",
+  "version": 1,
+  "modules": [
+    {
+      "id": "schneider-ict-a9c20843",
+      "name": "Schneider Acti9 iCT 40A 3NO (A9C20843)",
+      "description": "Acti9 iCT modular contactor 40 A, 3 NO, coil 220-240 V AC 50 Hz (A1, A2), 54 mm wide, for Resi9 boards. Width is calculated from the module count, not confirmed.",
+      "designation": "K",
+      "widthModules": 3.0,
+      "heightMm": 90,
+      "color": "#eef0f1",
+      "stroke": "#69747f",
+      "rating": {
+        "In": 40,
+        "Un": 230
+      },
+      "behaviour": "isolated",
+      "switchable": false,
+      "trips": false,
+      "switches": [
+        {
+          "id": "s1",
+          "name": "S1",
+          "no": [
+            "T0_1",
+            "B0_1"
+          ],
+          "nc": [],
+          "visible": false,
+          "x": 27,
+          "y": 52
+        },
+        {
+          "id": "s2",
+          "name": "S2",
+          "no": [
+            "T0_2",
+            "B0_2"
+          ],
+          "nc": [],
+          "visible": false,
+          "x": 27,
+          "y": 52
+        },
+        {
+          "id": "s3",
+          "name": "S3",
+          "no": [
+            "T0_3",
+            "B0_3"
+          ],
+          "nc": [],
+          "visible": false,
+          "x": 27,
+          "y": 52
+        }
+      ],
+      "inputs": [
+        {
+          "id": "coil",
+          "name": "COIL",
+          "terminal": "T0_0",
+          "ref": "B0_0",
+          "mode": "momentary",
+          "targets": [
+            "s1",
+            "s2",
+            "s3"
+          ]
+        }
+      ],
+      "top": {
+        "rows": 1,
+        "cols": 4
+      },
+      "bottom": {
+        "rows": 1,
+        "cols": 4
+      },
+      "terminals": [
+        {
+          "id": "T0_0",
+          "side": "top",
+          "row": 0,
+          "col": 0,
+          "label": "A1",
+          "net": "solo:T0_0"
+        },
+        {
+          "id": "T0_1",
+          "side": "top",
+          "row": 0,
+          "col": 1,
+          "label": "1",
+          "net": "solo:T0_1"
+        },
+        {
+          "id": "T0_2",
+          "side": "top",
+          "row": 0,
+          "col": 2,
+          "label": "3",
+          "net": "solo:T0_2"
+        },
+        {
+          "id": "T0_3",
+          "side": "top",
+          "row": 0,
+          "col": 3,
+          "label": "5",
+          "net": "solo:T0_3"
+        },
+        {
+          "id": "B0_0",
+          "side": "bottom",
+          "row": 0,
+          "col": 0,
+          "label": "A2",
+          "net": "solo:B0_0"
+        },
+        {
+          "id": "B0_1",
+          "side": "bottom",
+          "row": 0,
+          "col": 1,
+          "label": "2",
+          "net": "solo:B0_1"
+        },
+        {
+          "id": "B0_2",
+          "side": "bottom",
+          "row": 0,
+          "col": 2,
+          "label": "4",
+          "net": "solo:B0_2"
+        },
+        {
+          "id": "B0_3",
+          "side": "bottom",
+          "row": 0,
+          "col": 3,
+          "label": "6",
+          "net": "solo:B0_3"
+        }
+      ],
+      "shapes": [
+        {
+          "id": "s9sr0bk4j",
+          "name": "Body plate",
+          "type": "rect",
+          "x": 1,
+          "y": 23,
+          "w": 52,
+          "h": 44,
+          "r": 4,
+          "rx": 1.0,
+          "fill": "#f7f8f9",
+          "stroke": "#cfd2d5",
+          "strokeWidth": 0.3,
+          "opacity": 1,
+          "text": "",
+          "fontSize": 4,
+          "show": "always",
+          "activeWhen": "never",
+          "activeFill": "#3ddc5a"
+        },
+        {
+          "id": "s0r9xf4se",
+          "name": "Logo",
+          "type": "text",
+          "x": 20.5,
+          "y": 32,
+          "w": 10,
+          "h": 8,
+          "r": 4,
+          "rx": 0.8,
+          "fill": "#00873c",
+          "stroke": "none",
+          "strokeWidth": 0.3,
+          "opacity": 1,
+          "text": "Schneider",
+          "fontSize": 2.5,
+          "show": "always",
+          "activeWhen": "never",
+          "activeFill": "#d1342f"
+        },
+        {
+          "id": "sn5k0ynqd",
+          "name": "Logo Electric",
+          "type": "text",
+          "x": 20.5,
+          "y": 34.6,
+          "w": 10,
+          "h": 8,
+          "r": 4,
+          "rx": 0.8,
+          "fill": "#00873c",
+          "stroke": "none",
+          "strokeWidth": 0.3,
+          "opacity": 1,
+          "text": "Electric",
+          "fontSize": 1.7,
+          "show": "always",
+          "activeWhen": "never",
+          "activeFill": "#d1342f"
+        },
+        {
+          "id": "sbfoe3co5",
+          "name": "Green bar",
+          "type": "rect",
+          "x": 27.0,
+          "y": 29.6,
+          "w": 24.3,
+          "h": 1.1,
+          "r": 4,
+          "rx": 0.3,
+          "fill": "#00873c",
+          "stroke": "none",
+          "strokeWidth": 0.3,
+          "opacity": 1,
+          "text": "",
+          "fontSize": 4,
+          "show": "always",
+          "activeWhen": "never",
+          "activeFill": "#3ddc5a"
+        },
+        {
+          "id": "slihbci0n",
+          "name": "Type",
+          "type": "text",
+          "x": 16.2,
+          "y": 38.5,
+          "w": 10,
+          "h": 8,
+          "r": 4,
+          "rx": 0.8,
+          "fill": "#1f2630",
+          "stroke": "none",
+          "strokeWidth": 0.3,
+          "opacity": 1,
+          "text": "iCT",
+          "fontSize": 1.8,
+          "show": "always",
+          "activeWhen": "never",
+          "activeFill": "#d1342f"
+        },
+        {
+          "id": "sb7rd77xx",
+          "name": "Split",
+          "type": "rect",
+          "x": 1.5,
+          "y": 47,
+          "w": 51,
+          "h": 0.4,
+          "r": 4,
+          "rx": 0.2,
+          "fill": "#cfd2d5",
+          "stroke": "none",
+          "strokeWidth": 0.3,
+          "opacity": 1,
+          "text": "",
+          "fontSize": 4,
+          "show": "always",
+          "activeWhen": "never",
+          "activeFill": "#3ddc5a"
+        },
+        {
+          "id": "sh9qdj6pa",
+          "name": "Window",
+          "type": "rect",
+          "x": 49,
+          "y": 50,
+          "w": 2.6,
+          "h": 2.6,
+          "r": 4,
+          "rx": 0.3,
+          "fill": "#2b2f36",
+          "stroke": "none",
+          "strokeWidth": 0.3,
+          "opacity": 1,
+          "text": "",
+          "fontSize": 4,
+          "show": "always",
+          "activeWhen": "never",
+          "activeFill": "#3ddc5a"
+        },
+        {
+          "id": "sizg9pud1",
+          "name": "Rating",
+          "type": "text",
+          "x": 10.8,
+          "y": 64,
+          "w": 10,
+          "h": 8,
+          "r": 4,
+          "rx": 0.8,
+          "fill": "#1f2630",
+          "stroke": "none",
+          "strokeWidth": 0.3,
+          "opacity": 1,
+          "text": "40A",
+          "fontSize": 3.0,
+          "show": "always",
+          "activeWhen": "never",
+          "activeFill": "#d1342f"
+        }
+      ]
+    }
+  ]
+}

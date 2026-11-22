@@ -23,7 +23,12 @@ button in the toolbar, *Example projects...* in the phone menu) under a name mad
 | `house-floorplan.ec` | a smaller house with a floor plan |
 | `sample-house.ec` | a flat (single phase) and a workshop (three phase) |
 | `us-sample-house.ec` | a US load center, split-phase |
-| `equipment-catalogue.ec` | every built-in device |
+| `equipment-catalogue.ec` | every built-in device and shipped module: a *Generic* panel (the basic devices in their pole configurations, the module library, N / PE bars and a patch panel), a *Generic US* load center, and one panel per manufacturer folder of the module library (*Shelly*) |
 | `multi-section-board.ec` | two enclosures side by side with N and PE bars |
 | `custom-module.ec` | a project with a custom module |
 | `relay-circuits.ec`, `relay-indicator.ec` | relay and impulse relay modules in demo circuits |
+
+**The catalogue must stay complete.** `npm test` fails when a built-in device or a shipped module is missing from
+`equipment-catalogue.ec`, or when a manufacturer folder has no panel of its own (a panel named like the folder, holding every module
+of it). After adding a module or a manufacturer, open the catalogue, add the new devices (to the *Generic* panel, or to a new panel named
+after the folder) and save it over the file.

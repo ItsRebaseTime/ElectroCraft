@@ -20,6 +20,10 @@ file, so you can restyle or add your own.
 
 ![Equipment catalogue](docs/images/equipment.png)
 
+The **equipment catalogue** example (download button in the toolbar) holds every built-in device: a *Generic* panel, a *Generic US* load center and one panel for each manufacturer of the module library, starting with *Shelly*.
+
+![The Shelly panel of the catalogue](docs/images/catalogue-shelly.png)
+
 Terminal blocks take **comb bridges**: click between two terminals (or drag across several) to bridge them, just like on the real thing. Breakers, RCDs and isolators take parts from the **Connectors** group of the equipment list: **comb bars** (1 to 4 phases) and **row connectors** (1 to 4 contacts, top to top or bottom to bottom) between two rails, which you drag onto a device (they snap to it) and which also join the neutral poles. You can design your own variations.
 
 ### Several enclosures side by side, with N and PE bars
@@ -99,7 +103,7 @@ the current state, and a switch can be hidden, so a module can show indicator li
 it **changes its fill colour** to a second colour while a condition you pick holds (a coil is energised, a contact is closed,
 the module is tripped ...). **Inputs** (relay coils) operate the switches when energised,
 following, toggling or latching them, so you can build relays, contactors and impulse relays that react in the simulation. Modules are saved inside the project and can be exported to a `.ecm` file and imported into any
-other project. A **module library** ships with the app (a fused distribution block, a pushbutton contact block, a changeover selector, a control relay and an impulse relay): they are in the palette of every project, and a copy can be made editable. Adding one is just dropping a `.ecm` file into a folder ([how](docs/module-library.md)).
+other project. A **module library** ships with the app (a fused distribution block, a pushbutton contact block, a changeover selector, a control relay and an impulse relay): they are in the palette of every project, and a copy can be made editable. Manufacturer folders add real products with their true widths and terminals: **Schneider Electric** Easy9 / Resi9 home devices (breakers, RCDs, RCBOs, surge protection, switches, contactors, impulse relays, meters), the **Shelly Pro** series and the **Waveshare** industrial ESP32 controllers (relays, dimmers and energy meters, some of them 19 mm wide). Adding one is just dropping a `.ecm` file into a folder ([how](docs/module-library.md)).
 
 ![Module designer](docs/images/module-designer.png)
 

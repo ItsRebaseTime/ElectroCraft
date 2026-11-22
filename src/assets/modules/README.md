@@ -4,6 +4,9 @@ The `base/` folder holds the **built-in devices** (one device module per file, p
 [docs/equipment-assets.md](../../../docs/equipment-assets.md)). Every `.ecm` file directly in this folder is the **module library**, shipped with the app (Vite bundles it, the desktop build included). Its modules appear
 under **Module library** in the palette of every project, read-only; **Copy to project** makes an editable copy.
 
+Modules of one manufacturer go in a folder of their own here (`Shelly/` ...): the folder name is the palette group and the manufacturer
+of placed units. A device that is not a whole number of half-modules wide sets `widthMm` (19 mm for a Shelly Pro).
+
 Adding a module:
 
 1. Design it in the app (**Modules > Design a new module...**), then **Export** it to a `.ecm` file.

@@ -24,6 +24,24 @@ const moduleExample = readFileSync(join(ROOT, 'src/assets/examples/custom-module
 const sectionsExample = readFileSync(join(ROOT, 'src/assets/examples/multi-section-board.ec'), 'utf8');
 const indicatorExample = readFileSync(join(ROOT, 'src/assets/examples/relay-indicator.ec'), 'utf8');
 const floorExample = readFileSync(join(ROOT, 'src/assets/examples/apartment.ec'), 'utf8');
+// a board of module-library units side by side on one rail (19 mm units butt against each other); [defId, width in mm, pole configuration]
+const railBoard = (name, devs, rail = 18) => {
+  let slot = 0.5;
+  const items = devs.map(([defId, mm, poleConfig = '1P'], i) => {
+    const it = { id: `b${i}`, defId, railId: 'r1', slot: Math.round(slot * 1e4) / 1e4, x: 0, y: 0, params: {}, poleConfig, description: '', manufacturer: '', model: '', on: true };
+    slot += mm / 18;
+    return it;
+  });
+  return JSON.stringify({ format: 'electrocraft', version: 1, name, author: '', revision: 'A', created: '2026-01-01T00:00:00.000Z', modified: '2026-01-01T00:00:00.000Z',
+    settings: { markingStandard: 'iec81346', phaseColors: { L1: 'brown', L2: 'black', L3: 'grey' }, usPhaseColors: { L1: 'black', L2: 'red', L3: 'blue' } },
+    panels: [{ id: 'p1', name, floor: 'Ground floor', room: 'Utility room', code: 'DB1', notes: '', rails: [{ id: 'r1', modules: rail }], items, wires: [] }], modules: [], floorPlans: [] });
+};
+const shellyBoard = railBoard('Shelly Pro board', [['shelly-pro-1-v1', 19], ['shelly-pro-1pm-v1', 19], ['shelly-pro-2-v1', 19], ['mod-w4z1om1', 19], ['shelly-pro-dimmer-1pm', 19], ['shelly-pro-dimmer-0-1-10v-pm', 19], ['shelly-pro-3em-v2', 19], ['shelly-pro-3', 53], ['shelly-pro-4pm-v2', 53], ['shelly-pro-3cb', 72, '3P+N']]);
+const schneiderBoard = railBoard('Schneider board', [
+  ['schneider-easy9-switch', 36, '2P'], ['schneider-easy9-rccb', 36, '2P'], ['schneider-easy9-spd', 36, '1P+N'], ['schneider-easy9-mcb', 18, '1P'], ['schneider-easy9-mcb', 54, '3P'], ['schneider-easy9-rcbo', 18, '1P+N'],
+  ['schneider-resi9-switch', 36, '2P'], ['schneider-resi9-rccb', 36, '2P'], ['schneider-resi9-mcb', 18, '1P'], ['schneider-resi9-rcbo', 18, '1P+N'],
+  ['schneider-ict-a9c20732', 18], ['schneider-ict-a9c20863', 54], ['schneider-itl-a9c30811', 18], ['schneider-iem2100', 36], ['schneider-resi9-se1100l', 18]], 26);
+const waveshareBoard = railBoard('Waveshare board', [['waveshare-esp32-s3-relay-1ch', 23.3], ['waveshare-esp32-s3-can-2ch', 23.3], ['waveshare-esp32-s3-rs485-can', 23.3], ['waveshare-esp32-s3-relay-6ch', 122]], 12);
 const IPHONE = 'Mozilla/5.0 (iPhone; CPU iPhone OS 17_4 like Mac OS X) AppleWebKit/605.1.15 (KHTML, like Gecko) Version/17.4 Mobile/15E148 Safari/604.1';
 
 const opts = new firefox.Options().addArguments('-headless').windowSize({ width: 1600, height: 1000 });
@@ -59,8 +77,26 @@ try {
   await shot('wire-editing');
   await open(catalogue, '#z=2.3&x=-40&y=190');
   await shot('equipment');
+  // the catalogue has one panel per manufacturer (and a generic one for the basic devices)
+  await open(catalogue, '#panel=3&z=1.2&x=40&y=120');
+  await shot('catalogue-shelly');
   await open(catalogue, '#select=item:23&z=3&x=-250&y=-1350');
   await shot('comb-bridges');
+  // Shelly Pro units from the module library: 19 mm and 53 mm wide, listed under their manufacturer
+  await open(shellyBoard, '#z=3.3&x=-90&y=170');
+  await driver.executeScript("const h = Array.from(document.querySelectorAll('.palette-list .group-head')).find((b) => b.textContent.trim() === 'Shelly'); if (h) h.scrollIntoView({ block: 'start' });");
+  await sleep(400);
+  await shot('shelly-modules');
+  // Waveshare industrial controllers
+  await open(waveshareBoard, '#z=3&x=-40&y=150');
+  await driver.executeScript("const h = Array.from(document.querySelectorAll('.palette-list .group-head')).find((b) => b.textContent.trim() === 'Waveshare'); if (h) h.scrollIntoView({ block: 'start' });");
+  await sleep(400);
+  await shot('waveshare-modules');
+  // Schneider Electric Easy9, Resi9 and Acti9 control devices
+  await open(schneiderBoard, '#z=2.6&x=-80&y=170');
+  await driver.executeScript("const h = Array.from(document.querySelectorAll('.palette-list .group-head')).find((b) => b.textContent.trim() === 'Schneider'); if (h) h.scrollIntoView({ block: 'start' });");
+  await sleep(400);
+  await shot('schneider-modules');
   // a three phase comb bar across neighbouring breakers
   await open(sample, '#z=3&x=351&y=-737');
   const mcbIds = await driver.executeScript("const st = JSON.parse(localStorage.getItem('electrocraft.autosave')); const p = st.panels[0]; const r = p.items.find((i) => i.defId === 'mcb').railId; return p.items.filter((i) => i.defId === 'mcb' && i.railId === r).map((i) => i.id);");

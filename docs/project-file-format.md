@@ -46,7 +46,7 @@ A project is one plain JSON document, so it diffs well in version control. Open 
 ```jsonc
 {
   "id": "i123", "defId": "mcb",                 // defId = id of an equipment definition
-  "railId": "r1", "slot": 2,                    // rail items: rail and position. DIN: modules (multiples of 0.5). US: breaker space row (whole numbers)
+  "railId": "r1", "slot": 2,                    // rail items: rail and position. DIN: modules (a multiple of 0.5, or the end of a neighbour: a 19 mm device sits right against the next one). US: breaker space row (whole numbers)
   "x": 0, "y": 0,                               // free items (supply, loads): position in mm
   "poleConfig": "1P+N",
   "params": { "In": 16, "curve": "B", "Icn": 6000, "Un": 230 },   // parameters defined by the equipment
@@ -79,18 +79,21 @@ Terminal blocks use `params.count` (number of terminals) and `params.bridges` (`
 ```jsonc
 {
   "id": "mod-k3j2h1", "name": "Fused distribution block", "description": "", "designation": "Q",
-  "widthModules": 4, "heightMm": 90, "color": "#dfe6ee", "stroke": "#69747f",
+  "widthModules": 4, "heightMm": 90,   // optional "widthMm": 19 = an exact width in mm (a Shelly Pro unit); widthModules is then the rounded number of modules
+  "color": "#dfe6ee", "stroke": "#69747f",
   "rating": { "In": 40, "Un": 400 },
   "behaviour": "columns",                        // isolated | columns | bus | custom
   "switchable": true, "trips": true,              // master lever / trips on overload
   "switches": [ { "id": "ksel", "name": "SEL", "no": ["T0_0", "B0_0"], "nc": ["T0_0", "B0_1"], "visible": false, "x": 18, "y": 62 } ],
   "inputs": [ { "id": "kcoil", "name": "COIL", "terminal": "T0_1", "ref": "B0_2", "mode": "momentary", "targets": ["ksel"] } ],
-  "top": { "rows": 1, "cols": 4 }, "bottom": { "rows": 2, "cols": 2 },
+  "top": { "rows": 1, "cols": 4 }, "bottom": { "rows": 2, "cols": 2, "box": { "x": 2, "y": 60, "w": 14, "h": 22 }, "sizes": [2.5, 1.5] },   // optional box (mm) the terminals of a side are laid out in, optional screw size per row (mm², row 0 nearest the edge; 0 = automatic)
   "terminals": [ { "id": "T0_0", "side": "top", "row": 0, "col": 0, "label": "1", "net": "c0" } ],
   "shapes": [ { "id": "s1", "type": "rect", "name": "Label plate", "x": 6, "y": 15, "w": 60, "h": 12, "fill": "#2a3340",
                 "stroke": "none", "strokeWidth": 0.3, "opacity": 1, "show": "always" } ]
 }
 ```
+
+A `text` shape may have `"rotate"`, an angle in degrees (clockwise, -180 to 180, turned about the middle of the text; -90 reads upwards; omitted when 0).
 
 `show` is `always`, `on`, `off`, `tripped`, `powered` or `unpowered`, or follows a switch: `sw:<id>` (actuated), `rel:<id>`
 (released), `closed:<id>` (a contact of the switch is conducting), `open:<id>`, or an input: `in:<id>` (energised), `nin:<id>`. A shape can also be an indicator light: `activeWhen` takes the same values

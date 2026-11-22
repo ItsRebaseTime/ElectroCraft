@@ -1,7 +1,10 @@
 import { useEffect, useMemo, useRef, useState, type PointerEvent as RPointerEvent } from 'react';
 import { parseAsset } from '../../model/asset';
 import {
+  CONDUCTOR_SIZES,
   MODULE_MM,
+  defaultTerminalBox,
+  moduleWidthMm,
   buildModuleDef,
   INPUT_MODES,
   contactLabel,
@@ -10,6 +13,7 @@ import {
   newInput,
   newShape,
   newSwitch,
+  normAngle,
   setBehaviour,
   showOptionsFor,
   syncTerminals,
@@ -74,7 +78,14 @@ type CanvasDrag =
 
 function textBox(s: ModuleShape) {
   const w = Math.max(4, s.text.length * s.fontSize * 0.55);
-  return { x: s.x - w / 2, y: s.y - s.fontSize, w, h: s.fontSize * 1.35 };
+  const h = s.fontSize * 1.35;
+  // a rotated text is turned about its middle: the box is the one around the turned rectangle
+  const a = ((s.rotate ?? 0) * Math.PI) / 180;
+  const bw = Math.abs(w * Math.cos(a)) + Math.abs(h * Math.sin(a));
+  const bh = Math.abs(w * Math.sin(a)) + Math.abs(h * Math.cos(a));
+  const cx = s.x;
+  const cy = s.y - s.fontSize * 0.325;
+  return { x: cx - bw / 2, y: cy - bh / 2, w: bw, h: bh };
 }
 
 /**
@@ -94,7 +105,7 @@ function ModuleCanvas({ module: m, tool, setTool, selected, select, onAdd, onCha
   const svgRef = useRef<SVGSVGElement>(null);
   const dragRef = useRef<CanvasDrag | null>(null);
   const [ghost, setGhost] = useState<CanvasDrag | null>(null);
-  const W = m.widthModules * MODULE_MM;
+  const W = moduleWidthMm(m);
   const H = m.heightMm;
 
   const built = useMemo(() => {
@@ -217,6 +228,10 @@ function ModuleCanvas({ module: m, tool, setTool, selected, select, onAdd, onCha
       <rect x={-pad} y={-pad} width={W + 2 * pad} height={H + 2 * pad} fill="var(--canvas)" />
       <rect x={-pad} y={-pad} width={W + 2 * pad} height={H + 2 * pad} fill="url(#mod-grid)" pointerEvents="none" />
       <DeviceView placed={placed} sim={fakeSim} marking="-X1" />
+      {(['top', 'bottom'] as const).map((side) => {
+        const b = m[side].box;
+        return b ? <rect key={`box-${side}`} x={b.x} y={b.y} width={b.w} height={b.h} fill="none" stroke="#2563eb" strokeWidth={0.4} strokeDasharray="1.4 1" pointerEvents="none" /> : null;
+      })}
       {/* invisible hit areas in drawing order so shapes can be picked */}
       {m.shapes.map((s) => {
         if (s.type === 'rect') return <rect key={s.id} data-shape={s.id} x={s.x} y={s.y} width={s.w} height={s.h} fill="transparent" />;
@@ -296,6 +311,17 @@ function ShapeProps({ shape, onChange, options }: { shape: ModuleShape; onChange
             <TextField value={shape.text} onCommit={(v) => onChange({ text: v })} />
           </Field>
           {n('fontSize', 'Font size', { min: 1, max: 40 })}
+          <Field label="Rotation" hint="degrees, clockwise">
+            <span className="row gap-s">
+              <NumberField value={shape.rotate ?? 0} min={-180} max={180} step={5} unit="°" onCommit={(v) => onChange({ rotate: normAngle(v) })} />
+              <button type="button" title="Turn the text 90° anticlockwise (reads upwards)" aria-label="Rotate text 90 degrees anticlockwise" onClick={() => onChange({ rotate: normAngle((shape.rotate ?? 0) - 90) })}>
+                -90°
+              </button>
+              <button type="button" title="Turn the text 90° clockwise" aria-label="Rotate text 90 degrees clockwise" onClick={() => onChange({ rotate: normAngle((shape.rotate ?? 0) + 90) })}>
+                +90°
+              </button>
+            </span>
+          </Field>
         </>
       )}
       <Field label={shape.type === 'text' ? 'Colour' : 'Fill'}>
@@ -530,8 +556,25 @@ function ModuleEditorInner({ initial }: { initial: CustomModule }) {
             </Field>
 
             <h4>Size and look</h4>
-            <Field label="Width" hint={`${m.widthModules * MODULE_MM} mm`}>
-              <NumberField value={m.widthModules} min={0.5} max={36} step={0.5} unit="modules" onCommit={(v) => patch({ widthModules: Math.round(v * 2) / 2 })} />
+            <Field label="Width" hint={m.widthMm !== undefined ? `${Math.round((m.widthMm / MODULE_MM) * 100) / 100} modules` : `${m.widthModules} module${m.widthModules === 1 ? '' : 's'}`}>
+              <NumberField
+                value={moduleWidthMm(m)}
+                min={9}
+                max={648}
+                step={0.5}
+                unit="mm"
+                onCommit={(v) => {
+                  // whole half-modules stay exact multiples; anything else (19 mm) is stored as an exact width
+                  const mm = Math.round(v * 10) / 10;
+                  const half = Math.round(mm / 9) / 2;
+                  const exact = Math.abs(half * MODULE_MM - mm) < 0.05;
+                  setM((d) => {
+                    const { widthMm: _drop, ...rest } = d;
+                    void _drop;
+                    return exact ? { ...rest, widthModules: Math.max(0.5, half) } : { ...rest, widthMm: mm, widthModules: Math.max(0.5, Math.round((mm / MODULE_MM) * 2) / 2) };
+                  });
+                }}
+              />
             </Field>
             <Field label="Height">
               <NumberField value={m.heightMm} min={30} max={90} step={5} unit="mm" onCommit={(v) => patch({ heightMm: Math.round(v) })} />
@@ -568,6 +611,62 @@ function ModuleEditorInner({ initial }: { initial: CustomModule }) {
                   <Field label="Columns">
                     <NumberField value={m[side].cols} min={0} max={24} step={1} onCommit={(v) => resize(side, 'cols', v)} />
                   </Field>
+                  {Array.from({ length: m[side].rows }, (_v, row) => (
+                    <Field key={row} label={`Row ${row + 1} screws`} hint={row === 0 ? 'the conductor size they are made for' : undefined}>
+                      <select
+                        aria-label={`${side} row ${row + 1} screw size`}
+                        value={m[side].sizes?.[row] ?? 0}
+                        onChange={(e) =>
+                          setM((d) => {
+                            const sizes = Array.from({ length: d[side].rows }, (_x, i) => d[side].sizes?.[i] ?? 0);
+                            sizes[row] = Number(e.target.value);
+                            const { sizes: _drop, ...rest } = d[side];
+                            void _drop;
+                            return { ...d, [side]: sizes.some((x) => x > 0) ? { ...rest, sizes } : rest };
+                          })
+                        }
+                      >
+                        <option value={0}>Automatic</option>
+                        {CONDUCTOR_SIZES.map((s) => (
+                          <option key={s} value={s}>
+                            {s} mm²
+                          </option>
+                        ))}
+                      </select>
+                    </Field>
+                  ))}
+                  <label className="check">
+                    <input
+                      type="checkbox"
+                      aria-label={`${side} terminals in a box of their own`}
+                      checked={!!m[side].box}
+                      disabled={m[side].rows === 0 || m[side].cols === 0}
+                      onChange={(e) =>
+                        setM((d) => {
+                          const { box: _drop, ...rest } = d[side];
+                          void _drop;
+                          return { ...d, [side]: e.target.checked ? { ...rest, box: defaultTerminalBox(d, side, d[side].rows) } : rest };
+                        })
+                      }
+                    />{' '}
+                    Own box for the terminals
+                  </label>
+                  {m[side].box && (
+                    <div className="terminal-box">
+                      {(['x', 'y', 'w', 'h'] as const).map((k) => (
+                        <Field key={k} label={{ x: 'Box x', y: 'Box y', w: 'Box width', h: 'Box height' }[k]}>
+                          <NumberField
+                            value={m[side].box![k]}
+                            min={k === 'w' || k === 'h' ? 1 : -50}
+                            max={k === 'w' ? 700 : k === 'h' ? 200 : k === 'x' ? 700 : 200}
+                            step={0.5}
+                            unit="mm"
+                            onCommit={(v) => setM((d) => ({ ...d, [side]: { ...d[side], box: { ...d[side].box!, [k]: Math.round(v * 10) / 10 } } }))}
+                          />
+                        </Field>
+                      ))}
+                    </div>
+                  )}
                 </fieldset>
               ))}
             </div>

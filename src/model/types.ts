@@ -59,6 +59,8 @@ export interface ParamDef {
 
 export interface EquipmentDef {
   id: string;
+  /** The manufacturer of a shipped module (the name of its folder in the module library). */
+  vendor?: string;
   name: string;
   description?: string;
   category: Category;
@@ -165,6 +167,8 @@ export interface ModuleShape {
   opacity: number;
   text: string;
   fontSize: number;
+  /** Text: rotation in degrees (clockwise) about the middle of the text; missing = 0. */
+  rotate?: number;
   show: ModuleShapeShow;
   /** Indicator light behaviour: while this condition holds (same choices as `show`, 'never' = off) the shape uses `activeFill`. */
   activeWhen: ModuleShapeShow;
@@ -215,14 +219,26 @@ export interface ModuleDevice {
   svg: string;
 }
 
+/** The terminals of one side of a module: a grid of rows and columns, optionally in a box of its own and with the screw size of each row. */
+export interface ModuleTerminalBlock {
+  rows: number;
+  cols: number;
+  /** The box (mm, from the top left of the face) the terminals are drawn in; missing = the full width from the edge of the module. */
+  box?: { x: number; y: number; w: number; h: number };
+  /** Conductor cross-section (mm²) each row's screw is made for, row 0 first (the one nearest the edge); missing = an automatic size. */
+  sizes?: number[];
+}
+
 export interface CustomModule {
   id: string;
   name: string;
   description: string;
   /** Letter code for automatic markings (F, Q, K, X, H ...). */
   designation: string;
-  /** Width in modules of 18 mm (multiples of 0.5). */
+  /** Width in modules of 18 mm (multiples of 0.5; rounded when `widthMm` is set). */
   widthModules: number;
+  /** Exact width in mm for a device that is not a whole number of modules wide (a Shelly Pro is 19 mm); overrides `widthModules`. */
+  widthMm?: number;
   heightMm: number;
   color: string;
   stroke: string;
@@ -236,8 +252,8 @@ export interface CustomModule {
   switches: ModuleSwitch[];
   /** Inputs that actuate switches. */
   inputs: ModuleInput[];
-  top: { rows: number; cols: number };
-  bottom: { rows: number; cols: number };
+  top: ModuleTerminalBlock;
+  bottom: ModuleTerminalBlock;
   terminals: ModuleTerminal[];
   shapes: ModuleShape[];
   /** Present for device modules; the designed-face fields above are then unused. */

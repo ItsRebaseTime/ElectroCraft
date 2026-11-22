@@ -47,7 +47,10 @@ export function Palette({ onAdded }: { onAdded?: () => void } = {}) {
   const groups = useMemo(() => {
     const needle = q.trim().toLowerCase();
     const filtered = defs.filter((d) => !d.hidden && ((d.region ?? 'eu') === 'all' || (d.region ?? 'eu') === region) && (!needle || `${d.name} ${d.description ?? ''} ${d.category}`.toLowerCase().includes(needle)));
-    return CATEGORY_ORDER.map((c) => ({ cat: c, items: filtered.filter((d) => d.category === c) })).filter((g) => g.items.length);
+    const plain = CATEGORY_ORDER.map((c) => ({ cat: c, label: CATEGORY_LABELS[c as keyof typeof CATEGORY_LABELS] as string, items: filtered.filter((d) => d.category === c && !d.vendor) })).filter((g) => g.items.length);
+    // one group per manufacturer folder of the module library
+    const vendors = Array.from(new Set(filtered.filter((d) => d.vendor).map((d) => d.vendor as string))).sort((x, y) => x.localeCompare(y));
+    return [...plain, ...vendors.map((v) => ({ cat: `vendor:${v}`, label: v, items: filtered.filter((d) => d.vendor === v) }))];
   }, [defs, q, region]);
 
   const connectors = useStore((st) => st.project.connectors);
@@ -92,7 +95,7 @@ export function Palette({ onAdded }: { onAdded?: () => void } = {}) {
         {groups.map((g) => (
           <div key={g.cat} className="group">
             <button className="group-head" onClick={() => setClosed({ ...closed, [g.cat]: !closed[g.cat] })}>
-              <Icon name={closed[g.cat] ? 'right' : 'down'} size={16} /> {CATEGORY_LABELS[g.cat]}
+              <Icon name={closed[g.cat] ? 'right' : 'down'} size={16} /> {g.label}
             </button>
             {g.cat === 'custom' && !closed[g.cat] && (
               <button className="new-module" onClick={() => useModuleUI.getState().openEditor(null)}>

@@ -362,9 +362,20 @@ export function findSlot(panel: Panel, railId: string, desired: number, widthMod
   }
   const eps = 1e-6;
   let best: number | null = null;
-  for (let s = 0; s + widthModules <= rail.modules + eps; s += step) {
-    if (occupied.some(([a, b]) => s < b - eps && s + widthModules > a + eps)) continue;
+  const consider = (s: number) => {
+    if (s < -eps || s + widthModules > rail.modules + eps) return;
+    if (occupied.some(([a, b]) => s < b - eps && s + widthModules > a + eps)) return;
     if (best === null || Math.abs(s - desired) < Math.abs(best - desired)) best = s;
+  };
+  for (let s = 0; s + widthModules <= rail.modules + eps; s += step) consider(s);
+  // devices that are not whole half-modules wide (a 19 mm Shelly Pro) sit right against their neighbours, not on the next grid step
+  if (!isUs(panel)) {
+    consider(0);
+    for (const [a, b] of occupied) {
+      consider(b);
+      consider(a - widthModules);
+    }
+    consider(rail.modules - widthModules);
   }
   return best;
 }

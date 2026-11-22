@@ -1,0 +1,969 @@
+{
+  "format": "electrocraft-modules",
+  "version": 1,
+  "modules": [
+    {
+      "id": "waveshare-esp32-s3-eth-8di-8ro",
+      "name": "Waveshare ESP32-S3-ETH-8DI-8RO",
+      "description": "Industrial ESP32-S3 relay controller: 8 relays (NO COM NC, 10 A), 8 isolated digital inputs, isolated RS485, Ethernet, 7-36 V. 175 x 90 mm DIN case.",
+      "designation": "A",
+      "widthModules": 9.5,
+      "widthMm": 175,
+      "heightMm": 90,
+      "color": "#18181a",
+      "stroke": "#69747f",
+      "rating": {
+        "In": 0,
+        "Un": 24
+      },
+      "behaviour": "isolated",
+      "switchable": false,
+      "trips": false,
+      "switches": [
+        {
+          "id": "s1",
+          "name": "K8",
+          "no": [
+            "B0_1",
+            "B0_0"
+          ],
+          "nc": [
+            "B0_1",
+            "B0_2"
+          ],
+          "visible": false,
+          "x": 15,
+          "y": 56
+        },
+        {
+          "id": "s2",
+          "name": "K7",
+          "no": [
+            "B0_4",
+            "B0_3"
+          ],
+          "nc": [
+            "B0_4",
+            "B0_5"
+          ],
+          "visible": false,
+          "x": 36,
+          "y": 56
+        },
+        {
+          "id": "s3",
+          "name": "K6",
+          "no": [
+            "B0_7",
+            "B0_6"
+          ],
+          "nc": [
+            "B0_7",
+            "B0_8"
+          ],
+          "visible": false,
+          "x": 57,
+          "y": 56
+        },
+        {
+          "id": "s4",
+          "name": "K5",
+          "no": [
+            "B0_10",
+            "B0_9"
+          ],
+          "nc": [
+            "B0_10",
+            "B0_11"
+          ],
+          "visible": false,
+          "x": 77,
+          "y": 56
+        },
+        {
+          "id": "s5",
+          "name": "K4",
+          "no": [
+            "B0_13",
+            "B0_12"
+          ],
+          "nc": [
+            "B0_13",
+            "B0_14"
+          ],
+          "visible": false,
+          "x": 98,
+          "y": 56
+        },
+        {
+          "id": "s6",
+          "name": "K3",
+          "no": [
+            "B0_16",
+            "B0_15"
+          ],
+          "nc": [
+            "B0_16",
+            "B0_17"
+          ],
+          "visible": false,
+          "x": 118,
+          "y": 56
+        },
+        {
+          "id": "s7",
+          "name": "K2",
+          "no": [
+            "B0_19",
+            "B0_18"
+          ],
+          "nc": [
+            "B0_19",
+            "B0_20"
+          ],
+          "visible": false,
+          "x": 139,
+          "y": 56
+        },
+        {
+          "id": "s8",
+          "name": "K1",
+          "no": [
+            "B0_22",
+            "B0_21"
+          ],
+          "nc": [
+            "B0_22",
+            "B0_23"
+          ],
+          "visible": false,
+          "x": 160,
+          "y": 56
+        }
+      ],
+      "inputs": [],
+      "top": {
+        "rows": 1,
+        "cols": 15,
+        "box": {
+          "x": 5,
+          "y": 0,
+          "w": 106,
+          "h": 11.5
+        },
+        "sizes": [
+          2.5
+        ]
+      },
+      "bottom": {
+        "rows": 1,
+        "cols": 24,
+        "box": {
+          "x": 5,
+          "y": 78.5,
+          "w": 165,
+          "h": 11.5
+        },
+        "sizes": [
+          2.5
+        ]
+      },
+      "terminals": [
+        {
+          "id": "T0_0",
+          "side": "top",
+          "row": 0,
+          "col": 0,
+          "label": "PE",
+          "net": "solo:T0_0"
+        },
+        {
+          "id": "T0_1",
+          "side": "top",
+          "row": 0,
+          "col": 1,
+          "label": "B-",
+          "net": "solo:T0_1"
+        },
+        {
+          "id": "T0_2",
+          "side": "top",
+          "row": 0,
+          "col": 2,
+          "label": "A+",
+          "net": "solo:T0_2"
+        },
+        {
+          "id": "T0_3",
+          "side": "top",
+          "row": 0,
+          "col": 3,
+          "label": "-",
+          "net": "solo:T0_3"
+        },
+        {
+          "id": "T0_4",
+          "side": "top",
+          "row": 0,
+          "col": 4,
+          "label": "+",
+          "net": "solo:T0_4"
+        },
+        {
+          "id": "T0_5",
+          "side": "top",
+          "row": 0,
+          "col": 5,
+          "label": "DI8",
+          "net": "solo:T0_5"
+        },
+        {
+          "id": "T0_6",
+          "side": "top",
+          "row": 0,
+          "col": 6,
+          "label": "DI7",
+          "net": "solo:T0_6"
+        },
+        {
+          "id": "T0_7",
+          "side": "top",
+          "row": 0,
+          "col": 7,
+          "label": "DI6",
+          "net": "solo:T0_7"
+        },
+        {
+          "id": "T0_8",
+          "side": "top",
+          "row": 0,
+          "col": 8,
+          "label": "DI5",
+          "net": "solo:T0_8"
+        },
+        {
+          "id": "T0_9",
+          "side": "top",
+          "row": 0,
+          "col": 9,
+          "label": "DI4",
+          "net": "solo:T0_9"
+        },
+        {
+          "id": "T0_10",
+          "side": "top",
+          "row": 0,
+          "col": 10,
+          "label": "DI3",
+          "net": "solo:T0_10"
+        },
+        {
+          "id": "T0_11",
+          "side": "top",
+          "row": 0,
+          "col": 11,
+          "label": "DI2",
+          "net": "solo:T0_11"
+        },
+        {
+          "id": "T0_12",
+          "side": "top",
+          "row": 0,
+          "col": 12,
+          "label": "DI1",
+          "net": "solo:T0_12"
+        },
+        {
+          "id": "T0_13",
+          "side": "top",
+          "row": 0,
+          "col": 13,
+          "label": "DGND",
+          "net": "solo:T0_13"
+        },
+        {
+          "id": "T0_14",
+          "side": "top",
+          "row": 0,
+          "col": 14,
+          "label": "COM",
+          "net": "solo:T0_14"
+        },
+        {
+          "id": "B0_0",
+          "side": "bottom",
+          "row": 0,
+          "col": 0,
+          "label": "NO",
+          "net": "solo:B0_0"
+        },
+        {
+          "id": "B0_1",
+          "side": "bottom",
+          "row": 0,
+          "col": 1,
+          "label": "COM",
+          "net": "solo:B0_1"
+        },
+        {
+          "id": "B0_2",
+          "side": "bottom",
+          "row": 0,
+          "col": 2,
+          "label": "NC",
+          "net": "solo:B0_2"
+        },
+        {
+          "id": "B0_3",
+          "side": "bottom",
+          "row": 0,
+          "col": 3,
+          "label": "NO",
+          "net": "solo:B0_3"
+        },
+        {
+          "id": "B0_4",
+          "side": "bottom",
+          "row": 0,
+          "col": 4,
+          "label": "COM",
+          "net": "solo:B0_4"
+        },
+        {
+          "id": "B0_5",
+          "side": "bottom",
+          "row": 0,
+          "col": 5,
+          "label": "NC",
+          "net": "solo:B0_5"
+        },
+        {
+          "id": "B0_6",
+          "side": "bottom",
+          "row": 0,
+          "col": 6,
+          "label": "NO",
+          "net": "solo:B0_6"
+        },
+        {
+          "id": "B0_7",
+          "side": "bottom",
+          "row": 0,
+          "col": 7,
+          "label": "COM",
+          "net": "solo:B0_7"
+        },
+        {
+          "id": "B0_8",
+          "side": "bottom",
+          "row": 0,
+          "col": 8,
+          "label": "NC",
+          "net": "solo:B0_8"
+        },
+        {
+          "id": "B0_9",
+          "side": "bottom",
+          "row": 0,
+          "col": 9,
+          "label": "NO",
+          "net": "solo:B0_9"
+        },
+        {
+          "id": "B0_10",
+          "side": "bottom",
+          "row": 0,
+          "col": 10,
+          "label": "COM",
+          "net": "solo:B0_10"
+        },
+        {
+          "id": "B0_11",
+          "side": "bottom",
+          "row": 0,
+          "col": 11,
+          "label": "NC",
+          "net": "solo:B0_11"
+        },
+        {
+          "id": "B0_12",
+          "side": "bottom",
+          "row": 0,
+          "col": 12,
+          "label": "NO",
+          "net": "solo:B0_12"
+        },
+        {
+          "id": "B0_13",
+          "side": "bottom",
+          "row": 0,
+          "col": 13,
+          "label": "COM",
+          "net": "solo:B0_13"
+        },
+        {
+          "id": "B0_14",
+          "side": "bottom",
+          "row": 0,
+          "col": 14,
+          "label": "NC",
+          "net": "solo:B0_14"
+        },
+        {
+          "id": "B0_15",
+          "side": "bottom",
+          "row": 0,
+          "col": 15,
+          "label": "NO",
+          "net": "solo:B0_15"
+        },
+        {
+          "id": "B0_16",
+          "side": "bottom",
+          "row": 0,
+          "col": 16,
+          "label": "COM",
+          "net": "solo:B0_16"
+        },
+        {
+          "id": "B0_17",
+          "side": "bottom",
+          "row": 0,
+          "col": 17,
+          "label": "NC",
+          "net": "solo:B0_17"
+        },
+        {
+          "id": "B0_18",
+          "side": "bottom",
+          "row": 0,
+          "col": 18,
+          "label": "NO",
+          "net": "solo:B0_18"
+        },
+        {
+          "id": "B0_19",
+          "side": "bottom",
+          "row": 0,
+          "col": 19,
+          "label": "COM",
+          "net": "solo:B0_19"
+        },
+        {
+          "id": "B0_20",
+          "side": "bottom",
+          "row": 0,
+          "col": 20,
+          "label": "NC",
+          "net": "solo:B0_20"
+        },
+        {
+          "id": "B0_21",
+          "side": "bottom",
+          "row": 0,
+          "col": 21,
+          "label": "NO",
+          "net": "solo:B0_21"
+        },
+        {
+          "id": "B0_22",
+          "side": "bottom",
+          "row": 0,
+          "col": 22,
+          "label": "COM",
+          "net": "solo:B0_22"
+        },
+        {
+          "id": "B0_23",
+          "side": "bottom",
+          "row": 0,
+          "col": 23,
+          "label": "NC",
+          "net": "solo:B0_23"
+        }
+      ],
+      "shapes": [
+        {
+          "id": "sfgaugqac",
+          "name": "Terminal block",
+          "type": "rect",
+          "x": 3.8,
+          "y": 0.6,
+          "w": 108.4,
+          "h": 11.5,
+          "r": 4,
+          "rx": 0.8,
+          "fill": "#62b94a",
+          "stroke": "none",
+          "strokeWidth": 0.3,
+          "opacity": 1,
+          "text": "",
+          "fontSize": 4,
+          "show": "always",
+          "activeWhen": "never",
+          "activeFill": "#3ddc5a"
+        },
+        {
+          "id": "si15fnzgc",
+          "name": "Terminal block",
+          "type": "rect",
+          "x": 3.8,
+          "y": 77.9,
+          "w": 167.4,
+          "h": 11.5,
+          "r": 4,
+          "rx": 0.8,
+          "fill": "#62b94a",
+          "stroke": "none",
+          "strokeWidth": 0.3,
+          "opacity": 1,
+          "text": "",
+          "fontSize": 4,
+          "show": "always",
+          "activeWhen": "never",
+          "activeFill": "#3ddc5a"
+        },
+        {
+          "id": "sxyy5y4h2",
+          "name": "Logo",
+          "type": "text",
+          "x": 87.5,
+          "y": 26,
+          "w": 10,
+          "h": 8,
+          "r": 4,
+          "rx": 0.8,
+          "fill": "#ffffff",
+          "stroke": "none",
+          "strokeWidth": 0.3,
+          "opacity": 1,
+          "text": "WAVESHARE",
+          "fontSize": 5.2,
+          "show": "always",
+          "activeWhen": "never",
+          "activeFill": "#d1342f"
+        },
+        {
+          "id": "s5x06jz9o",
+          "name": "Tagline",
+          "type": "text",
+          "x": 87.5,
+          "y": 30.2,
+          "w": 10,
+          "h": 8,
+          "r": 4,
+          "rx": 0.8,
+          "fill": "#9aa4af",
+          "stroke": "none",
+          "strokeWidth": 0.3,
+          "opacity": 1,
+          "text": "share awesome hardware",
+          "fontSize": 1.9,
+          "show": "always",
+          "activeWhen": "never",
+          "activeFill": "#d1342f"
+        },
+        {
+          "id": "srxezeofr",
+          "name": "Model",
+          "type": "text",
+          "x": 87.5,
+          "y": 36.5,
+          "w": 10,
+          "h": 8,
+          "r": 4,
+          "rx": 0.8,
+          "fill": "#e8eaee",
+          "stroke": "none",
+          "strokeWidth": 0.3,
+          "opacity": 1,
+          "text": "ESP32-S3-ETH-8DI-8RO",
+          "fontSize": 3.4,
+          "show": "always",
+          "activeWhen": "never",
+          "activeFill": "#d1342f"
+        },
+        {
+          "id": "scg2dlbvi",
+          "name": "Subtitle",
+          "type": "text",
+          "x": 87.5,
+          "y": 41,
+          "w": 10,
+          "h": 8,
+          "r": 4,
+          "rx": 0.8,
+          "fill": "#b9c0c7",
+          "stroke": "none",
+          "strokeWidth": 0.3,
+          "opacity": 1,
+          "text": "8CH Relay Outputs and 8CH Digital Inputs",
+          "fontSize": 2.0,
+          "show": "always",
+          "activeWhen": "never",
+          "activeFill": "#d1342f"
+        },
+        {
+          "id": "s41css2hs",
+          "name": "Chip RS485",
+          "type": "rect",
+          "x": 5,
+          "y": 13.5,
+          "w": 13,
+          "h": 6.5,
+          "r": 4,
+          "rx": 0.8,
+          "fill": "#3b9fe6",
+          "stroke": "none",
+          "strokeWidth": 0.3,
+          "opacity": 1,
+          "text": "",
+          "fontSize": 4,
+          "show": "always",
+          "activeWhen": "never",
+          "activeFill": "#3ddc5a"
+        },
+        {
+          "id": "s0jcp8cqv",
+          "name": "Chip label RS485",
+          "type": "text",
+          "x": 11.5,
+          "y": 18.3,
+          "w": 10,
+          "h": 8,
+          "r": 4,
+          "rx": 0.8,
+          "fill": "#ffffff",
+          "stroke": "none",
+          "strokeWidth": 0.3,
+          "opacity": 1,
+          "text": "RS485",
+          "fontSize": 2.0,
+          "show": "always",
+          "activeWhen": "never",
+          "activeFill": "#d1342f"
+        },
+        {
+          "id": "s2wwo673m",
+          "name": "Chip power",
+          "type": "rect",
+          "x": 20.5,
+          "y": 13.5,
+          "w": 9,
+          "h": 6.5,
+          "r": 4,
+          "rx": 0.8,
+          "fill": "#3b9fe6",
+          "stroke": "none",
+          "strokeWidth": 0.3,
+          "opacity": 1,
+          "text": "",
+          "fontSize": 4,
+          "show": "always",
+          "activeWhen": "never",
+          "activeFill": "#3ddc5a"
+        },
+        {
+          "id": "szzjag6cw",
+          "name": "Chip label power",
+          "type": "text",
+          "x": 25,
+          "y": 18.3,
+          "w": 10,
+          "h": 8,
+          "r": 4,
+          "rx": 0.8,
+          "fill": "#ffffff",
+          "stroke": "none",
+          "strokeWidth": 0.3,
+          "opacity": 1,
+          "text": "7~36V",
+          "fontSize": 2.0,
+          "show": "always",
+          "activeWhen": "never",
+          "activeFill": "#d1342f"
+        },
+        {
+          "id": "s2ywqd8yn",
+          "name": "Chip USB",
+          "type": "rect",
+          "x": 118,
+          "y": 13.5,
+          "w": 11,
+          "h": 9,
+          "r": 4,
+          "rx": 0.8,
+          "fill": "#3b9fe6",
+          "stroke": "none",
+          "strokeWidth": 0.3,
+          "opacity": 1,
+          "text": "",
+          "fontSize": 4,
+          "show": "always",
+          "activeWhen": "never",
+          "activeFill": "#3ddc5a"
+        },
+        {
+          "id": "s3merf0t5",
+          "name": "Chip label USB",
+          "type": "text",
+          "x": 123.5,
+          "y": 19.8,
+          "w": 10,
+          "h": 8,
+          "r": 4,
+          "rx": 0.8,
+          "fill": "#ffffff",
+          "stroke": "none",
+          "strokeWidth": 0.3,
+          "opacity": 1,
+          "text": "USB",
+          "fontSize": 2.0,
+          "show": "always",
+          "activeWhen": "never",
+          "activeFill": "#d1342f"
+        },
+        {
+          "id": "sfedppr5u",
+          "name": "Chip ETH",
+          "type": "rect",
+          "x": 131,
+          "y": 13.5,
+          "w": 11,
+          "h": 9,
+          "r": 4,
+          "rx": 0.8,
+          "fill": "#3b9fe6",
+          "stroke": "none",
+          "strokeWidth": 0.3,
+          "opacity": 1,
+          "text": "",
+          "fontSize": 4,
+          "show": "always",
+          "activeWhen": "never",
+          "activeFill": "#3ddc5a"
+        },
+        {
+          "id": "sq7asq3ug",
+          "name": "Chip label ETH",
+          "type": "text",
+          "x": 136.5,
+          "y": 19.8,
+          "w": 10,
+          "h": 8,
+          "r": 4,
+          "rx": 0.8,
+          "fill": "#ffffff",
+          "stroke": "none",
+          "strokeWidth": 0.3,
+          "opacity": 1,
+          "text": "ETH",
+          "fontSize": 2.0,
+          "show": "always",
+          "activeWhen": "never",
+          "activeFill": "#d1342f"
+        },
+        {
+          "id": "sstfcmf03",
+          "name": "Chip ANT",
+          "type": "rect",
+          "x": 144,
+          "y": 13.5,
+          "w": 11,
+          "h": 9,
+          "r": 4,
+          "rx": 0.8,
+          "fill": "#3b9fe6",
+          "stroke": "none",
+          "strokeWidth": 0.3,
+          "opacity": 1,
+          "text": "",
+          "fontSize": 4,
+          "show": "always",
+          "activeWhen": "never",
+          "activeFill": "#3ddc5a"
+        },
+        {
+          "id": "s43g0lrk6",
+          "name": "Chip label ANT",
+          "type": "text",
+          "x": 149.5,
+          "y": 19.8,
+          "w": 10,
+          "h": 8,
+          "r": 4,
+          "rx": 0.8,
+          "fill": "#ffffff",
+          "stroke": "none",
+          "strokeWidth": 0.3,
+          "opacity": 1,
+          "text": "ANT",
+          "fontSize": 2.0,
+          "show": "always",
+          "activeWhen": "never",
+          "activeFill": "#d1342f"
+        },
+        {
+          "id": "scko1fqp2",
+          "name": "Label CH8",
+          "type": "text",
+          "x": 15.3,
+          "y": 75.6,
+          "w": 10,
+          "h": 8,
+          "r": 4,
+          "rx": 0.8,
+          "fill": "#ffffff",
+          "stroke": "none",
+          "strokeWidth": 0.3,
+          "opacity": 1,
+          "text": "CH8",
+          "fontSize": 2.3,
+          "show": "always",
+          "activeWhen": "never",
+          "activeFill": "#d1342f"
+        },
+        {
+          "id": "s4l4efghc",
+          "name": "Label CH7",
+          "type": "text",
+          "x": 35.9,
+          "y": 75.6,
+          "w": 10,
+          "h": 8,
+          "r": 4,
+          "rx": 0.8,
+          "fill": "#ffffff",
+          "stroke": "none",
+          "strokeWidth": 0.3,
+          "opacity": 1,
+          "text": "CH7",
+          "fontSize": 2.3,
+          "show": "always",
+          "activeWhen": "never",
+          "activeFill": "#d1342f"
+        },
+        {
+          "id": "spjzeg3n3",
+          "name": "Label CH6",
+          "type": "text",
+          "x": 56.6,
+          "y": 75.6,
+          "w": 10,
+          "h": 8,
+          "r": 4,
+          "rx": 0.8,
+          "fill": "#ffffff",
+          "stroke": "none",
+          "strokeWidth": 0.3,
+          "opacity": 1,
+          "text": "CH6",
+          "fontSize": 2.3,
+          "show": "always",
+          "activeWhen": "never",
+          "activeFill": "#d1342f"
+        },
+        {
+          "id": "sw07yxlug",
+          "name": "Label CH5",
+          "type": "text",
+          "x": 77.2,
+          "y": 75.6,
+          "w": 10,
+          "h": 8,
+          "r": 4,
+          "rx": 0.8,
+          "fill": "#ffffff",
+          "stroke": "none",
+          "strokeWidth": 0.3,
+          "opacity": 1,
+          "text": "CH5",
+          "fontSize": 2.3,
+          "show": "always",
+          "activeWhen": "never",
+          "activeFill": "#d1342f"
+        },
+        {
+          "id": "slvkcusvx",
+          "name": "Label CH4",
+          "type": "text",
+          "x": 97.8,
+          "y": 75.6,
+          "w": 10,
+          "h": 8,
+          "r": 4,
+          "rx": 0.8,
+          "fill": "#ffffff",
+          "stroke": "none",
+          "strokeWidth": 0.3,
+          "opacity": 1,
+          "text": "CH4",
+          "fontSize": 2.3,
+          "show": "always",
+          "activeWhen": "never",
+          "activeFill": "#d1342f"
+        },
+        {
+          "id": "se2yyno78",
+          "name": "Label CH3",
+          "type": "text",
+          "x": 118.4,
+          "y": 75.6,
+          "w": 10,
+          "h": 8,
+          "r": 4,
+          "rx": 0.8,
+          "fill": "#ffffff",
+          "stroke": "none",
+          "strokeWidth": 0.3,
+          "opacity": 1,
+          "text": "CH3",
+          "fontSize": 2.3,
+          "show": "always",
+          "activeWhen": "never",
+          "activeFill": "#d1342f"
+        },
+        {
+          "id": "smnwaendm",
+          "name": "Label CH2",
+          "type": "text",
+          "x": 139.1,
+          "y": 75.6,
+          "w": 10,
+          "h": 8,
+          "r": 4,
+          "rx": 0.8,
+          "fill": "#ffffff",
+          "stroke": "none",
+          "strokeWidth": 0.3,
+          "opacity": 1,
+          "text": "CH2",
+          "fontSize": 2.3,
+          "show": "always",
+          "activeWhen": "never",
+          "activeFill": "#d1342f"
+        },
+        {
+          "id": "sq5sbeezh",
+          "name": "Label CH1",
+          "type": "text",
+          "x": 159.7,
+          "y": 75.6,
+          "w": 10,
+          "h": 8,
+          "r": 4,
+          "rx": 0.8,
+          "fill": "#ffffff",
+          "stroke": "none",
+          "strokeWidth": 0.3,
+          "opacity": 1,
+          "text": "CH1",
+          "fontSize": 2.3,
+          "show": "always",
+          "activeWhen": "never",
+          "activeFill": "#d1342f"
+        }
+      ]
+    }
+  ]
+}

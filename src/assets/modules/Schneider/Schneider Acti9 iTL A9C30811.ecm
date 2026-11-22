@@ -1,0 +1,233 @@
+{
+  "format": "electrocraft-modules",
+  "version": 1,
+  "modules": [
+    {
+      "id": "schneider-itl-a9c30811",
+      "name": "Schneider Acti9 iTL 1NO (A9C30811)",
+      "description": "Acti9 iTL impulse relay 16 A, 1 NO, coil 230-240 V AC / 110 V DC (A1, A2): each pulse on A1 switches the contacts over. 18 mm wide.",
+      "designation": "K",
+      "widthModules": 1.0,
+      "heightMm": 90,
+      "color": "#eef0f1",
+      "stroke": "#69747f",
+      "rating": {
+        "In": 16,
+        "Un": 230
+      },
+      "behaviour": "isolated",
+      "switchable": false,
+      "trips": false,
+      "switches": [
+        {
+          "id": "s1",
+          "name": "S1",
+          "no": [
+            "T0_1",
+            "B0_1"
+          ],
+          "nc": [],
+          "visible": false,
+          "x": 9,
+          "y": 52
+        }
+      ],
+      "inputs": [
+        {
+          "id": "coil",
+          "name": "COIL",
+          "terminal": "T0_0",
+          "ref": "B0_0",
+          "mode": "toggle",
+          "targets": [
+            "s1"
+          ]
+        }
+      ],
+      "top": {
+        "rows": 1,
+        "cols": 2
+      },
+      "bottom": {
+        "rows": 1,
+        "cols": 2
+      },
+      "terminals": [
+        {
+          "id": "T0_0",
+          "side": "top",
+          "row": 0,
+          "col": 0,
+          "label": "A1",
+          "net": "solo:T0_0"
+        },
+        {
+          "id": "T0_1",
+          "side": "top",
+          "row": 0,
+          "col": 1,
+          "label": "1",
+          "net": "solo:T0_1"
+        },
+        {
+          "id": "B0_0",
+          "side": "bottom",
+          "row": 0,
+          "col": 0,
+          "label": "A2",
+          "net": "solo:B0_0"
+        },
+        {
+          "id": "B0_1",
+          "side": "bottom",
+          "row": 0,
+          "col": 1,
+          "label": "2",
+          "net": "solo:B0_1"
+        }
+      ],
+      "shapes": [
+        {
+          "id": "sna73sjei",
+          "name": "Body plate",
+          "type": "rect",
+          "x": 1,
+          "y": 23,
+          "w": 16,
+          "h": 44,
+          "r": 4,
+          "rx": 1.0,
+          "fill": "#f7f8f9",
+          "stroke": "#cfd2d5",
+          "strokeWidth": 0.3,
+          "opacity": 1,
+          "text": "",
+          "fontSize": 4,
+          "show": "always",
+          "activeWhen": "never",
+          "activeFill": "#3ddc5a"
+        },
+        {
+          "id": "s4l8ob8iw",
+          "name": "Logo",
+          "type": "text",
+          "x": 9.0,
+          "y": 32,
+          "w": 10,
+          "h": 8,
+          "r": 4,
+          "rx": 0.8,
+          "fill": "#00873c",
+          "stroke": "none",
+          "strokeWidth": 0.3,
+          "opacity": 1,
+          "text": "Schneider",
+          "fontSize": 2.5,
+          "show": "always",
+          "activeWhen": "never",
+          "activeFill": "#d1342f"
+        },
+        {
+          "id": "sr51igbx1",
+          "name": "Logo Electric",
+          "type": "text",
+          "x": 9.0,
+          "y": 34.6,
+          "w": 10,
+          "h": 8,
+          "r": 4,
+          "rx": 0.8,
+          "fill": "#00873c",
+          "stroke": "none",
+          "strokeWidth": 0.3,
+          "opacity": 1,
+          "text": "Electric",
+          "fontSize": 1.7,
+          "show": "always",
+          "activeWhen": "never",
+          "activeFill": "#d1342f"
+        },
+        {
+          "id": "scw8zetd9",
+          "name": "Type",
+          "type": "text",
+          "x": 9.0,
+          "y": 38.5,
+          "w": 10,
+          "h": 8,
+          "r": 4,
+          "rx": 0.8,
+          "fill": "#1f2630",
+          "stroke": "none",
+          "strokeWidth": 0.3,
+          "opacity": 1,
+          "text": "iTL",
+          "fontSize": 1.8,
+          "show": "always",
+          "activeWhen": "never",
+          "activeFill": "#d1342f"
+        },
+        {
+          "id": "skf7i19dn",
+          "name": "Lever",
+          "type": "rect",
+          "x": 3.5,
+          "y": 48,
+          "w": 5,
+          "h": 10,
+          "r": 4,
+          "rx": 0.8,
+          "fill": "#6b7078",
+          "stroke": "#4a4c50",
+          "strokeWidth": 0.3,
+          "opacity": 1,
+          "text": "",
+          "fontSize": 4,
+          "show": "always",
+          "activeWhen": "never",
+          "activeFill": "#3ddc5a"
+        },
+        {
+          "id": "sug04mcrk",
+          "name": "Lever top",
+          "type": "rect",
+          "x": 3.5,
+          "y": 48,
+          "w": 5,
+          "h": 3,
+          "r": 4,
+          "rx": 0.8,
+          "fill": "#8a9099",
+          "stroke": "none",
+          "strokeWidth": 0.3,
+          "opacity": 1,
+          "text": "",
+          "fontSize": 4,
+          "show": "always",
+          "activeWhen": "never",
+          "activeFill": "#3ddc5a"
+        },
+        {
+          "id": "sb0r5f8dh",
+          "name": "Rating",
+          "type": "text",
+          "x": 9.0,
+          "y": 64,
+          "w": 10,
+          "h": 8,
+          "r": 4,
+          "rx": 0.8,
+          "fill": "#1f2630",
+          "stroke": "none",
+          "strokeWidth": 0.3,
+          "opacity": 1,
+          "text": "16A",
+          "fontSize": 3.0,
+          "show": "always",
+          "activeWhen": "never",
+          "activeFill": "#d1342f"
+        }
+      ]
+    }
+  ]
+}

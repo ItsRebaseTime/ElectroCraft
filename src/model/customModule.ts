@@ -1,15 +1,18 @@
 // Custom (user-designed) modules: data model helpers, generation of the equipment SVG + definition used by the
 // rest of the app, validation, and the .ecm import/export format.
-import type { Category, CustomModule, EquipmentDef, InputMode, Item, ModuleDevice, ParamDef, ParamValue, Role, ModuleBehaviour, ModuleInput, ModuleShape, ModuleShapeShow, ModuleSwitch, ModuleTerminal } from './types';
+import type { Category, CustomModule, ModuleTerminalBlock, EquipmentDef, InputMode, Item, ModuleDevice, ParamDef, ParamValue, Role, ModuleBehaviour, ModuleInput, ModuleShape, ModuleShapeShow, ModuleSwitch, ModuleTerminal } from './types';
 
 export const MODULE_MM = 18;
 export const ROW_PITCH_MM = 10.5;
 export const TERMINAL_MARGIN_MM = 6;
 export const MODULE_FORMAT = 'electrocraft-modules';
 
+/** Width of a module face in mm: exact when given (19 mm Shelly Pro units), otherwise its modules of 18 mm. */
+export const moduleWidthMm = (m: Pick<CustomModule, 'widthModules' | 'widthMm'>): number => m.widthMm ?? m.widthModules * MODULE_MM;
+
 // ---------------------------------------------------------------- device modules
 
-export const POLE_CONFIG_KEYS = ['1P', '1P+N', '2P', '3P', '3P+N', '4P'];
+export const POLE_CONFIG_KEYS = ['1P', '1P+N', '2P', '3P', '3P+N', '4P', '2P+N', '4P+N'];
 export const DEVICE_CATEGORIES: Category[] = ['protection', 'switching', 'connection', 'indication', 'sockets', 'sources', 'loads'];
 export const DEVICE_ROLES: { value: Exclude<Role, 'module'>; label: string }[] = [
   { value: 'protection', label: 'Protection (poles conduct, can trip)' },
@@ -284,7 +287,7 @@ export function newInput(m: Pick<CustomModule, 'terminals' | 'switches' | 'input
   };
 }
 
-export function newSwitch(m: Pick<CustomModule, 'widthModules' | 'heightMm' | 'switches'>, init: Partial<ModuleSwitch> = {}): ModuleSwitch {
+export function newSwitch(m: Pick<CustomModule, 'widthModules' | 'widthMm' | 'heightMm' | 'switches'>, init: Partial<ModuleSwitch> = {}): ModuleSwitch {
   const n = m.switches.length;
   return {
     id: `k${rid()}`,
@@ -292,7 +295,7 @@ export function newSwitch(m: Pick<CustomModule, 'widthModules' | 'heightMm' | 's
     no: [],
     nc: [],
     visible: true,
-    x: Math.round(((n % 4) + 0.5) * ((m.widthModules * MODULE_MM) / Math.min(4, Math.max(1, n + 1))) * 2) / 2,
+    x: Math.round(((n % 4) + 0.5) * (moduleWidthMm(m) / Math.min(4, Math.max(1, n + 1))) * 2) / 2,
     y: Math.round(m.heightMm * 0.55),
     ...init,
   };
@@ -403,13 +406,35 @@ export interface TerminalSpec extends ModuleTerminal {
   r: number;
 }
 
+/** Common conductor cross-sections (mm²) a screw terminal is made for. */
+export const CONDUCTOR_SIZES = [0.5, 0.75, 1, 1.5, 2.5, 4, 6, 10, 16, 25, 35, 50, 70, 95] as const;
+/** Radius (mm) of the screw drawn for a conductor cross-section. */
+export const screwRadius = (mm2: number): number => Math.round((1 + 0.5 * Math.sqrt(mm2)) * 100) / 100;
+/** The nearest common cross-section to a number (a file may hold any value). */
+export const nearestConductorSize = (v: number): number => CONDUCTOR_SIZES.reduce((a, b) => (Math.abs(b - v) < Math.abs(a - v) ? b : a), CONDUCTOR_SIZES[0]);
+
+/** The box a side's terminals fill when no box is given: the full width, rows from the module edge. */
+export function defaultTerminalBox(m: Pick<CustomModule, 'widthModules' | 'widthMm' | 'heightMm'>, side: 'top' | 'bottom', rows: number): { x: number; y: number; w: number; h: number } {
+  const h = Math.max(1, rows) * ROW_PITCH_MM;
+  const edge = TERMINAL_MARGIN_MM - ROW_PITCH_MM / 2;
+  return { x: 0, y: side === 'top' ? edge : m.heightMm - edge - h, w: moduleWidthMm(m), h };
+}
+
 export function terminalSpecs(m: CustomModule): TerminalSpec[] {
-  const W = m.widthModules * MODULE_MM;
+  const W = moduleWidthMm(m);
   return m.terminals.map((t) => {
     const cfg = t.side === 'top' ? m.top : m.bottom;
-    const pitch = W / Math.max(1, cfg.cols);
-    const y = t.side === 'top' ? TERMINAL_MARGIN_MM + t.row * ROW_PITCH_MM : m.heightMm - TERMINAL_MARGIN_MM - t.row * ROW_PITCH_MM;
-    return { ...t, x: (t.col + 0.5) * pitch, y, r: Math.max(1.4, Math.min(3, pitch * 0.34)) };
+    const box = cfg.box;
+    const pitch = (box ? box.w : W) / Math.max(1, cfg.cols);
+    let y = t.side === 'top' ? TERMINAL_MARGIN_MM + t.row * ROW_PITCH_MM : m.heightMm - TERMINAL_MARGIN_MM - t.row * ROW_PITCH_MM;
+    if (box) {
+      // the rows share the height of the box; row 0 is the one nearest the edge of the module
+      const rowPitch = box.h / Math.max(1, cfg.rows);
+      y = t.side === 'top' ? box.y + (t.row + 0.5) * rowPitch : box.y + box.h - (t.row + 0.5) * rowPitch;
+    }
+    const size = cfg.sizes?.[t.row];
+    const r = size ? screwRadius(size) : Math.max(1.4, Math.min(3, pitch * 0.34));
+    return { ...t, x: (box ? box.x : 0) + (t.col + 0.5) * pitch, y, r };
   });
 }
 
@@ -444,7 +469,7 @@ function shapeSvg(s: ModuleShape): string {
       ? `<rect x="${num(s.x)}" y="${num(s.y)}" width="${num(s.w)}" height="${num(s.h)}" rx="${num(s.rx)}" ${common}/>`
       : s.type === 'circle'
         ? `<circle cx="${num(s.x)}" cy="${num(s.y)}" r="${num(s.r)}" ${common}/>`
-        : `<text x="${num(s.x)}" y="${num(s.y)}" font-size="${num(s.fontSize)}" text-anchor="middle" ${FONT} ${common}>${esc(s.text)}</text>`;
+        : `<text x="${num(s.x)}" y="${num(s.y)}" font-size="${num(s.fontSize)}" text-anchor="middle" ${FONT} ${common}${s.rotate ? ` transform="rotate(${num(s.rotate)} ${num(s.x)} ${num(s.y - s.fontSize * 0.325)})"` : ''}>${esc(s.text)}</text>`;
   const expr = showExpr(s.show);
   const layer = esc(s.name || s.type);
   const act = s.activeWhen === 'never' || s.activeWhen === 'always' ? '' : showExpr(s.activeWhen);
@@ -458,7 +483,7 @@ function shapeSvg(s: ModuleShape): string {
 /** Equipment definition and SVG artwork for a module; fed to the same pipeline as the built-in devices. */
 export function buildModuleDef(m: CustomModule, category: Category = 'custom'): { def: EquipmentDef; svg: string } {
   if (m.device) return buildDeviceDef(m, category);
-  const W = m.widthModules * MODULE_MM;
+  const W = moduleWidthMm(m);
   const H = m.heightMm;
   const dark = luminance(m.color) < 0.45;
   const ink = dark ? '#f4f6f8' : '#2a3138';
@@ -531,6 +556,15 @@ export function buildModuleDef(m: CustomModule, category: Category = 'custom'): 
 
 // ---------------------------------------------------------------- validation and files
 
+/** An angle in degrees brought into -180 to 180 (0 for anything that is not a number). */
+export function normAngle(v: unknown): number {
+  const n = Number(v);
+  if (!Number.isFinite(n)) return 0;
+  let a = ((n % 360) + 360) % 360;
+  if (a > 180) a -= 360;
+  return Math.round(a * 10) / 10;
+}
+
 export function sanitizeShape(raw: unknown): ModuleShape | null {
   if (!raw || typeof raw !== 'object') return null;
   const r = raw as Partial<ModuleShape>;
@@ -553,6 +587,7 @@ export function sanitizeShape(raw: unknown): ModuleShape | null {
     opacity: clamp(r.opacity, 0, 1, 1),
     text: str(r.text, 120, base.text),
     fontSize: clamp(r.fontSize, 1, 40, base.fontSize),
+    ...(type === 'text' && normAngle(r.rotate) ? { rotate: normAngle(r.rotate) } : {}),
     show: validShow(r.show) ? r.show : 'always',
     activeWhen: r.activeWhen === 'never' || validShow(r.activeWhen) ? r.activeWhen : 'never',
     activeFill: color(r.activeFill, base.activeFill),
@@ -563,9 +598,18 @@ export function sanitizeModule(raw: unknown): CustomModule | null {
   if (!raw || typeof raw !== 'object') return null;
   const r = raw as Partial<CustomModule>;
   const base = newModule();
-  const sideCfg = (v: unknown, fb: { rows: number; cols: number }) => {
-    const o = (v ?? {}) as { rows?: unknown; cols?: unknown };
-    return { rows: Math.round(clamp(o.rows, 0, 3, fb.rows)), cols: Math.round(clamp(o.cols, 0, 24, fb.cols)) };
+  const sideCfg = (v: unknown, fb: { rows: number; cols: number }): ModuleTerminalBlock => {
+    const o = (v ?? {}) as { rows?: unknown; cols?: unknown; box?: { x?: unknown; y?: unknown; w?: unknown; h?: unknown }; sizes?: unknown };
+    const out: ModuleTerminalBlock = { rows: Math.round(clamp(o.rows, 0, 3, fb.rows)), cols: Math.round(clamp(o.cols, 0, 24, fb.cols)) };
+    if (o.box && typeof o.box === 'object') {
+      const r1 = (n: number) => Math.round(n * 10) / 10;
+      out.box = { x: r1(clamp(o.box.x, -50, 700, 0)), y: r1(clamp(o.box.y, -50, 200, 0)), w: r1(clamp(o.box.w, 1, 700, 18)), h: r1(clamp(o.box.h, 1, 200, 10)) };
+    }
+    if (Array.isArray(o.sizes)) {
+      const sizes = o.sizes.slice(0, 3).map((x) => (Number(x) > 0 ? nearestConductorSize(Number(x)) : 0));
+      if (sizes.some((x) => x > 0)) out.sizes = sizes;
+    }
+    return out;
   };
   const m: CustomModule = {
     id: str(r.id, 40, base.id) || base.id,
@@ -573,6 +617,7 @@ export function sanitizeModule(raw: unknown): CustomModule | null {
     description: str(r.description, 200),
     designation: str(r.designation, 3, 'X') || 'X',
     widthModules: Math.round(clamp(r.widthModules, 0.5, 36, 2) * 2) / 2,
+    ...(r.widthMm !== undefined && Number.isFinite(Number(r.widthMm)) ? { widthMm: Math.round(clamp(r.widthMm, 9, 648, 18) * 10) / 10 } : {}),
     heightMm: Math.round(clamp(r.heightMm, 30, 90, 90)),
     color: color(r.color, base.color),
     stroke: color(r.stroke, base.stroke),

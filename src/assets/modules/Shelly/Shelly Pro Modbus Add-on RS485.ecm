@@ -1,0 +1,182 @@
+{
+  "format": "electrocraft-modules",
+  "version": 1,
+  "modules": [
+    {
+      "id": "shelly-pro-modbus-add-on-rs485",
+      "name": "Shelly Pro Modbus Add-on RS485",
+      "description": "RS485 / Modbus RTU add-on for the Shelly Pro devices. UNCONFIRMED: width (19 mm), colour and terminal names (A, B, GND) are estimates.",
+      "designation": "X",
+      "widthModules": 1.0,
+      "widthMm": 19,
+      "heightMm": 90,
+      "color": "#ededed",
+      "stroke": "#69747f",
+      "rating": {
+        "In": 0,
+        "Un": 12
+      },
+      "behaviour": "isolated",
+      "switchable": false,
+      "trips": false,
+      "switches": [],
+      "inputs": [],
+      "top": {
+        "rows": 1,
+        "cols": 3
+      },
+      "bottom": {
+        "rows": 0,
+        "cols": 0
+      },
+      "terminals": [
+        {
+          "id": "T0_0",
+          "side": "top",
+          "row": 0,
+          "col": 0,
+          "label": "A",
+          "net": "solo:T0_0"
+        },
+        {
+          "id": "T0_1",
+          "side": "top",
+          "row": 0,
+          "col": 1,
+          "label": "B",
+          "net": "solo:T0_1"
+        },
+        {
+          "id": "T0_2",
+          "side": "top",
+          "row": 0,
+          "col": 2,
+          "label": "GND",
+          "net": "solo:T0_2"
+        }
+      ],
+      "shapes": [
+        {
+          "id": "sf8jj1hfd",
+          "name": "Front plate",
+          "type": "rect",
+          "x": 1,
+          "y": 27,
+          "w": 17,
+          "h": 40,
+          "r": 4,
+          "rx": 1.4,
+          "fill": "#fafafa",
+          "stroke": "#2a3138",
+          "strokeWidth": 0.3,
+          "opacity": 1,
+          "text": "",
+          "fontSize": 4,
+          "show": "always",
+          "activeWhen": "never",
+          "activeFill": "#3ddc5a"
+        },
+        {
+          "id": "semrcwxro",
+          "name": "Light Power",
+          "type": "circle",
+          "x": 15.4,
+          "y": 32.0,
+          "w": 10,
+          "h": 8,
+          "r": 1.1,
+          "rx": 0.8,
+          "fill": "#ff3b30",
+          "stroke": "#2a3138",
+          "strokeWidth": 0.3,
+          "opacity": 1,
+          "text": "",
+          "fontSize": 4,
+          "show": "always",
+          "activeWhen": "never",
+          "activeFill": "#3ddc5a"
+        },
+        {
+          "id": "sq0dwfcks",
+          "name": "Light TX",
+          "type": "circle",
+          "x": 15.4,
+          "y": 36.6,
+          "w": 10,
+          "h": 8,
+          "r": 1.1,
+          "rx": 0.8,
+          "fill": "#3ddc5a",
+          "stroke": "#2a3138",
+          "strokeWidth": 0.3,
+          "opacity": 1,
+          "text": "",
+          "fontSize": 4,
+          "show": "always",
+          "activeWhen": "never",
+          "activeFill": "#3ddc5a"
+        },
+        {
+          "id": "suwbzez6p",
+          "name": "Light RX",
+          "type": "circle",
+          "x": 15.4,
+          "y": 41.2,
+          "w": 10,
+          "h": 8,
+          "r": 1.1,
+          "rx": 0.8,
+          "fill": "#3ddc5a",
+          "stroke": "#2a3138",
+          "strokeWidth": 0.3,
+          "opacity": 1,
+          "text": "",
+          "fontSize": 4,
+          "show": "always",
+          "activeWhen": "never",
+          "activeFill": "#3ddc5a"
+        },
+        {
+          "id": "sdsut68pf",
+          "name": "Brand",
+          "type": "text",
+          "x": 7.0,
+          "y": 40,
+          "w": 10,
+          "h": 8,
+          "r": 4,
+          "rx": 0.8,
+          "fill": "#2a3138",
+          "stroke": "none",
+          "strokeWidth": 0.3,
+          "opacity": 1,
+          "text": "Shelly",
+          "fontSize": 3.6,
+          "show": "always",
+          "activeWhen": "never",
+          "activeFill": "#d1342f"
+        },
+        {
+          "id": "so66m2ip8",
+          "name": "Model",
+          "type": "text",
+          "x": 7.0,
+          "y": 45,
+          "w": 10,
+          "h": 8,
+          "r": 4,
+          "rx": 0.8,
+          "fill": "#5b6672",
+          "stroke": "none",
+          "strokeWidth": 0.3,
+          "opacity": 1,
+          "text": "Modbus RS485",
+          "fontSize": 2.6,
+          "show": "always",
+          "activeWhen": "never",
+          "activeFill": "#d1342f"
+        }
+      ]
+    }
+  ]
+}

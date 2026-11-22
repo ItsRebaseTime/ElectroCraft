@@ -1,0 +1,207 @@
+{
+  "format": "electrocraft-modules",
+  "version": 1,
+  "modules": [
+    {
+      "id": "shelly-pro-3em-switch-add-on",
+      "name": "Shelly Pro 3EM Switch Add-on",
+      "description": "Relay add-on for the Pro 3EM: one potential-free output (I, O), 2 A / 240 V~, for a contactor. 19 mm wide, white.",
+      "designation": "K",
+      "widthModules": 1.0,
+      "widthMm": 19,
+      "heightMm": 90,
+      "color": "#e6e7e9",
+      "stroke": "#69747f",
+      "rating": {
+        "In": 2,
+        "Un": 240
+      },
+      "behaviour": "isolated",
+      "switchable": false,
+      "trips": false,
+      "switches": [
+        {
+          "id": "s1",
+          "name": "S1",
+          "no": [
+            "T0_0",
+            "T0_1"
+          ],
+          "nc": [],
+          "visible": false,
+          "x": 10,
+          "y": 61
+        }
+      ],
+      "inputs": [],
+      "top": {
+        "rows": 1,
+        "cols": 2
+      },
+      "bottom": {
+        "rows": 0,
+        "cols": 0
+      },
+      "terminals": [
+        {
+          "id": "T0_0",
+          "side": "top",
+          "row": 0,
+          "col": 0,
+          "label": "I",
+          "net": "solo:T0_0"
+        },
+        {
+          "id": "T0_1",
+          "side": "top",
+          "row": 0,
+          "col": 1,
+          "label": "O",
+          "net": "solo:T0_1"
+        }
+      ],
+      "shapes": [
+        {
+          "id": "sytwm1hyz",
+          "name": "Terminal block",
+          "type": "rect",
+          "x": 0.8,
+          "y": 0.8,
+          "w": 17.4,
+          "h": 11.0,
+          "r": 4,
+          "rx": 0.8,
+          "fill": "#2f8f4e",
+          "stroke": "none",
+          "strokeWidth": 0.3,
+          "opacity": 1,
+          "text": "",
+          "fontSize": 4,
+          "show": "always",
+          "activeWhen": "never",
+          "activeFill": "#3ddc5a"
+        },
+        {
+          "id": "sukh9jhze",
+          "name": "Front plate",
+          "type": "rect",
+          "x": 1.2,
+          "y": 13.3,
+          "w": 16.6,
+          "h": 62.7,
+          "r": 4,
+          "rx": 1.4,
+          "fill": "#f7f7f8",
+          "stroke": "none",
+          "strokeWidth": 0.3,
+          "opacity": 1,
+          "text": "",
+          "fontSize": 4,
+          "show": "always",
+          "activeWhen": "never",
+          "activeFill": "#3ddc5a"
+        },
+        {
+          "id": "szj0o1686",
+          "name": "Light Power",
+          "type": "circle",
+          "x": 15.0,
+          "y": 16.9,
+          "w": 10,
+          "h": 8,
+          "r": 0.95,
+          "rx": 0.8,
+          "fill": "#ff3b30",
+          "stroke": "#2a3138",
+          "strokeWidth": 0.3,
+          "opacity": 1,
+          "text": "",
+          "fontSize": 4,
+          "show": "always",
+          "activeWhen": "never",
+          "activeFill": "#3ddc5a"
+        },
+        {
+          "id": "skss8bh6v",
+          "name": "Label Power",
+          "type": "text",
+          "x": 7.0,
+          "y": 17.7,
+          "w": 10,
+          "h": 8,
+          "r": 4,
+          "rx": 0.8,
+          "fill": "#1f2630",
+          "stroke": "none",
+          "strokeWidth": 0.3,
+          "opacity": 1,
+          "text": "Power",
+          "fontSize": 2.1,
+          "show": "always",
+          "activeWhen": "never",
+          "activeFill": "#d1342f"
+        },
+        {
+          "id": "sqrtfqijo",
+          "name": "Light Out",
+          "type": "circle",
+          "x": 15.0,
+          "y": 20.9,
+          "w": 10,
+          "h": 8,
+          "r": 0.95,
+          "rx": 0.8,
+          "fill": "#5a1a1a",
+          "stroke": "#2a3138",
+          "strokeWidth": 0.3,
+          "opacity": 1,
+          "text": "",
+          "fontSize": 4,
+          "show": "always",
+          "activeWhen": "closed:s1",
+          "activeFill": "#ff3b30"
+        },
+        {
+          "id": "sdufuib0o",
+          "name": "Label Out",
+          "type": "text",
+          "x": 7.0,
+          "y": 21.7,
+          "w": 10,
+          "h": 8,
+          "r": 4,
+          "rx": 0.8,
+          "fill": "#1f2630",
+          "stroke": "none",
+          "strokeWidth": 0.3,
+          "opacity": 1,
+          "text": "Out",
+          "fontSize": 2.1,
+          "show": "always",
+          "activeWhen": "never",
+          "activeFill": "#d1342f"
+        },
+        {
+          "id": "s9vllcui7",
+          "name": "Logo",
+          "type": "text",
+          "x": 9.5,
+          "y": 28.9,
+          "w": 10,
+          "h": 8,
+          "r": 4,
+          "rx": 0.8,
+          "fill": "#1f2630",
+          "stroke": "none",
+          "strokeWidth": 0.3,
+          "opacity": 1,
+          "text": "Shelly",
+          "fontSize": 3.4,
+          "show": "always",
+          "activeWhen": "never",
+          "activeFill": "#d1342f"
+        }
+      ]
+    }
+  ]
+}

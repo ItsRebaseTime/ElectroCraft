@@ -1,0 +1,282 @@
+{
+  "format": "electrocraft-modules",
+  "version": 1,
+  "modules": [
+    {
+      "id": "schneider-ict-a9c20842",
+      "name": "Schneider Acti9 iCT 40A 2NO (A9C20842)",
+      "description": "Acti9 iCT modular contactor 40 A, 2 NO, coil 220-240 V AC 50 Hz (A1, A2), 36 mm wide, for Resi9 boards.",
+      "designation": "K",
+      "widthModules": 2.0,
+      "heightMm": 90,
+      "color": "#eef0f1",
+      "stroke": "#69747f",
+      "rating": {
+        "In": 40,
+        "Un": 230
+      },
+      "behaviour": "isolated",
+      "switchable": false,
+      "trips": false,
+      "switches": [
+        {
+          "id": "s1",
+          "name": "S1",
+          "no": [
+            "T0_1",
+            "B0_1"
+          ],
+          "nc": [],
+          "visible": false,
+          "x": 18,
+          "y": 52
+        },
+        {
+          "id": "s2",
+          "name": "S2",
+          "no": [
+            "T0_2",
+            "B0_2"
+          ],
+          "nc": [],
+          "visible": false,
+          "x": 18,
+          "y": 52
+        }
+      ],
+      "inputs": [
+        {
+          "id": "coil",
+          "name": "COIL",
+          "terminal": "T0_0",
+          "ref": "B0_0",
+          "mode": "momentary",
+          "targets": [
+            "s1",
+            "s2"
+          ]
+        }
+      ],
+      "top": {
+        "rows": 1,
+        "cols": 3
+      },
+      "bottom": {
+        "rows": 1,
+        "cols": 3
+      },
+      "terminals": [
+        {
+          "id": "T0_0",
+          "side": "top",
+          "row": 0,
+          "col": 0,
+          "label": "A1",
+          "net": "solo:T0_0"
+        },
+        {
+          "id": "T0_1",
+          "side": "top",
+          "row": 0,
+          "col": 1,
+          "label": "1",
+          "net": "solo:T0_1"
+        },
+        {
+          "id": "T0_2",
+          "side": "top",
+          "row": 0,
+          "col": 2,
+          "label": "3",
+          "net": "solo:T0_2"
+        },
+        {
+          "id": "B0_0",
+          "side": "bottom",
+          "row": 0,
+          "col": 0,
+          "label": "A2",
+          "net": "solo:B0_0"
+        },
+        {
+          "id": "B0_1",
+          "side": "bottom",
+          "row": 0,
+          "col": 1,
+          "label": "2",
+          "net": "solo:B0_1"
+        },
+        {
+          "id": "B0_2",
+          "side": "bottom",
+          "row": 0,
+          "col": 2,
+          "label": "4",
+          "net": "solo:B0_2"
+        }
+      ],
+      "shapes": [
+        {
+          "id": "s7r2h39ki",
+          "name": "Body plate",
+          "type": "rect",
+          "x": 1,
+          "y": 23,
+          "w": 34,
+          "h": 44,
+          "r": 4,
+          "rx": 1.0,
+          "fill": "#f7f8f9",
+          "stroke": "#cfd2d5",
+          "strokeWidth": 0.3,
+          "opacity": 1,
+          "text": "",
+          "fontSize": 4,
+          "show": "always",
+          "activeWhen": "never",
+          "activeFill": "#3ddc5a"
+        },
+        {
+          "id": "sicq72h0l",
+          "name": "Logo",
+          "type": "text",
+          "x": 13.7,
+          "y": 32,
+          "w": 10,
+          "h": 8,
+          "r": 4,
+          "rx": 0.8,
+          "fill": "#00873c",
+          "stroke": "none",
+          "strokeWidth": 0.3,
+          "opacity": 1,
+          "text": "Schneider",
+          "fontSize": 2.5,
+          "show": "always",
+          "activeWhen": "never",
+          "activeFill": "#d1342f"
+        },
+        {
+          "id": "s3227w0pg",
+          "name": "Logo Electric",
+          "type": "text",
+          "x": 13.7,
+          "y": 34.6,
+          "w": 10,
+          "h": 8,
+          "r": 4,
+          "rx": 0.8,
+          "fill": "#00873c",
+          "stroke": "none",
+          "strokeWidth": 0.3,
+          "opacity": 1,
+          "text": "Electric",
+          "fontSize": 1.7,
+          "show": "always",
+          "activeWhen": "never",
+          "activeFill": "#d1342f"
+        },
+        {
+          "id": "si3cr8x88",
+          "name": "Green bar",
+          "type": "rect",
+          "x": 18.0,
+          "y": 29.6,
+          "w": 16.2,
+          "h": 1.1,
+          "r": 4,
+          "rx": 0.3,
+          "fill": "#00873c",
+          "stroke": "none",
+          "strokeWidth": 0.3,
+          "opacity": 1,
+          "text": "",
+          "fontSize": 4,
+          "show": "always",
+          "activeWhen": "never",
+          "activeFill": "#3ddc5a"
+        },
+        {
+          "id": "s930be0yr",
+          "name": "Type",
+          "type": "text",
+          "x": 10.8,
+          "y": 38.5,
+          "w": 10,
+          "h": 8,
+          "r": 4,
+          "rx": 0.8,
+          "fill": "#1f2630",
+          "stroke": "none",
+          "strokeWidth": 0.3,
+          "opacity": 1,
+          "text": "iCT",
+          "fontSize": 1.8,
+          "show": "always",
+          "activeWhen": "never",
+          "activeFill": "#d1342f"
+        },
+        {
+          "id": "sxegj3chq",
+          "name": "Split",
+          "type": "rect",
+          "x": 1.5,
+          "y": 47,
+          "w": 33,
+          "h": 0.4,
+          "r": 4,
+          "rx": 0.2,
+          "fill": "#cfd2d5",
+          "stroke": "none",
+          "strokeWidth": 0.3,
+          "opacity": 1,
+          "text": "",
+          "fontSize": 4,
+          "show": "always",
+          "activeWhen": "never",
+          "activeFill": "#3ddc5a"
+        },
+        {
+          "id": "s1zvl2hro",
+          "name": "Window",
+          "type": "rect",
+          "x": 31,
+          "y": 50,
+          "w": 2.6,
+          "h": 2.6,
+          "r": 4,
+          "rx": 0.3,
+          "fill": "#2b2f36",
+          "stroke": "none",
+          "strokeWidth": 0.3,
+          "opacity": 1,
+          "text": "",
+          "fontSize": 4,
+          "show": "always",
+          "activeWhen": "never",
+          "activeFill": "#3ddc5a"
+        },
+        {
+          "id": "sbe7h7xgs",
+          "name": "Rating",
+          "type": "text",
+          "x": 7.2,
+          "y": 64,
+          "w": 10,
+          "h": 8,
+          "r": 4,
+          "rx": 0.8,
+          "fill": "#1f2630",
+          "stroke": "none",
+          "strokeWidth": 0.3,
+          "opacity": 1,
+          "text": "40A",
+          "fontSize": 3.0,
+          "show": "always",
+          "activeWhen": "never",
+          "activeFill": "#d1342f"
+        }
+      ]
+    }
+  ]
+}

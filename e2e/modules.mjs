@@ -77,6 +77,39 @@ try {
   check('rectangle, circle and text can be drawn on the module', shapeRows.length === 4 /* default rating text + 3 */, `${shapeRows.length} shapes`);
   const types = await Promise.all(shapeRows.map((r) => r.getText()));
   check('shapes are listed by type', types.some((t) => /Rectangle/.test(t)) && types.some((t) => /Circle/.test(t)));
+  // text can be rotated: the rating text, turned by the buttons and by typing the angle
+  await shapeRows[0].click();
+  await sleep(200);
+  await (await d.findElement(By.css('button[aria-label="Rotate text 90 degrees clockwise"]'))).click();
+  await sleep(300);
+  const turned = await d.executeScript("return Array.from(document.querySelectorAll('.mod-canvas text')).some((t) => /rotate\\(90 /.test(t.getAttribute('transform') || ''))");
+  check('a text of the module can be rotated by 90 degrees', turned === true);
+  await setNum(d, await field(d, 'Rotation'), 30);
+  await sleep(300);
+  check('the rotation can be typed in degrees', (await d.executeScript("return Array.from(document.querySelectorAll('.mod-canvas text')).some((t) => /rotate\\(30 /.test(t.getAttribute('transform') || ''))")) === true);
+  await setNum(d, await field(d, 'Rotation'), 0);
+  await sleep(200);
+  // screw sizes and the box of the terminals
+  const radius = () => d.executeScript("const c = document.querySelector('.mod-canvas circle[fill=\"#9aa4af\"]'); return c ? Number(c.getAttribute('r')) : 0;");
+  const firstX = () => d.executeScript("return Array.from(document.querySelectorAll('.mod-canvas circle[fill=\"#9aa4af\"]')).map((c) => Number(c.getAttribute('cx')));");
+  const pickSize = (v) => d.executeScript('const s = document.querySelector(arguments[0]); const set = Object.getOwnPropertyDescriptor(HTMLSelectElement.prototype, "value").set; set.call(s, arguments[1]); s.dispatchEvent(new Event("change", { bubbles: true }));', 'select[aria-label="top row 1 screw size"]', v);
+  const r0 = await radius();
+  await pickSize('10');
+  await sleep(300);
+  const r1 = await radius();
+  check('the screws of a row can be made for a conductor size (10 mm² is bigger)', r1 > r0 && Math.abs(r1 - 2.58) < 0.05, `${r0} -> ${r1}`);
+  const xs0 = await firstX();
+  await (await d.findElement(By.css('input[aria-label="top terminals in a box of their own"]'))).click();
+  await sleep(300);
+  const widthField = await field(d, 'Box width');
+  await setNum(d, widthField, 8);
+  await sleep(300);
+  const xs1 = await firstX();
+  check('the terminals can be put in a box of their own, with its own width', xs1.length === xs0.length && Math.max(...xs1) < Math.max(...xs0) && Math.max(...xs1) <= 8.01, `${xs0.slice(0, 3)} -> ${xs1.slice(0, 3)}`);
+  check('the box is drawn as a guide in the designer', (await d.executeScript('return document.querySelectorAll(\'.mod-canvas rect[stroke-dasharray="1.4 1"]\').length')) === 1);
+  await d.findElement(By.css('input[aria-label="top terminals in a box of their own"]')).then((e) => e.click());
+  await pickSize('0');
+  await sleep(300);
   // visibility rule on the selected (last) shape
   await new (await import('selenium-webdriver')).Select(await d.findElement(By.xpath("//label[contains(@class,'field')][.//span[normalize-space()='Visible when']]//select"))).selectByVisibleText('Switch on');
   await sleep(200);

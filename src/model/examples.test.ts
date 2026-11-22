@@ -3,6 +3,7 @@ import { describe, expect, it } from 'vitest';
 import { syncFloorLinks } from './floorSync';
 import { circuitCables, circuitOf } from './floor';
 import { layoutPanel, termKey } from './geometry';
+import { allDefs } from './defs';
 import { parseProject } from './project';
 
 const dir = 'src/assets/examples/';
@@ -39,5 +40,23 @@ describe('the example projects', () => {
     const cables = media.items.filter((i) => i.link);
     expect(cables.length).toBe(plan.circuits.filter((c) => c.panel && c.medium !== 'power' && c.medium !== 'audio').reduce((a, c) => a + circuitCables(plan, c), 0));
     expect(media.wires.filter((w) => w.to.terminal.startsWith('P')).length).toBe(cables.length);
+  });
+});
+
+describe('the equipment catalogue', () => {
+  it('has every built-in device and every shipped module, one panel per manufacturer', () => {
+    const { project } = parseProject(readFileSync(dir + 'equipment-catalogue.ec', 'utf8'));
+    const used = new Set(project.panels.flatMap((p) => p.items.map((i) => i.defId)));
+    // the devices that are made by the floor plan sync or are not placed by hand
+    const skipped = new Set(['floor_port']);
+    const missing = allDefs().filter((d) => !d.hidden || d.id === 'keystone').filter((d) => !skipped.has(d.id) && !used.has(d.id)).map((d) => d.id);
+    expect(missing, 'add these devices to the catalogue (see src/assets/examples/README.md)').toEqual([]);
+    const names = project.panels.map((p) => p.name);
+    expect(names).toContain('Generic');
+    for (const v of new Set(allDefs().filter((d) => d.vendor).map((d) => d.vendor))) {
+      const panel = project.panels.find((p) => p.name === v)!;
+      expect(panel, `a panel for ${v}`).toBeTruthy();
+      expect(new Set(panel.items.map((i) => i.defId))).toEqual(new Set(allDefs().filter((d) => d.vendor === v).map((d) => d.id)));
+    }
   });
 });

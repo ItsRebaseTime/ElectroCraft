@@ -191,7 +191,7 @@ export function PanelDiagram({ project, panel, layout, routes, sim, markings, op
       }
     }
     return (
-      <g key={k.id} {...hit(`k:${k.id}`)}>
+      <g key={k.id} {...hit(`k:${k.id}`)} style={interactive ? { cursor: 'grab' } : undefined}>
         {cols.map((c, i) => {
           const d = `M${c.x} ${c.upperY}h${off}V${c.lowerY}h${-off}`;
           const body = c.kind === 'N' ? '#1f6fd1' : kd.color;
@@ -357,7 +357,7 @@ export function PanelDiagram({ project, panel, layout, routes, sim, markings, op
           const sel = selComb === c.id;
           const cd = connectorOf(project, c.def, 'comb', c.phases);
           return (
-            <g key={c.id} {...hit(`c:${c.id}`)}>
+            <g key={c.id} {...hit(`c:${c.id}`)} style={interactive ? { cursor: 'grab' } : undefined}>
               {pins.map((p) => (
                 <path key={p.terminal + p.item} d={top ? `M${p.x - 1.8} ${sy + 5}v${p.y - sy - 5.4}h3.6v${-(p.y - sy - 5.4)}` : `M${p.x - 1.8} ${sy + 1}v${-(sy - p.y + 0.6)}h3.6v${sy - p.y + 0.6}`} fill={p.kind === 'N' ? '#4f8ee0' : cd.pinColor} stroke="#5a3a1c" strokeWidth={0.4} />
               ))}

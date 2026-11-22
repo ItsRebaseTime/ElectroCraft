@@ -1,6 +1,6 @@
 import { describe, expect, it } from 'vitest';
 import { parseAsset } from './asset';
-import { buildModuleDef, cloneModule, contactLabel, effectiveInputMode, netGroups, newInput, newModule, newShape, newSwitch, parseModules, reidentify, sanitizeModule, serializeModules, setBehaviour, showExpr, syncTerminals, terminalSpecs } from './customModule';
+import { CONDUCTOR_SIZES, buildModuleDef, cloneModule, contactLabel, defaultTerminalBox, nearestConductorSize, screwRadius, effectiveInputMode, netGroups, newInput, newModule, newShape, newSwitch, parseModules, reidentify, sanitizeModule, serializeModules, setBehaviour, showExpr, syncTerminals, terminalSpecs } from './customModule';
 import { getDef, syncCustomModules } from './defs';
 import { layoutPanel } from './geometry';
 import { connect, createItem, createPanel, parseProject, serializeProject, createProject } from './project';
@@ -502,5 +502,83 @@ describe('per-instance input mode', () => {
     expect(effectiveInputMode({}, input)).toBe('momentary');
     expect(effectiveInputMode({ inputModes: { i1: 'toggle' } }, input)).toBe('toggle');
     expect(effectiveInputMode({ inputModes: { i1: 'bogus' as never } }, input)).toBe('momentary');
+  });
+});
+
+describe('rotated text', () => {
+  it('is drawn turned about its middle, survives a file round trip and is repaired when out of range', () => {
+    const m = newModule();
+    m.shapes.push(newShape('text', 9, 40, { text: 'Shelly', fontSize: 4, rotate: -90 }));
+    const { svg } = buildModuleDef(m);
+    expect(svg).toContain('transform="rotate(-90 9 38.7)"');
+    const back = parseModules(serializeModules([m])).modules[0];
+    expect(back.shapes.find((s) => s.text === 'Shelly')!.rotate).toBe(-90);
+    // no rotation is not stored, a turn of more than a circle is brought into -180 to 180, only text turns
+    const plain = sanitizeModule({ ...m, shapes: [newShape('text', 1, 1), { ...newShape('rect', 1, 1), rotate: 45 }, { ...newShape('text', 1, 1), rotate: 450 }] })!;
+    expect(plain.shapes[0]).not.toHaveProperty('rotate');
+    expect(plain.shapes[1]).not.toHaveProperty('rotate');
+    expect(plain.shapes[2].rotate).toBe(90);
+    // the artwork keeps the transform when it is parsed for drawing
+    const asset = parseAsset(svg);
+    expect(asset.nodes.some((n) => n.el.outerHTML.includes('rotate(-90'))).toBe(true);
+  });
+});
+
+describe('terminal screws and boxes', () => {
+  const base = () => {
+    const m = newModule();
+    m.top = { rows: 2, cols: 2 };
+    m.bottom = { rows: 1, cols: 3 };
+    return syncTerminals(m, true);
+  };
+
+  it('an own box that is the default box puts the terminals where they were', () => {
+    const m = base();
+    const before = terminalSpecs(m);
+    m.top = { ...m.top, box: defaultTerminalBox(m, 'top', 2) };
+    m.bottom = { ...m.bottom, box: defaultTerminalBox(m, 'bottom', 1) };
+    for (const [a, b] of before.map((t, i) => [t, terminalSpecs(m)[i]] as const)) {
+      expect(b.x).toBeCloseTo(a.x);
+      expect(b.y).toBeCloseTo(a.y);
+    }
+  });
+
+  it('a box places the terminals inside it, the rows sharing its height', () => {
+    const m = base();
+    m.top = { ...m.top, box: { x: 4, y: 10, w: 10, h: 12 } };
+    const t = terminalSpecs(m).filter((x) => x.side === 'top');
+    expect(t.map((x) => x.x)).toEqual([6.5, 11.5, 6.5, 11.5]);
+    expect(t.filter((x) => x.row === 0).every((x) => Math.abs(x.y - 13) < 1e-9)).toBe(true); // row 0 nearest the top edge
+    expect(t.filter((x) => x.row === 1).every((x) => Math.abs(x.y - 19) < 1e-9)).toBe(true);
+    m.bottom = { ...m.bottom, box: { x: 0, y: 60, w: 18, h: 10 } };
+    expect(terminalSpecs(m).find((x) => x.side === 'bottom')!.y).toBeCloseTo(65);
+  });
+
+  it('screw size follows the conductor cross-section of the row, automatic otherwise', () => {
+    const m = base();
+    m.top = { ...m.top, sizes: [0.5, 0] };
+    const t = terminalSpecs(m).filter((x) => x.side === 'top');
+    expect(t.find((x) => x.row === 0)!.r).toBe(screwRadius(0.5));
+    expect(t.find((x) => x.row === 1)!.r).toBeGreaterThanOrEqual(1.4); // automatic
+    expect(screwRadius(6)).toBeGreaterThan(screwRadius(2.5));
+    expect(screwRadius(25)).toBeGreaterThan(screwRadius(6));
+    expect(CONDUCTOR_SIZES).toContain(2.5);
+    expect(nearestConductorSize(2.4)).toBe(2.5);
+    expect(nearestConductorSize(100)).toBe(95);
+    const { svg } = buildModuleDef({ ...m, top: { ...m.top, sizes: [10, 10] } });
+    expect(svg).toContain(`r="${screwRadius(10)}"`);
+  });
+
+  it('survive a file round trip, are repaired when read, and are left out when unused', () => {
+    const m = base();
+    m.top = { ...m.top, box: { x: 2, y: 8, w: 14, h: 22 }, sizes: [1.5, 0] };
+    const back = parseModules(serializeModules([m])).modules[0];
+    expect(back.top.box).toEqual({ x: 2, y: 8, w: 14, h: 22 });
+    expect(back.top.sizes).toEqual([1.5, 0]);
+    expect(back.bottom).toEqual({ rows: 1, cols: 3 }); // nothing stored for a plain side
+    const fixed = sanitizeModule({ ...m, top: { rows: 2, cols: 2, box: { x: 'a', y: 999, w: 0, h: -3 }, sizes: [2.4, 7, 9, 9, 9] } })!;
+    expect(fixed.top.box).toEqual({ x: 0, y: 200, w: 1, h: 1 });
+    expect(fixed.top.sizes).toEqual([2.5, 6, 10]); // nearest common sizes, at most three rows
+    expect(sanitizeModule({ ...m, top: { rows: 2, cols: 2, sizes: [0, 0] } })!.top.sizes).toBeUndefined();
   });
 });

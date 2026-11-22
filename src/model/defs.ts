@@ -11,6 +11,8 @@ export const POLE_CONFIGS: Record<string, ('L' | 'N')[]> = {
   '3P': ['L', 'L', 'L'],
   '3P+N': ['L', 'L', 'L', 'N'],
   '4P': ['L', 'L', 'L', 'L'],
+  '2P+N': ['L', 'L', 'N'],
+  '4P+N': ['L', 'L', 'L', 'L', 'N'],
 };
 
 export const POLE_CONFIG_LABELS: Record<string, string> = {
@@ -20,6 +22,8 @@ export const POLE_CONFIG_LABELS: Record<string, string> = {
   '3P': '3P (3 phases)',
   '3P+N': '3P+N (3 phases + neutral)',
   '4P': '4P',
+  '2P+N': '2P+N (2 phases + neutral)',
+  '4P+N': '4P+N (4 poles + neutral)',
 };
 
 export const CATEGORY_LABELS: Record<string, string> = {
@@ -46,12 +50,14 @@ export function registerEquipment(def: EquipmentDef, svgText: string) {
 // ---- built-in devices and the module library: .ecm module files bundled with the app
 //   src/assets/modules/base/*.ecm  the built-in devices (device modules, ids are permanent because projects store them)
 //   src/assets/modules/*.ecm       the module library (any unique id), read-only in every project
+//   src/assets/modules/<Vendor>/   one folder per manufacturer (Shelly ...): the same, listed under the folder's name in the palette
 const baseFiles = import.meta.glob('../assets/modules/base/*.ecm', { eager: true, query: '?raw', import: 'default' }) as Record<string, string>;
 const libFiles = import.meta.glob('../assets/modules/*.ecm', { eager: true, query: '?raw', import: 'default' }) as Record<string, string>;
+const vendorFiles = import.meta.glob('../assets/modules/*/*.ecm', { eager: true, query: '?raw', import: 'default' }) as Record<string, string>;
 const shippedModules = new Map<string, CustomModule>();
 const baseIds = new Set<string>();
 
-function loadShipped(files: Record<string, string>, base: boolean) {
+function loadShipped(files: Record<string, string>, base: boolean, vendorOf?: (path: string) => string | undefined) {
   for (const [path, text] of Object.entries(files).sort(([a], [b]) => a.localeCompare(b))) {
     try {
       for (const m of parseModules(text).modules) {
@@ -60,6 +66,8 @@ function loadShipped(files: Record<string, string>, base: boolean) {
           continue;
         }
         const { def, svg } = buildModuleDef(m, m.device?.category ?? 'library');
+        const vendor = vendorOf?.(path);
+        if (vendor) def.vendor = vendor;
         registerEquipment(def, svg);
         shippedModules.set(m.id, m);
         if (base) baseIds.add(m.id);
@@ -71,6 +79,12 @@ function loadShipped(files: Record<string, string>, base: boolean) {
 }
 loadShipped(baseFiles, true);
 loadShipped(libFiles, false);
+// the manufacturer folders (base/ holds the built-in devices and is read above)
+loadShipped(
+  Object.fromEntries(Object.entries(vendorFiles).filter(([p]) => !p.includes('/modules/base/'))),
+  false,
+  (path) => /\/modules\/([^/]+)\//.exec(path)?.[1].replace(/_/g, ' '),
+);
 
 /** True for every device that comes from a shipped module file (built-in devices and the module library). */
 export const isShippedDef = (id: string) => shippedModules.has(id);

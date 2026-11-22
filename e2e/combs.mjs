@@ -42,6 +42,25 @@ try {
   const drawn = await d.executeScript("return document.querySelectorAll('.canvas g[data-hit^=\"c:\"]').length");
   check('the comb bar is drawn', drawn === 1);
   check('the comb bar is selected with its properties', (await d.findElements(By.xpath("//h3[contains(., 'Comb bar')]"))).length >= 1);
+  // drag the comb bar along the rail (synthetic pointer events: the driver does not hold the pointer over svg)
+  const drag = (sel, dxModules, pxPerModule) => d.executeScript(`
+    const el = document.querySelector(${JSON.stringify(sel)}); const r = el.getBoundingClientRect(); const svg = document.querySelector('.canvas');
+    const x = r.x + Math.min(6, r.width / 2), y = r.y + r.height / 2;
+    const ev = (t, cx) => new PointerEvent(t, { bubbles: true, cancelable: true, clientX: cx, clientY: y, pointerId: 21, button: 0, pointerType: 'mouse' });
+    el.dispatchEvent(ev('pointerdown', x));
+    for (let i = 1; i <= 4; i++) svg.dispatchEvent(ev('pointermove', x + (${dxModules} * ${pxPerModule} * i) / 4));
+    svg.dispatchEvent(ev('pointerup', x + ${dxModules} * ${pxPerModule}));`);
+  const combRect = await d.executeScript('const r = document.querySelector(\'.canvas g[data-hit^="c:"] rect\').getBoundingClientRect(); return r.width;');
+  const pxMod = combRect / st.panels[0].combs[0].modules;
+  const slot0 = st.panels[0].combs[0].slot;
+  await drag('.canvas g[data-hit^="c:"] rect', 2, pxMod);
+  st = await state(d);
+  check('a comb bar can be dragged along the rail', st.panels[0].combs[0].slot === slot0 + 2, `${slot0} -> ${st.panels[0].combs[0].slot}`);
+  await d.executeScript("document.querySelector('.canvas').dispatchEvent(new KeyboardEvent('keydown', { key: 'z', ctrlKey: true, bubbles: true }))");
+  st = await state(d);
+  check('the move is one undo step', st.panels[0].combs[0].slot === slot0, String(st.panels[0].combs[0].slot));
+  await d.executeScript('const el = document.querySelector(\'.canvas g[data-hit^="c:"] rect\'); const r = el.getBoundingClientRect(); const init = { bubbles: true, cancelable: true, clientX: r.x + 5, clientY: r.y + r.height / 2, pointerId: 22, button: 0, pointerType: \'mouse\' }; el.dispatchEvent(new PointerEvent(\'pointerdown\', init)); el.dispatchEvent(new PointerEvent(\'pointerup\', init));');
+  await sleep(300);
   // change to one phase, then delete
   const sel = await d.findElement(By.xpath("//label[.//span[contains(., 'Phases')]]//select | //select[option[contains(., 'one conductor')]]"));
   await sel.sendKeys('1');
@@ -76,6 +95,11 @@ try {
   await sleep(400);
   const above = await d.executeScript("const k = document.querySelector('.canvas g[data-hit^=\"k:\"]'); const i = document.querySelector('.canvas g[data-hit^=\"i:\"]'); return !!(k.compareDocumentPosition(i) & Node.DOCUMENT_POSITION_PRECEDING);");
   check('a selected row connector is drawn over the devices', above === true);
+  // drag the row connector three columns to the right
+  const linkSlot0 = st.panels[0].rowLinks[0].slot;
+  await drag('.canvas g[data-hit^="k:"] path[stroke="transparent"]', 3, pxMod);
+  st = await state(d);
+  check('a row connector can be dragged to other columns', st.panels[0].rowLinks[0].slot === linkSlot0 + 3, `${linkSlot0} -> ${st.panels[0].rowLinks[0].slot}`);
   await (await d.findElement(By.xpath("//button[contains(., 'Delete row connector')]"))).click();
   st = await state(d);
   check('the row connector can be deleted', !st.panels[0].rowLinks);

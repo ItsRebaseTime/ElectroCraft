@@ -19,6 +19,11 @@ export function addEquipment(panel: Panel, defId: string, at?: Vec, preferredRai
   const def = getDef(defId);
   if (!def) return `Unknown equipment ${defId}`;
   const item = createItem(defId);
+  // a manufacturer's module carries who made it into the item (it goes to the equipment list of the exports)
+  if (def.vendor) {
+    item.manufacturer = def.vendor;
+    item.model = def.name.replace(new RegExp(`^${def.vendor}\\s+`, 'i'), '');
+  }
   const us = isUs(panel);
   if (def.mount === 'free') {
     const encl = enclosureRect(panel);
@@ -697,4 +702,31 @@ export function pasteItems(panel: Panel, clip: PanelClipEntry[], at: Vec): strin
     out.push(copy.id);
   }
   return out;
+}
+
+/**
+ * Move a comb bar to another place on a rail (dragging it). It stays inside the rail; false when it would not fit.
+ */
+export function moveComb(panel: Panel, id: string, railId: string, slot: number): boolean {
+  const c = panel.combs?.find((x) => x.id === id);
+  const rail = panel.rails.find((r) => r.id === railId);
+  if (!c || !rail) return false;
+  const s = Math.max(0, Math.min(Math.round(slot), Math.floor(rail.modules - c.modules + 1e-6)));
+  if (c.railId === railId && c.slot === s) return false;
+  c.railId = railId;
+  c.slot = s;
+  return true;
+}
+
+/** Move a row connector (dragging it): to another column, or to another upper rail that has a rail below. False when it does not fit. */
+export function moveRowLink(panel: Panel, id: string, railId: string, slot: number): boolean {
+  const k = panel.rowLinks?.find((x) => x.id === id);
+  const rail = panel.rails.find((r) => r.id === railId);
+  if (!k || !rail || !railBelow(panel, railId)) return false;
+  const s = Math.max(0, Math.min(Math.round(slot), Math.floor(rail.modules - k.count + 1e-6)));
+  if (k.railId === railId && k.slot === s) return false;
+  if (rowLinkOverlaps(panel, { railId, slot: s, count: k.count, side: k.side }, id)) return false;
+  k.railId = railId;
+  k.slot = s;
+  return true;
 }

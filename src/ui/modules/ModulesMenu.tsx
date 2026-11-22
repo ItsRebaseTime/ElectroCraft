@@ -66,7 +66,7 @@ function ModuleChecklist({ modules, checked, setChecked }: { modules: CustomModu
             <span className="mod-check-text">
               <strong>{m.name}</strong>
               <small>
-                {m.widthModules} module{m.widthModules === 1 ? '' : 's'} wide, {m.terminals.length} connection{m.terminals.length === 1 ? '' : 's'}, {m.rating.In} A / {m.rating.Un} V, {m.shapes.length} shape
+                {m.widthMm !== undefined ? `${m.widthMm} mm` : `${m.widthModules} module${m.widthModules === 1 ? '' : 's'}`} wide, {m.terminals.length} connection{m.terminals.length === 1 ? '' : 's'}, {m.rating.In} A / {m.rating.Un} V, {m.shapes.length} shape
                 {m.shapes.length === 1 ? '' : 's'}
                 {def.stateful ? ', switch' : ''}
               </small>

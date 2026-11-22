@@ -1,0 +1,408 @@
+{
+  "format": "electrocraft-modules",
+  "version": 1,
+  "modules": [
+    {
+      "id": "shelly-pro-dual-cover-pm",
+      "name": "Shelly Pro Dual Cover PM",
+      "description": "Controls two covers (shutters, blinds), 16 A per channel, a power meter per cover, 4 switch inputs. About 53 mm wide. Up and down contacts are not interlocked in the simulation.",
+      "designation": "K",
+      "widthModules": 3,
+      "widthMm": 53,
+      "heightMm": 90,
+      "color": "#121212",
+      "stroke": "#69747f",
+      "rating": {
+        "In": 16,
+        "Un": 230
+      },
+      "behaviour": "isolated",
+      "switchable": false,
+      "trips": false,
+      "switches": [
+        {
+          "id": "s1",
+          "name": "S1",
+          "no": [
+            "T0_0",
+            "T0_1"
+          ],
+          "nc": [],
+          "visible": false,
+          "x": 7,
+          "y": 52
+        },
+        {
+          "id": "s2",
+          "name": "S2",
+          "no": [
+            "T0_0",
+            "T0_2"
+          ],
+          "nc": [],
+          "visible": false,
+          "x": 20,
+          "y": 52
+        },
+        {
+          "id": "s3",
+          "name": "S3",
+          "no": [
+            "T0_0",
+            "T0_3"
+          ],
+          "nc": [],
+          "visible": false,
+          "x": 33,
+          "y": 52
+        },
+        {
+          "id": "s4",
+          "name": "S4",
+          "no": [
+            "T0_0",
+            "T0_4"
+          ],
+          "nc": [],
+          "visible": false,
+          "x": 46,
+          "y": 52
+        }
+      ],
+      "inputs": [
+        {
+          "id": "in1",
+          "name": "S1",
+          "terminal": "B0_1",
+          "ref": "",
+          "mode": "momentary",
+          "targets": [
+            "s1"
+          ]
+        },
+        {
+          "id": "in2",
+          "name": "S2",
+          "terminal": "B0_2",
+          "ref": "",
+          "mode": "momentary",
+          "targets": [
+            "s2"
+          ]
+        },
+        {
+          "id": "in3",
+          "name": "S3",
+          "terminal": "B0_3",
+          "ref": "",
+          "mode": "momentary",
+          "targets": [
+            "s3"
+          ]
+        },
+        {
+          "id": "in4",
+          "name": "S4",
+          "terminal": "B0_4",
+          "ref": "",
+          "mode": "momentary",
+          "targets": [
+            "s4"
+          ]
+        }
+      ],
+      "top": {
+        "rows": 1,
+        "cols": 5
+      },
+      "bottom": {
+        "rows": 1,
+        "cols": 5
+      },
+      "terminals": [
+        {
+          "id": "T0_0",
+          "side": "top",
+          "row": 0,
+          "col": 0,
+          "label": "L",
+          "net": "solo:T0_0"
+        },
+        {
+          "id": "T0_1",
+          "side": "top",
+          "row": 0,
+          "col": 1,
+          "label": "▲1",
+          "net": "solo:T0_1"
+        },
+        {
+          "id": "T0_2",
+          "side": "top",
+          "row": 0,
+          "col": 2,
+          "label": "▼1",
+          "net": "solo:T0_2"
+        },
+        {
+          "id": "T0_3",
+          "side": "top",
+          "row": 0,
+          "col": 3,
+          "label": "▲2",
+          "net": "solo:T0_3"
+        },
+        {
+          "id": "T0_4",
+          "side": "top",
+          "row": 0,
+          "col": 4,
+          "label": "▼2",
+          "net": "solo:T0_4"
+        },
+        {
+          "id": "B0_0",
+          "side": "bottom",
+          "row": 0,
+          "col": 0,
+          "label": "N",
+          "net": "solo:B0_0"
+        },
+        {
+          "id": "B0_1",
+          "side": "bottom",
+          "row": 0,
+          "col": 1,
+          "label": "S1",
+          "net": "solo:B0_1"
+        },
+        {
+          "id": "B0_2",
+          "side": "bottom",
+          "row": 0,
+          "col": 2,
+          "label": "S2",
+          "net": "solo:B0_2"
+        },
+        {
+          "id": "B0_3",
+          "side": "bottom",
+          "row": 0,
+          "col": 3,
+          "label": "S3",
+          "net": "solo:B0_3"
+        },
+        {
+          "id": "B0_4",
+          "side": "bottom",
+          "row": 0,
+          "col": 4,
+          "label": "S4",
+          "net": "solo:B0_4"
+        }
+      ],
+      "shapes": [
+        {
+          "id": "serncqux",
+          "name": "Front plate",
+          "type": "rect",
+          "x": 1,
+          "y": 27,
+          "w": 51,
+          "h": 40,
+          "r": 4,
+          "rx": 1.4,
+          "fill": "#0b0b0b",
+          "stroke": "#2a3138",
+          "strokeWidth": 0.3,
+          "opacity": 1,
+          "text": "",
+          "fontSize": 4,
+          "show": "always",
+          "activeWhen": "never",
+          "activeFill": "#3ddc5a"
+        },
+        {
+          "id": "s2t3g32g",
+          "name": "Light Power",
+          "type": "circle",
+          "x": 4.4,
+          "y": 31.5,
+          "w": 10,
+          "h": 8,
+          "r": 1.4,
+          "rx": 0.8,
+          "fill": "#ff3b30",
+          "stroke": "#2a3138",
+          "strokeWidth": 0.3,
+          "opacity": 1,
+          "text": "",
+          "fontSize": 4,
+          "show": "always",
+          "activeWhen": "never",
+          "activeFill": "#3ddc5a"
+        },
+        {
+          "id": "saquwltf",
+          "name": "Light LAN",
+          "type": "circle",
+          "x": 13.3,
+          "y": 31.5,
+          "w": 10,
+          "h": 8,
+          "r": 1.4,
+          "rx": 0.8,
+          "fill": "#3ddc5a",
+          "stroke": "#2a3138",
+          "strokeWidth": 0.3,
+          "opacity": 1,
+          "text": "",
+          "fontSize": 4,
+          "show": "always",
+          "activeWhen": "never",
+          "activeFill": "#3ddc5a"
+        },
+        {
+          "id": "so043z65",
+          "name": "Light Up 1",
+          "type": "circle",
+          "x": 22.1,
+          "y": 31.5,
+          "w": 10,
+          "h": 8,
+          "r": 1.4,
+          "rx": 0.8,
+          "fill": "#3a0000",
+          "stroke": "#2a3138",
+          "strokeWidth": 0.3,
+          "opacity": 1,
+          "text": "",
+          "fontSize": 4,
+          "show": "always",
+          "activeWhen": "closed:s1",
+          "activeFill": "#ff3b30"
+        },
+        {
+          "id": "sa3tmq6o",
+          "name": "Light Down 1",
+          "type": "circle",
+          "x": 30.9,
+          "y": 31.5,
+          "w": 10,
+          "h": 8,
+          "r": 1.4,
+          "rx": 0.8,
+          "fill": "#3a0000",
+          "stroke": "#2a3138",
+          "strokeWidth": 0.3,
+          "opacity": 1,
+          "text": "",
+          "fontSize": 4,
+          "show": "always",
+          "activeWhen": "closed:s2",
+          "activeFill": "#ff3b30"
+        },
+        {
+          "id": "s6isxwmn",
+          "name": "Light Up 2",
+          "type": "circle",
+          "x": 39.8,
+          "y": 31.5,
+          "w": 10,
+          "h": 8,
+          "r": 1.4,
+          "rx": 0.8,
+          "fill": "#3a0000",
+          "stroke": "#2a3138",
+          "strokeWidth": 0.3,
+          "opacity": 1,
+          "text": "",
+          "fontSize": 4,
+          "show": "always",
+          "activeWhen": "closed:s3",
+          "activeFill": "#ff3b30"
+        },
+        {
+          "id": "s4tivsjy",
+          "name": "Light Down 2",
+          "type": "circle",
+          "x": 48.6,
+          "y": 31.5,
+          "w": 10,
+          "h": 8,
+          "r": 1.4,
+          "rx": 0.8,
+          "fill": "#3a0000",
+          "stroke": "#2a3138",
+          "strokeWidth": 0.3,
+          "opacity": 1,
+          "text": "",
+          "fontSize": 4,
+          "show": "always",
+          "activeWhen": "closed:s4",
+          "activeFill": "#ff3b30"
+        },
+        {
+          "id": "sqrqyl0w",
+          "name": "Brand",
+          "type": "text",
+          "x": 26.5,
+          "y": 40,
+          "w": 10,
+          "h": 8,
+          "r": 4,
+          "rx": 0.8,
+          "fill": "#ffffff",
+          "stroke": "none",
+          "strokeWidth": 0.3,
+          "opacity": 1,
+          "text": "Shelly",
+          "fontSize": 3.6,
+          "show": "always",
+          "activeWhen": "never",
+          "activeFill": "#d1342f"
+        },
+        {
+          "id": "sosg33ss",
+          "name": "Model",
+          "type": "text",
+          "x": 26.5,
+          "y": 45,
+          "w": 10,
+          "h": 8,
+          "r": 4,
+          "rx": 0.8,
+          "fill": "#c7ced6",
+          "stroke": "none",
+          "strokeWidth": 0.3,
+          "opacity": 1,
+          "text": "Dual Cover PM",
+          "fontSize": 3.2,
+          "show": "always",
+          "activeWhen": "never",
+          "activeFill": "#d1342f"
+        },
+        {
+          "id": "swvd861t",
+          "name": "Rating",
+          "type": "text",
+          "x": 26.5,
+          "y": 58,
+          "w": 10,
+          "h": 8,
+          "r": 4,
+          "rx": 0.8,
+          "fill": "#c7ced6",
+          "stroke": "none",
+          "strokeWidth": 0.3,
+          "opacity": 1,
+          "text": "16A",
+          "fontSize": 2.4,
+          "show": "always",
+          "activeWhen": "never",
+          "activeFill": "#d1342f"
+        }
+      ]
+    }
+  ]
+}

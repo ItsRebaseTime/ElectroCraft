@@ -6,7 +6,7 @@ import { layoutPanel } from './geometry';
 import { connect, createItem } from './project';
 import { flatPanel } from './sample';
 import { simulate } from './sim';
-import { addComb, addRowLink, copyItems, pasteItems, removeComb, removeRowLink, updateComb, updateRowLink } from '../store/actions';
+import { addComb, addRowLink, copyItems, moveComb, moveRowLink, pasteItems, removeComb, removeRowLink, updateComb, updateRowLink } from '../store/actions';
 
 /** A fresh flat panel with the given breakers in a row on its second rail. */
 function row(configs: string[], rail = 1, start = 0) {
@@ -239,5 +239,36 @@ describe('copy and paste of devices', () => {
     const linked = createItem('load', { x: 10, y: 10, link: { circuit: 'c' } });
     panel.items.push(bar, linked);
     expect(copyItems(panel, [bar.id, linked.id])).toEqual([]);
+  });
+});
+
+describe('moving combs and row connectors', () => {
+  it('a comb bar moves along its rail, to another rail, and stays inside the rail', () => {
+    const { panel, mcbs } = row(['1P', '1P', '1P']);
+    const comb = addComb(panel, mcbs.map((i) => i.id), 3);
+    if (typeof comb === 'string') throw new Error(comb);
+    const rails = panel.rails.map((r) => r.id);
+    expect(moveComb(panel, comb.id, comb.railId, 4)).toBe(true);
+    expect(panel.combs![0].slot).toBe(4);
+    expect(moveComb(panel, comb.id, comb.railId, 4)).toBe(false); // nothing changed
+    expect(moveComb(panel, comb.id, comb.railId, 99)).toBe(true);
+    expect(panel.combs![0].slot + comb.modules).toBeLessThanOrEqual(panel.rails[1].modules); // clamped to the rail end
+    expect(moveComb(panel, comb.id, rails[0], 0)).toBe(true);
+    expect(panel.combs![0].railId).toBe(rails[0]);
+    expect(moveComb(panel, 'nope', rails[0], 0)).toBe(false);
+  });
+
+  it('a row connector moves to other columns and rails but never onto another one or a rail without one below', () => {
+    const { panel } = row(['1P'], 0);
+    const rails = panel.rails.map((r) => r.id);
+    const a = addRowLink(panel, rails[0], 0, 2);
+    const b = addRowLink(panel, rails[0], 5, 2);
+    if (typeof a === 'string' || typeof b === 'string') throw new Error('not placed');
+    expect(moveRowLink(panel, a.id, rails[0], 2)).toBe(true);
+    expect(moveRowLink(panel, a.id, rails[0], 4)).toBe(false); // would cover b
+    expect(a.slot).toBe(2);
+    expect(moveRowLink(panel, a.id, rails[rails.length - 1], 2)).toBe(false); // no rail below the last one
+    expect(moveRowLink(panel, a.id, rails[1], 2)).toBe(true); // down one rail (the connector hangs between rails 2 and 3)
+    expect(panel.rowLinks!.find((k) => k.id === a.id)!.railId).toBe(rails[1]);
   });
 });

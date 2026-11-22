@@ -3,11 +3,11 @@ import { connectorTarget } from '../model/comb';
 import { panelClipboard } from './panelClipboard';
 import { placeConnectorOn, useConnectorUI } from './connectors/connectorState';
 import { bridgesOf, getDef } from '../model/defs';
-import { MODULE, STUB, US_SPACE_H, findSlot, itemWidthModules, nearestRail, nearestUsColumn, termKey, usRowTop } from '../model/geometry';
+import { MODULE, STUB, US_SPACE_H, findSlot, itemWidthModules, nearestRail, nearestUsColumn, railPos, termKey, usRowTop } from '../model/geometry';
 import { nodesFromRoute } from '../model/routing';
 import type { Panel, Vec, WireDraft } from '../model/types';
 import { PanelDiagram } from '../render/PanelDiagram';
-import { LINKED_ITEM_MESSAGE, addEquipment, addWire, copyItems, duplicateItems, pasteItems, removeItems, removeComb, removeRowLink, removeWires, setBridgeRange, toggleBridge, toggleSwitch, updateItem } from '../store/actions';
+import { LINKED_ITEM_MESSAGE, addEquipment, addWire, copyItems, duplicateItems, pasteItems, removeItems, moveComb, moveRowLink, removeComb, removeRowLink, removeWires, setBridgeRange, toggleBridge, toggleSwitch, updateItem } from '../store/actions';
 import { selectActivePanel, useStore, type Viewport } from '../store/store';
 import { useDiagram } from './DiagramContext';
 import { Icon } from './Icon';
@@ -21,6 +21,7 @@ type Drag =
   | { type: 'pan'; sx: number; sy: number; vx: number; vy: number; right?: boolean; moved?: boolean }
   | { type: 'item'; id: string; gx: number; gy: number; sx: number; sy: number; started: boolean }
   | { type: 'wire'; sx: number; sy: number; moved: boolean }
+  | { type: 'partmove'; kind: 'comb' | 'link'; id: string; grab: number; started: boolean; sx: number; sy: number }
   | { type: 'comb'; sx: number; sy: number; id: string; from: number; target: boolean; orig: number[] }
   | { type: 'node'; wire: string; idx: number; orig: Vec[]; started: boolean; sx: number; sy: number }
   | { type: 'seg'; wire: string; i: number; orig: Vec[]; started: boolean; sx: number; sy: number; horiz: boolean };
@@ -443,11 +444,15 @@ export function Editor() {
         select({ kind: 'wire', ids: [hit.id] });
         return;
       case 'c':
-        select({ kind: 'comb', ids: [hit.id] });
+      case 'k': {
+        // a comb bar or a row connector: select it, and dragging moves it along the rails
+        const isComb = hit.kind === 'c';
+        select({ kind: isComb ? 'comb' : 'link', ids: [hit.id] });
+        const part = isComb ? panel.combs?.find((c) => c.id === hit.id) : panel.rowLinks?.find((k) => k.id === hit.id);
+        const pos = part ? railPos(panel, part.railId, layout.sections) : null;
+        if (part && pos) dragRef.current = { type: 'partmove', kind: isComb ? 'comb' : 'link', id: hit.id, grab: (pt.x - pos.x) / MODULE - part.slot, started: false, sx: e.clientX, sy: e.clientY };
         return;
-      case 'k':
-        select({ kind: 'link', ids: [hit.id] });
-        return;
+      }
       case 'r':
         select({ kind: 'rail', ids: [hit.id] });
         dragRef.current = { type: 'pan', sx: e.clientX, sy: e.clientY, vx: vp.x, vy: vp.y };
@@ -487,6 +492,24 @@ export function Editor() {
     const moved = Math.hypot(e.clientX - d.sx, e.clientY - d.sy) > 3;
     if (d.type === 'wire') {
       if (moved) d.moved = true;
+    } else if (d.type === 'partmove') {
+      if (!d.started) {
+        if (!moved) return;
+        d.started = true;
+        checkpoint();
+      }
+      const near = nearestRail(panel, pt.x, pt.y);
+      if (!near) return;
+      const slot = (pt.x - near.x0) / MODULE - d.grab;
+      mutate((p) => {
+        const pn = panelOf(p, panel.id);
+        if (d.kind === 'comb') moveComb(pn, d.id, near.railId, slot);
+        else {
+          // a row connector hangs on the rail above its gap: it only goes to rails that have another rail below
+          const cur = pn.rowLinks?.find((k) => k.id === d.id);
+          moveRowLink(pn, d.id, near.railId, slot) || (cur && moveRowLink(pn, d.id, cur.railId, slot));
+        }
+      }, false);
     } else if (d.type === 'comb') {
       const pl = layout.placed.get(d.id);
       if (!pl) return;
