@@ -113,10 +113,10 @@ Terminals are read from the SVG, so a new device is a module file and needs no c
 ## Layout and routing
 
 * Units are millimetres. A module is 18 mm, DIN devices are 90 mm tall, and rows are spaced 180 mm apart.
-* Between rows (and above the first row) are **gutters**, horizontal channels with up to ten lanes.
-* An automatic wire leaves its terminal vertically, picks the gutter in that direction, runs along a lane, and goes to
-  the target terminal the same way. If the two terminals are in different gutters it uses a side channel left or right of
-  the rails. Lanes are assigned per gutter in wire order so parallel wires do not overlap.
+* An automatic wire is routed by a cheapest-path search on a grid (a line every 8 mm plus a line through every stub end,
+  `src/model/routing.ts`): the wire leaves its terminal along the terminal's direction, and length, bends, crossings of other
+  wires, running along another wire and passing behind a device all cost. Short wires are routed first, so the long ones go
+  around them. There are no fixed channels or lanes.
 * A manual route is `[terminal, stub, ...bend points, stub, terminal]`. Dragging a segment edits its two bend points;
   hand-drawn bends are made orthogonal by inserting elbows.
 

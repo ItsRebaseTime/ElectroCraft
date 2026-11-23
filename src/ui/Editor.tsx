@@ -3,11 +3,12 @@ import { connectorTarget } from '../model/comb';
 import { panelClipboard } from './panelClipboard';
 import { placeConnectorOn, useConnectorUI } from './connectors/connectorState';
 import { bridgesOf, getDef } from '../model/defs';
-import { MODULE, STUB, US_SPACE_H, findSlot, itemWidthModules, nearestRail, nearestUsColumn, railPos, termKey, usRowTop } from '../model/geometry';
+import { MODULE, STUB, ROW_PITCH, PLATE_Y0, isPlate, seatOnRail, stackOnto, US_SPACE_H, findSlot, itemWidthModules, nearestRail, nearestUsColumn, railPos, termKey, usRowTop } from '../model/geometry';
 import { nodesFromRoute } from '../model/routing';
 import type { Panel, Vec, WireDraft } from '../model/types';
 import { PanelDiagram } from '../render/PanelDiagram';
-import { LINKED_ITEM_MESSAGE, addEquipment, addWire, copyItems, duplicateItems, pasteItems, removeItems, moveComb, moveRowLink, removeComb, removeRowLink, removeWires, setBridgeRange, toggleBridge, toggleSwitch, updateItem } from '../store/actions';
+import { SwitchOverlay, stackedSwitches } from './SwitchOverlay';
+import { LINKED_ITEM_MESSAGE, addEquipment, addWire, copyItems, duplicateItems, pasteItems, removeItems, moveComb, moveRowLink, removeComb, removeRowLink, removeWires, rotateItem, setBridgeRange, toggleBridge, toggleSwitch, updateItem } from '../store/actions';
 import { selectActivePanel, useStore, type Viewport } from '../store/store';
 import { useDiagram } from './DiagramContext';
 import { Icon } from './Icon';
@@ -71,6 +72,7 @@ export function Editor() {
   const tool = useStore((s) => s.tool);
   const options = useStore((s) => s.options);
   const simState = useStore((s) => s.sim);
+  const selectedSwitch = selection.kind === 'item' && selection.ids.length === 1 ? panel.items.find((i) => i.id === selection.ids[0] && getDef(i.defId)?.network) : undefined;
   const storedVp = useStore((s) => s.viewports[panel.id]);
   const { mutate, checkpoint, select, setViewport, setSim, notify, setTool } = useStore.getState();
 
@@ -268,7 +270,15 @@ export function Editor() {
       else if (!mod && e.key.toLowerCase() === 'w') setTool('wire');
       else if (!mod && e.key.toLowerCase() === 'h') setTool('pan');
       else if (!mod && e.key.toLowerCase() === 'f') fit();
-      else if (e.key.startsWith('Arrow') && st.selection.kind === 'item') {
+      else if (!mod && e.key.toLowerCase() === 'r' && st.selection.kind === 'item') {
+        // turn the selected devices on a mounting plate by 90 degrees (Shift: the other way)
+        const dir = e.shiftKey ? -1 : 1;
+        let err: string | null = null;
+        mutate((p) => {
+          for (const id of st.selection.ids) err = rotateItem(panelOf(p, panel.id), id, dir) ?? err;
+        });
+        if (err) notify(err, 'error');
+      } else if (e.key.startsWith('Arrow') && st.selection.kind === 'item') {
         e.preventDefault();
         const dx = e.key === 'ArrowLeft' ? -1 : e.key === 'ArrowRight' ? 1 : 0;
         const dy = e.key === 'ArrowUp' ? -1 : e.key === 'ArrowDown' ? 1 : 0;
@@ -291,11 +301,15 @@ export function Editor() {
                 it.railId = railId;
                 it.slot = slot;
               } else if (dx || dy) err = 'Blocked by a neighbouring breaker.';
-            } else if (dx) {
-              const w = itemWidthModules(it, def);
-              const slot = findSlot(pn, it.railId ?? '', (it.slot ?? 0) + dx * 0.5, w, it.id);
-              if (slot !== null && Math.abs(slot - ((it.slot ?? 0) + dx * 0.5)) < 1e-6) it.slot = slot;
-              else err = 'Blocked by a neighbouring device.';
+            } else if (dx || (dy && isPlate(pn.rails.find((r) => r.id === it.railId)))) {
+              const plate = isPlate(pn.rails.find((r) => r.id === it.railId));
+              const probe = { ...it };
+              const ok = seatOnRail(pn, probe, it.railId ?? '', (it.slot ?? 0) + dx * 0.5, (it.plateY ?? 0) + dy * 5);
+              const moved = ok && Math.abs((probe.slot ?? 0) - ((it.slot ?? 0) + dx * 0.5)) < 1e-6 && (!plate || Math.abs((probe.plateY ?? 0) - ((it.plateY ?? 0) + dy * 5)) < 1e-6);
+              if (moved) {
+                it.slot = probe.slot;
+                if (plate) it.plateY = probe.plateY;
+              } else err = 'Blocked by a neighbouring device.';
             }
           }
         });
@@ -541,15 +555,17 @@ export function Editor() {
             it.slot = slot;
           }
         } else {
+          // dropped onto another device on a mounting plate: stack on it (one on top at most)
+          const host = [...layout.placed.values()].find(
+            (o) => o.item.id !== it.id && o.item.stackOn !== it.id && !o.item.stackOn && pn.rails.find((r) => r.id === o.item.railId)?.kind === 'plate' && pt.x >= o.x && pt.x <= o.x + o.w && pt.y >= o.y && pt.y <= o.y + o.h,
+          );
+          if (host && pn.rails.find((r) => r.id === it.railId)?.kind === 'plate' && stackOnto(pn, it, host.item.id)) return;
           const near = nearestRail(pn, pt.x, pt.y);
           if (!near) return;
-          const w = itemWidthModules(it, def);
           const desired = (pt.x - d.gx - near.x0) / MODULE;
-          const slot = findSlot(pn, near.railId, snap(desired, 0.5), w, it.id);
-          if (slot !== null) {
-            it.railId = near.railId;
-            it.slot = slot;
-          }
+          // on a mounting plate the height follows the pointer too
+          const wantY = pt.y - d.gy - (near.index * ROW_PITCH + PLATE_Y0);
+          seatOnRail(pn, it, near.railId, snap(desired, 0.5), wantY);
         }
       }, false);
     } else if (d.type === 'node' || d.type === 'seg') {
@@ -753,6 +769,19 @@ export function Editor() {
           ))}
           {sim.warnings.length > warnings.length && <span className="more">+{sim.warnings.length - warnings.length} more</span>}
         </div>
+      )}
+      {selectedSwitch && (
+        <SwitchOverlay
+          project={project}
+          panel={panel}
+          items={stackedSwitches(panel, selectedSwitch)}
+          onPort={(from) => {
+            const t = layout.terminals.get(termKey(from.item, from.terminal));
+            setTool('wire');
+            setDraft({ from, nodes: [], cursor: t ? { x: t.x, y: t.y } : { x: 0, y: 0 } });
+          }}
+          onPower={(itemId, id) => mutate((p) => void updateItem(panelOf(p, panel.id), itemId, { params: { power: id } }))}
+        />
       )}
       <div className="hint">
         {armedPart

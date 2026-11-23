@@ -1,0 +1,200 @@
+{
+  "format": "electrocraft-modules",
+  "version": 1,
+  "modules": [
+    {
+      "id": "ubiquiti-usw-ultra-210w",
+      "name": "Ubiquiti USW-Ultra-210W",
+      "description": "8 x GbE: 7 PoE+ ports on the front, 1 PoE++ in uplink on the back. 202 W PoE budget with the included 210 W adapter, less on other power. Compact desktop / wall / magnetic.",
+      "designation": "A",
+      "widthModules": 2,
+      "heightMm": 90,
+      "color": "#eceff3",
+      "stroke": "#69747f",
+      "rating": {
+        "In": 16,
+        "Un": 230
+      },
+      "behaviour": "isolated",
+      "switchable": false,
+      "trips": false,
+      "switches": [],
+      "inputs": [],
+      "top": {
+        "rows": 0,
+        "cols": 0
+      },
+      "bottom": {
+        "rows": 0,
+        "cols": 0
+      },
+      "terminals": [],
+      "shapes": [],
+      "device": {
+        "category": "library",
+        "role": "bus",
+        "icon": "terminal",
+        "mount": "din",
+        "mounting": "plate",
+        "poleMode": "none",
+        "params": [
+          {
+            "key": "power",
+            "label": "Power",
+            "type": "select",
+            "default": "ac210",
+            "group": "config",
+            "options": [
+              {
+                "value": "ac210",
+                "label": "210 W external adapter"
+              },
+              {
+                "value": "ac60",
+                "label": "60 W external adapter"
+              },
+              {
+                "value": "poe++",
+                "label": "PoE++ input (back port)"
+              },
+              {
+                "value": "poe+",
+                "label": "PoE+ input (back port)"
+              }
+            ]
+          }
+        ],
+        "svg": [
+          "<svg xmlns=\"http://www.w3.org/2000/svg\" viewBox=\"0 0 203 76\" width=\"203\" height=\"76\"><g data-layer=\"body\"><rect x=\"0.4\" y=\"0.4\" width=\"202.2\" height=\"75.2\" rx=\"4\" fill=\"#e9ecef\" stroke=\"#6b7480\" stroke-width=\"0.8\"/><text x=\"101.5\" y=\"42.0\" font-size=\"14.0\" text-anchor=\"middle\" fill=\"#8b95a1\" font-family=\"Helvetica, Arial, sans-serif\" font-weight=\"700\">Ultra-210W</text></g><g data-layer=\"ports\"><circle data-terminal=\"P1\" data-dir=\"down\" data-label=\"1\" cx=\"21.4\" cy=\"71.5\" r=\"1.9\" fill=\"#9aa4af\" stroke=\"#4c5560\" stroke-width=\"0.5\"/><circle data-terminal=\"P2\" data-dir=\"down\" data-label=\"2\" cx=\"48.1\" cy=\"71.5\" r=\"1.9\" fill=\"#9aa4af\" stroke=\"#4c5560\" stroke-width=\"0.5\"/><circle data-terminal=\"P3\" data-dir=\"down\" data-label=\"3\" cx=\"74.8\" cy=\"71.5\" r=\"1.9\" fill=\"#9aa4af\" stroke=\"#4c5560\" stroke-width=\"0.5\"/><circle data-terminal=\"P4\" data-dir=\"down\" data-label=\"4\" cx=\"101.5\" cy=\"71.5\" r=\"1.9\" fill=\"#9aa4af\" stroke=\"#4c5560\" stroke-width=\"0.5\"/><circle data-terminal=\"P5\" data-dir=\"down\" data-label=\"5\" cx=\"128.2\" cy=\"71.5\" r=\"1.9\" fill=\"#9aa4af\" stroke=\"#4c5560\" stroke-width=\"0.5\"/><circle data-terminal=\"P6\" data-dir=\"down\" data-label=\"6\" cx=\"154.9\" cy=\"71.5\" r=\"1.9\" fill=\"#9aa4af\" stroke=\"#4c5560\" stroke-width=\"0.5\"/><circle data-terminal=\"P7\" data-dir=\"down\" data-label=\"7\" cx=\"181.6\" cy=\"71.5\" r=\"1.9\" fill=\"#9aa4af\" stroke=\"#4c5560\" stroke-width=\"0.5\"/><circle data-terminal=\"P8\" data-dir=\"up\" data-label=\"8\" cx=\"38\" cy=\"4.5\" r=\"1.9\" fill=\"#9aa4af\" stroke=\"#4c5560\" stroke-width=\"0.5\"/></g></svg>"
+        ],
+        "network": {
+          "widthMm": 203,
+          "depthMm": 76,
+          "heightMm": 33,
+          "color": "#e9ecef",
+          "ports": [
+            {
+              "id": "P1",
+              "label": "1",
+              "kind": "rj45",
+              "speed": "1G",
+              "x": 21.4,
+              "poe": {
+                "std": "at",
+                "maxW": 30
+              }
+            },
+            {
+              "id": "P2",
+              "label": "2",
+              "kind": "rj45",
+              "speed": "1G",
+              "x": 48.1,
+              "poe": {
+                "std": "at",
+                "maxW": 30
+              }
+            },
+            {
+              "id": "P3",
+              "label": "3",
+              "kind": "rj45",
+              "speed": "1G",
+              "x": 74.8,
+              "poe": {
+                "std": "at",
+                "maxW": 30
+              }
+            },
+            {
+              "id": "P4",
+              "label": "4",
+              "kind": "rj45",
+              "speed": "1G",
+              "x": 101.5,
+              "poe": {
+                "std": "at",
+                "maxW": 30
+              }
+            },
+            {
+              "id": "P5",
+              "label": "5",
+              "kind": "rj45",
+              "speed": "1G",
+              "x": 128.2,
+              "poe": {
+                "std": "at",
+                "maxW": 30
+              }
+            },
+            {
+              "id": "P6",
+              "label": "6",
+              "kind": "rj45",
+              "speed": "1G",
+              "x": 154.9,
+              "poe": {
+                "std": "at",
+                "maxW": 30
+              }
+            },
+            {
+              "id": "P7",
+              "label": "7",
+              "kind": "rj45",
+              "speed": "1G",
+              "x": 181.6,
+              "poe": {
+                "std": "at",
+                "maxW": 30
+              }
+            },
+            {
+              "id": "P8",
+              "label": "8",
+              "kind": "rj45",
+              "speed": "1G",
+              "x": 165,
+              "poeIn": true,
+              "side": "back"
+            }
+          ],
+          "back": [
+            {
+              "kind": "dc",
+              "label": "DC",
+              "x": 38
+            }
+          ],
+          "power": [
+            {
+              "id": "ac210",
+              "label": "210 W external adapter",
+              "source": "external",
+              "budgetW": 202
+            },
+            {
+              "id": "ac60",
+              "label": "60 W external adapter",
+              "source": "external",
+              "budgetW": 52
+            },
+            {
+              "id": "poe++",
+              "label": "PoE++ input (back port)",
+              "source": "poe",
+              "budgetW": 42
+            },
+            {
+              "id": "poe+",
+              "label": "PoE+ input (back port)",
+              "source": "poe",
+              "budgetW": 16
+            }
+          ]
+        }
+      }
+    }
+  ]
+}

@@ -7,6 +7,9 @@ import { barStripAsset, patchAsset, patchDims, patchSize } from './patch';
 // ---- EU / DIN-rail layout (millimetres)
 export const MODULE = 18;
 export const DIN_H = 90;
+/** A perforated mounting plate fills one rail row: this tall, starting this far above the row's DIN line. */
+export const PLATE_H = 150;
+export const PLATE_Y0 = -30;
 export const ROW_PITCH = 180;
 export const RAIL_X0 = 40;
 export const ENCL_TOP = -100;
@@ -61,6 +64,11 @@ export interface Placed {
   terminals: Terminal[];
   /** Terminals are on the right-hand side (right US column or bar with side = right). */
   mirrored: boolean;
+  /** Turned clockwise by this many degrees (x, y, w, h are then those of the turned box). */
+  rot?: 0 | 90 | 180 | 270;
+  /** Size of the artwork before it was turned. */
+  w0?: number;
+  h0?: number;
 }
 
 export interface Layout {
@@ -157,7 +165,7 @@ export function sectionGeometry(panel: Panel): SectionGeom[] {
     // the enclosure is as wide as its longest rail (or its widest single bar); bars that do not fit that width are staggered in rows
     const baseW = Math.max(6 * MODULE, ...rails.map((r) => r.modules * MODULE));
     const widest = Math.max(0, ...bars.map((i) => barSize(i).w));
-    const avail = Math.max(baseW, widest);
+    const avail = Math.max(baseW, widest, s.innerWidth ?? 0);
     const t = edgeRows(bars.filter((i) => i.bar!.edge === 'top'), avail, BAR_ROW_GAP_TOP);
     const b = edgeRows(bars.filter((i) => i.bar!.edge === 'bottom'), avail, BAR_ROW_GAP_BOTTOM);
     const w = avail + 2 * RAIL_X0;
@@ -192,6 +200,14 @@ export const termKey = (item: string, terminal: string) => `${item}|${terminal}`
 export const railTop = (index: number) => index * ROW_PITCH;
 export const railIndex = (panel: Panel, railId: string | undefined) => panel.rails.findIndex((r) => r.id === railId);
 export const isRailMounted = (def: EquipmentDef) => def.mount === 'din' || def.mount === 'us';
+export const isPlate = (rail: Rail | undefined) => rail?.kind === 'plate';
+/** Whether a device can be mounted on a rail: DIN devices on DIN rails, `mounting: plate | both` devices on plates. */
+export function canMountOn(def: EquipmentDef, rail: Rail | undefined): boolean {
+  if (!rail) return false;
+  if (def.mount !== 'din') return !isPlate(rail);
+  const m = def.mounting ?? 'din';
+  return isPlate(rail) ? m !== 'din' : m !== 'plate';
+}
 
 // ---- US helpers
 export const usRows = (panel: Panel) => Math.max(1, panel.rails[0]?.modules ?? 12);
@@ -228,12 +244,30 @@ function tiling(item: Pick<Item, 'poleConfig' | 'params'>, def: EquipmentDef) {
   return { kinds, tiles, axis: def.tileAxis ?? 'x' };
 }
 
+export const itemRot = (item: Pick<Item, 'rot'>): 0 | 90 | 180 | 270 => item.rot ?? 0;
+
+/** Size in mm of an item before it is turned. */
+export function baseSizeMm(item: Item, def: EquipmentDef): { w: number; h: number } {
+  const asset = def.role === 'patch' ? patchAsset(item) : getAsset(def.id);
+  if (!asset) return { w: MODULE, h: DIN_H };
+  const { tiles, axis } = tiling(item, def);
+  return { w: tiles && axis === 'x' ? tiles * asset.width : asset.width, h: tiles && axis === 'y' ? tiles * asset.height : asset.height };
+}
+
+/** Size in mm of an item as placed (swapped when turned by 90 or 270 degrees). */
+export function itemSizeMm(item: Item, def: EquipmentDef): { w: number; h: number } {
+  const b = baseSizeMm(item, def);
+  const r = itemRot(item);
+  return r === 90 || r === 270 ? { w: b.h, h: b.w } : b;
+}
+
 /** Size of an item in modules (DIN: width in 18 mm modules, US: height in breaker spaces). */
 export function itemWidthModules(item: Item, def: EquipmentDef): number {
   const asset = getAsset(def.id);
   if (!asset) return 1;
   const { tiles, axis } = tiling(item, def);
   if (def.tileAxis === 'y') return Math.max(1, tiles);
+  if (itemRot(item) === 90 || itemRot(item) === 270) return itemSizeMm(item, def).w / MODULE;
   return (tiles && axis === 'x' ? tiles * asset.width : asset.width) / MODULE;
 }
 
@@ -266,7 +300,9 @@ export function placeItem(panel: Panel, item: Item, geoms: SectionGeom[] = secti
     const pos = railPos(panel, item.railId, geoms);
     if (!pos) return null;
     x = pos.x + (item.slot ?? 0) * MODULE;
-    y = pos.top + (DIN_H - asset.height) / 2;
+    const plate = isPlate(pos.section.rails[pos.row]);
+    const hh = itemSizeMm(item, def).h;
+    y = plate ? pos.top + PLATE_Y0 + (item.plateY ?? (PLATE_H - hh) / 2) : pos.top + (DIN_H - asset.height) / 2;
   } else if (def.mount === 'us') {
     if (ri < 0) return null;
     x = usColumnX(Math.min(1, ri));
@@ -303,7 +339,34 @@ export function placeItem(panel: Panel, item: Item, geoms: SectionGeom[] = secti
       terminals.push({ id: t.name, item: item.id, x: x + tx, y: y + t.y, dir: mirrored ? flip(dirVec(t.dir)) : dirVec(t.dir), label: t.label ?? t.name });
     }
   }
-  return { item, def, asset, x, y, w, h, poleW: asset.width, poleH: asset.height, kinds, terminals, mirrored };
+  const rot = def.mount === 'din' && !item.bar ? itemRot(item) : 0;
+  if (rot) {
+    // x and y (the slot) are the top left of the box as it stands after turning: seat the unturned box so that it ends up there
+    if (rot === 90 || rot === 270) {
+      x += (h - w) / 2;
+      y += (w - h) / 2;
+    }
+    // turn about the centre of the unturned box: the box and every terminal (and the way its wire leaves) turn with it
+    const cx = x + w / 2;
+    const cy = y + h / 2;
+    const turn = (px: number, py: number) => {
+      const dx = px - cx;
+      const dy = py - cy;
+      return rot === 90 ? { x: cx - dy, y: cy + dx } : rot === 180 ? { x: cx - dx, y: cy - dy } : { x: cx + dy, y: cy - dx };
+    };
+    const turnDir = (d: Vec) => (rot === 90 ? { x: -d.y, y: d.x } : rot === 180 ? { x: -d.x, y: -d.y } : { x: d.y, y: -d.x });
+    for (const t of terminals) {
+      const q = turn(t.x, t.y);
+      t.x = q.x;
+      t.y = q.y;
+      t.dir = turnDir(t.dir);
+    }
+    const sw = rot === 90 || rot === 270;
+    const nw = sw ? h : w;
+    const nh = sw ? w : h;
+    return { item, def, asset, x: cx - nw / 2, y: cy - nh / 2, w: nw, h: nh, poleW: asset.width, poleH: asset.height, kinds, terminals, mirrored, rot, w0: w, h0: h };
+  }
+  return { item, def, asset, x, y, w, h, poleW: asset.width, poleH: asset.height, kinds, terminals, mirrored, rot: 0, w0: w, h0: h };
 }
 
 export function enclosureRect(panel: Panel) {
@@ -378,6 +441,184 @@ export function findSlot(panel: Panel, railId: string, desired: number, widthMod
     consider(rail.modules - widthModules);
   }
   return best;
+}
+
+/** The mounting plates of a section that follow each other row after row (one perforated area) and contain this rail. */
+function plateRun(panel: Panel, railId: string): { rails: Rail[]; first: number } | null {
+  const rail = panel.rails.find((r) => r.id === railId);
+  if (!rail || !isPlate(rail)) return null;
+  const sec = sectionIdOfRail(panel, rail);
+  const rows = panel.rails.filter((r) => sectionIdOfRail(panel, r) === sec);
+  const at = rows.indexOf(rail);
+  let lo = at;
+  let hi = at;
+  while (lo > 0 && isPlate(rows[lo - 1])) lo--;
+  while (hi < rows.length - 1 && isPlate(rows[hi + 1])) hi++;
+  return { rails: rows.slice(lo, hi + 1), first: lo };
+}
+
+/** Whether the plates around `railId` are one continuous perforated area with the plate in the row below it. */
+export function plateContinues(panel: Panel, railId: string): boolean {
+  const run = plateRun(panel, railId);
+  const rail = panel.rails.find((r) => r.id === railId);
+  return !!run && !!rail && run.rails.indexOf(rail) < run.rails.length - 1;
+}
+
+/** Clearance between a device on a mounting plate and the wall of the enclosure. */
+export const PLATE_WALL_GAP = 4;
+
+/**
+ * Free place for a device on a mounting plate nearest to the wanted one. x is in modules (from the start of the rails), y in mm
+ * from the top edge of the plate of `railId`. A device may stick out over the edge of the plate, or be larger than it, as long as
+ * its middle is on a plate (plates in consecutive rows are one perforated area) and it stays inside the enclosure and clear of
+ * the other devices. The result names the plate row its middle is on.
+ */
+export function findPlateSpot(panel: Panel, railId: string, desiredSlot: number, desiredY: number, widthModules: number, heightMm: number, ignoreItem?: string): { railId: string; slot: number; plateY: number } | null {
+  const run = plateRun(panel, railId);
+  if (!run) return null;
+  const geoms = sectionGeometry(panel);
+  const g = geoms.find((x) => x.rails.some((r) => r.id === railId));
+  if (!g) return null;
+  const rows = run.rails;
+  const home = rows.findIndex((r) => r.id === railId);
+  const x0 = g.x + RAIL_X0;
+  const wMm = widthModules * MODULE;
+  // the inside of the enclosure (the bands of the bus bars and the patch panel stay free), in diagram coordinates
+  const left = g.x + PLATE_WALL_GAP;
+  const right = g.x + g.w - PLATE_WALL_GAP;
+  const top = g.y + g.topBand + PLATE_WALL_GAP;
+  const bottom = g.y + g.h - g.bottomBand - PLATE_WALL_GAP;
+  if (wMm > right - left + 1e-6 || heightMm > bottom - top + 1e-6) return null;
+  // obstacles: every other device of the section (a device stacked on another does not take floor space)
+  const boxes: { a: number; b: number; c: number; d: number }[] = [];
+  for (const it of panel.items) {
+    if (it.id === ignoreItem || it.stackOn) continue;
+    const pl = placeItem(panel, it, geoms);
+    if (!pl || pl.x + pl.w < g.x || pl.x > g.x + g.w) continue;
+    boxes.push({ a: pl.x, b: pl.x + pl.w, c: pl.y, d: pl.y + pl.h });
+  }
+  // where the plates are: the middle of the device must be on one of them (or in the gap between two in a row)
+  const plateAreas = rows.map((r, k) => ({ a: x0 - 6, b: x0 + r.modules * MODULE + 6, c: railTopOf(rows, k, panel) + PLATE_Y0, d: 0 }));
+  plateAreas.forEach((pa, k) => {
+    pa.d = pa.c + PLATE_H + (k < rows.length - 1 ? ROW_PITCH - PLATE_H : 0);
+  });
+  const eps = 1e-6;
+  const onPlate = (cx: number, cy: number) => plateAreas.some((pa) => cx >= pa.a - eps && cx <= pa.b + eps && cy >= pa.c - eps && cy <= pa.d + eps);
+  const free = (x: number, y: number) => {
+    if (x < left - eps || x + wMm > right + eps || y < top - eps || y + heightMm > bottom + eps) return false;
+    if (!onPlate(x + wMm / 2, y + heightMm / 2)) return false;
+    return !boxes.some((o) => x < o.b - eps && x + wMm > o.a + eps && y < o.d - eps && y + heightMm > o.c + eps);
+  };
+  const homeTop = plateAreas[home].c;
+  const wantX = x0 + desiredSlot * MODULE;
+  const wantY = homeTop + desiredY;
+  const result = (x: number, y: number) => {
+    // the plate row the middle of the device is on
+    let k = rows.length - 1;
+    for (let i = 0; i < plateAreas.length; i++) if (y + heightMm / 2 <= plateAreas[i].d + eps) { k = i; break; }
+    return { railId: rows[k].id, slot: (x - x0) / MODULE, plateY: y - plateAreas[k].c };
+  };
+  // the wanted place itself, when it is free (the usual case while dragging)
+  const sx = Math.round(desiredSlot / SNAP_MODULES) * SNAP_MODULES;
+  const sy = Math.round(desiredY / 5) * 5;
+  if (free(x0 + sx * MODULE, homeTop + sy)) return result(x0 + sx * MODULE, homeTop + sy);
+  const xs = new Set<number>();
+  for (let s = Math.ceil((left - x0) / MODULE / SNAP_MODULES) * SNAP_MODULES; x0 + (s + widthModules) * MODULE <= right + eps; s += SNAP_MODULES) xs.add(x0 + s * MODULE);
+  const ys = new Set<number>();
+  for (let y = Math.ceil(top / 5) * 5; y + heightMm <= bottom + eps; y += 5) ys.add(y);
+  // snug against the neighbours and the walls
+  xs.add(left);
+  xs.add(right - wMm);
+  ys.add(top);
+  ys.add(bottom - heightMm);
+  for (const o of boxes) {
+    xs.add(o.b);
+    xs.add(o.a - wMm);
+    ys.add(o.d);
+    ys.add(o.c - heightMm);
+  }
+  let best: { x: number; y: number } | null = null;
+  let bestD = Infinity;
+  for (const y of ys) {
+    const dy = y - wantY;
+    if (dy * dy >= bestD) continue;
+    for (const x of xs) {
+      const dist = (x - wantX) * (x - wantX) + dy * dy;
+      if (dist >= bestD || !free(x, y)) continue;
+      bestD = dist;
+      best = { x, y };
+    }
+  }
+  return best ? result(best.x, best.y) : null;
+}
+
+/** Top (diagram y) of the rail row `k` of a run of rails: rows share one grid in their section. */
+function railTopOf(rows: Rail[], k: number, panel: Panel): number {
+  const sec = sectionIdOfRail(panel, rows[k]);
+  const all = panel.rails.filter((r) => sectionIdOfRail(panel, r) === sec);
+  return railTop(all.indexOf(rows[k]));
+}
+
+/** The device (at most one) stacked on top of this one. */
+export const stackedOn = (panel: Panel, baseId: string): Item | undefined => panel.items.find((i) => i.stackOn === baseId);
+
+/** Put the device stacked on `base` in the middle of it. */
+export function centreStacked(panel: Panel, base: Item) {
+  const top = stackedOn(panel, base.id);
+  const bdef = getDef(base.defId);
+  const tdef = top && getDef(top.defId);
+  if (!top || !bdef || !tdef) return;
+  const b = itemSizeMm(base, bdef);
+  const t = itemSizeMm(top, tdef);
+  top.railId = base.railId;
+  top.slot = (base.slot ?? 0) + (b.w - t.w) / 2 / MODULE;
+  top.plateY = (base.plateY ?? (PLATE_H - b.h) / 2) + (b.h - t.h) / 2;
+}
+
+/**
+ * Seat a rail device on a rail or plate near the wanted place (sets railId, slot and, on a plate, plateY). False when there is
+ * no room or the device cannot be mounted there. A device that is stacked on another one only follows it.
+ */
+export function seatOnRail(panel: Panel, item: Item, railId: string, desiredSlot: number, desiredY: number, ignoreSelf = true): boolean {
+  const def = getDef(item.defId);
+  const asset = def && getAsset(item.defId);
+  const rail = panel.rails.find((r) => r.id === railId);
+  if (!def || !asset || !rail || !canMountOn(def, rail)) return false;
+  if (isPlate(rail)) {
+    const sz = itemSizeMm(item, def);
+    const spot = findPlateSpot(panel, railId, desiredSlot, desiredY, sz.w / MODULE, sz.h, ignoreSelf ? item.id : undefined);
+    if (!spot) return false;
+    item.railId = spot.railId;
+    item.slot = spot.slot;
+    item.plateY = spot.plateY;
+    delete item.stackOn;
+    // what is stacked on it comes along
+    centreStacked(panel, item);
+    return true;
+  }
+  const slot = findSlot(panel, railId, desiredSlot, itemWidthModules(item, def), ignoreSelf ? item.id : undefined);
+  if (slot === null) return false;
+  item.railId = railId;
+  item.slot = slot;
+  delete item.plateY;
+  delete item.stackOn;
+  return true;
+}
+
+/** Stack a plate device on another one (the other must be on a plate, not stacked itself and have nothing on it yet). */
+export function stackOnto(panel: Panel, item: Item, baseId: string): boolean {
+  const base = panel.items.find((i) => i.id === baseId);
+  const def = getDef(item.defId);
+  const bdef = base && getDef(base.defId);
+  if (!base || !def || !bdef || base.id === item.id || base.stackOn || item.id === base.stackOn) return false;
+  if (panel.items.some((i) => i.stackOn === item.id)) return false; // it carries something itself
+  const bRail = panel.rails.find((r) => r.id === base.railId);
+  if (!isPlate(bRail) || !canMountOn(def, bRail)) return false;
+  const other = stackedOn(panel, base.id);
+  if (other && other.id !== item.id) return false;
+  item.stackOn = base.id;
+  centreStacked(panel, base);
+  return true;
 }
 
 /** Closest rail to a point (diagram space): the nearest section by x, then the nearest row by y. */

@@ -1,0 +1,82 @@
+{
+  "format": "electrocraft-modules",
+  "version": 1,
+  "modules": [
+    {
+      "id": "meanwell-lpv-60",
+      "name": "Mean Well LPV-60",
+      "description": "IP67 constant-voltage LED power supply, 5-48 V, up to 60 W. In 90-264 V AC on blue N / brown L leads, out on red +V / black -V leads (600 mm). 162.5 x 42.5 x 32 mm, screw ears.",
+      "designation": "G",
+      "widthModules": 2,
+      "heightMm": 90,
+      "color": "#eceff3",
+      "stroke": "#69747f",
+      "rating": {
+        "In": 16,
+        "Un": 230
+      },
+      "behaviour": "isolated",
+      "switchable": false,
+      "trips": false,
+      "switches": [],
+      "inputs": [],
+      "top": {
+        "rows": 0,
+        "cols": 0
+      },
+      "bottom": {
+        "rows": 0,
+        "cols": 0
+      },
+      "terminals": [],
+      "shapes": [],
+      "device": {
+        "category": "library",
+        "role": "bus",
+        "icon": "terminal",
+        "mount": "din",
+        "mounting": "plate",
+        "poleMode": "none",
+        "params": [
+          {
+            "key": "voltage",
+            "label": "Output",
+            "type": "select",
+            "default": "24",
+            "group": "config",
+            "options": [
+              {
+                "value": "5",
+                "label": "5 V - 8 A (40 W)"
+              },
+              {
+                "value": "12",
+                "label": "12 V - 5 A (60 W)"
+              },
+              {
+                "value": "15",
+                "label": "15 V - 4 A (60 W)"
+              },
+              {
+                "value": "24",
+                "label": "24 V - 2.5 A (60 W)"
+              },
+              {
+                "value": "36",
+                "label": "36 V - 1.67 A (60 W)"
+              },
+              {
+                "value": "48",
+                "label": "48 V - 1.25 A (60 W)"
+              }
+            ]
+          }
+        ],
+        "summary": "LPV-60-{voltage}",
+        "svg": [
+          "<svg xmlns=\"http://www.w3.org/2000/svg\" viewBox=\"0 0 190.5 52.5\" width=\"190.5\" height=\"52.5\"><g data-layer=\"body\"><path d=\"M14 23.1H0.8\" stroke=\"#2f6fd1\" stroke-width=\"2\" stroke-linecap=\"round\" fill=\"none\"/><path d=\"M14 29.4H0.8\" stroke=\"#7a4a24\" stroke-width=\"2\" stroke-linecap=\"round\" fill=\"none\"/><path d=\"M176.5 23.1H189.7\" stroke=\"#c0392b\" stroke-width=\"2\" stroke-linecap=\"round\" fill=\"none\"/><path d=\"M176.5 29.4H189.7\" stroke=\"#1b1c1f\" stroke-width=\"2\" stroke-linecap=\"round\" fill=\"none\"/><path d=\"M157.5 5v-4.6a3 3 0 0 1 3-3h8a3 3 0 0 1 3 3v4.6z\" fill=\"#e4e6e1\" stroke=\"#9aa1a8\" stroke-width=\"0.6\" transform=\"translate(0 4)\"/><circle cx=\"164.5\" cy=\"3.4\" r=\"1.8\" fill=\"#5c646c\"/><path d=\"M19 47.5v4.6a3 3 0 0 0 3 3h8a3 3 0 0 0 3-3v-4.6z\" fill=\"#e4e6e1\" stroke=\"#9aa1a8\" stroke-width=\"0.6\" transform=\"translate(0 -3)\"/><circle cx=\"26\" cy=\"49.1\" r=\"1.8\" fill=\"#5c646c\"/><rect x=\"14\" y=\"5\" width=\"162.5\" height=\"42.5\" rx=\"5.0\" fill=\"#eceee9\" stroke=\"#9aa1a8\" stroke-width=\"0.8\"/><rect x=\"46.5\" y=\"11.4\" width=\"117.0\" height=\"29.7\" rx=\"1\" fill=\"#ffffff\" stroke=\"#c9ced4\" stroke-width=\"0.4\"/><text x=\"48.5\" y=\"18.7\" font-size=\"5.7\" font-weight=\"700\" fill=\"#1f262d\" font-family=\"Helvetica, Arial, sans-serif\">LPV-60-{{voltage}}</text><text x=\"48.5\" y=\"25.5\" font-size=\"3.5\" fill=\"#4b5560\" font-family=\"Helvetica, Arial, sans-serif\">{{voltage#label}}</text><text x=\"48.5\" y=\"30.6\" font-size=\"3.1\" fill=\"#4b5560\" font-family=\"Helvetica, Arial, sans-serif\">IN 90-264 V AC   Class II   IP67</text><text x=\"45.0\" y=\"22.1\" font-size=\"3.1\" text-anchor=\"end\" fill=\"#6b7480\" font-family=\"Helvetica, Arial, sans-serif\">N</text><text x=\"45.0\" y=\"32.6\" font-size=\"3.1\" text-anchor=\"end\" fill=\"#6b7480\" font-family=\"Helvetica, Arial, sans-serif\">L</text></g><g data-layer=\"terminals\"><circle data-terminal=\"N\" data-dir=\"left\" data-label=\"N\" cx=\"0.8\" cy=\"23.1\" r=\"1.5\" fill=\"#9aa4af\" stroke=\"#4c5560\" stroke-width=\"0.4\"/><circle data-terminal=\"L\" data-dir=\"left\" data-label=\"L\" cx=\"0.8\" cy=\"29.4\" r=\"1.5\" fill=\"#9aa4af\" stroke=\"#4c5560\" stroke-width=\"0.4\"/><circle data-terminal=\"DCP\" data-dir=\"right\" data-label=\"+V\" cx=\"189.7\" cy=\"23.1\" r=\"1.5\" fill=\"#9aa4af\" stroke=\"#4c5560\" stroke-width=\"0.4\"/><circle data-terminal=\"DCN\" data-dir=\"right\" data-label=\"-V\" cx=\"189.7\" cy=\"29.4\" r=\"1.5\" fill=\"#9aa4af\" stroke=\"#4c5560\" stroke-width=\"0.4\"/></g></svg>"
+        ]
+      }
+    }
+  ]
+}

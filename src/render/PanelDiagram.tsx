@@ -2,7 +2,7 @@ import type { ReactNode } from 'react';
 import { bridgesOf } from '../model/defs';
 import { colorByKey, potentialColorKey } from '../model/colors';
 import {
-  DIN_H, MODULE, RAIL_X0, STUB, US_BREAKER_W, US_BUS_W, US_SPACE_H, isUs, railIndex, railPos, railTop, termKey, usBusX, usColumnX, usPhaseOfRow, usRowTop, usRows, usSpaceNumber,
+  DIN_H, ROW_PITCH, PLATE_H, PLATE_Y0, MODULE, RAIL_X0, STUB, US_BREAKER_W, US_BUS_W, US_SPACE_H, isUs, railIndex, railPos, railTop, termKey, usBusX, usColumnX, usPhaseOfRow, usRowTop, usRows, usSpaceNumber,
   type Layout, type Placed,
 } from '../model/geometry';
 import { combPins, rowLinkColumns } from '../model/comb';
@@ -12,6 +12,8 @@ import { simplify, type Route } from '../model/routing';
 import type { SimResult } from '../model/sim';
 import type { Panel, Project, RenderOptions, RowLink, Selection, Vec, Wire, WireDraft } from '../model/types';
 import { DeviceView } from './svgAsset';
+import { poeReports } from '../model/poe';
+import { FLOOR_PORT } from '../model/floorSync';
 import { labelLines, wrapText } from './labels';
 
 const FONT = 'Helvetica, Arial, sans-serif';
@@ -117,43 +119,61 @@ function UsInterior({ panel, project, placed }: { panel: Panel; project: Project
   return <g>{out}</g>;
 }
 
+/** The label box under a device: as big as its text needs (at most 25 mm tall), never wider than the device. */
 function LabelStrip({ placed, lines, y }: { placed: Placed; lines: ReturnType<typeof labelLines>; y: number }) {
   if (!lines.length) return null;
-  const x = placed.x;
-  const w = placed.w;
-  const H = 25;
+  const MAX_H = 25;
   const kids: ReactNode[] = [];
-  if (w < 22) {
+  const glyph = (size: number, text: string) => text.length * size * 0.55;
+  let boxX = placed.x;
+  let boxW = placed.w;
+  let H: number;
+  if (placed.w < 22) {
     // narrow device: text runs bottom-to-top, one line per column
-    lines.slice(0, Math.max(1, Math.floor(w / 4.4))).forEach((ln, i) => {
+    const cols = lines.slice(0, Math.max(1, Math.floor(placed.w / 4.4)));
+    const texts = cols.map((ln) => {
       const size = Math.min(ln.size, 3.6);
-      const maxChars = Math.floor((H - 3) / (size * 0.55));
-      const t = ln.text.length > maxChars ? ln.text.slice(0, maxChars - 1) + '.' : ln.text;
+      const maxChars = Math.floor((MAX_H - 3) / (size * 0.55));
+      return { ln, size, t: ln.text.length > maxChars ? ln.text.slice(0, maxChars - 1) + '.' : ln.text };
+    });
+    H = Math.max(8, Math.min(MAX_H, Math.max(...texts.map((e) => glyph(e.size, e.t))) + 3));
+    texts.forEach((e, i) => {
       kids.push(
-        <text key={i} transform={`translate(${x + w / 2 - ((Math.min(lines.length, Math.floor(w / 4.4)) - 1) * 4.4) / 2 + i * 4.4 + size * 0.35} ${y + H - 1.5}) rotate(-90)`} fontSize={size} fontFamily={FONT} fontWeight={ln.bold ? 'bold' : 'normal'} fill={ln.color ?? '#111827'}>
-          {t}
+        <text key={i} transform={`translate(${placed.x + placed.w / 2 - ((texts.length - 1) * 4.4) / 2 + i * 4.4 + e.size * 0.35} ${y + H - 1.5}) rotate(-90)`} fontSize={e.size} fontFamily={FONT} fontWeight={e.ln.bold ? 'bold' : 'normal'} fill={e.ln.color ?? '#111827'}>
+          {e.t}
         </text>,
       );
     });
   } else {
+    // wrap to the device width, then shrink the box around what is left
+    const rows: { text: string; size: number; bold?: boolean; color?: string; gap: number }[] = [];
+    lines.forEach((ln) => {
+      const wrapped = wrapText(ln.text, ln.size, placed.w - 3, ln.bold ? 1 : 2);
+      wrapped.forEach((l, k) => rows.push({ text: l, size: ln.size, bold: ln.bold, color: ln.color, gap: k === wrapped.length - 1 ? 0.4 : 0 }));
+    });
+    let used = 1.5;
+    const shown = rows.filter((r) => {
+      if (used + r.size * 1.18 > MAX_H - 0.5) return false;
+      used += r.size * 1.18 + r.gap;
+      return true;
+    });
+    H = Math.max(8, Math.min(MAX_H, used + 1));
+    boxW = Math.min(placed.w, Math.max(14, Math.max(...shown.map((r) => glyph(r.size, r.text))) + 5));
+    boxX = placed.x + (placed.w - boxW) / 2;
     let cy = y + 1.5;
-    lines.forEach((ln, i) => {
-      const wrapped = wrapText(ln.text, ln.size, w - 3, ln.bold ? 1 : 2);
-      for (const l of wrapped) {
-        cy += ln.size * 1.18;
-        if (cy > y + H - 0.5) return;
-        kids.push(
-          <text key={`${i}-${l}`} x={x + w / 2} y={cy} fontSize={ln.size} textAnchor="middle" fontFamily={FONT} fontWeight={ln.bold ? 'bold' : 'normal'} fill={ln.color ?? '#111827'}>
-            {l}
-          </text>,
-        );
-      }
-      cy += 0.4;
+    shown.forEach((r, i) => {
+      cy += r.size * 1.18;
+      kids.push(
+        <text key={i} x={boxX + boxW / 2} y={cy} fontSize={r.size} textAnchor="middle" fontFamily={FONT} fontWeight={r.bold ? 'bold' : 'normal'} fill={r.color ?? '#111827'}>
+          {r.text}
+        </text>,
+      );
+      cy += r.gap;
     });
   }
   return (
     <g>
-      <rect x={x + 0.3} y={y} width={w - 0.6} height={H} rx={1} fill="#ffffff" stroke="#9aa4af" strokeWidth={0.4} />
+      <rect x={boxX + 0.3} y={y} width={boxW - 0.6} height={H} rx={1} fill="#ffffff" stroke="#9aa4af" strokeWidth={0.4} />
       {kids}
     </g>
   );
@@ -266,7 +286,37 @@ export function PanelDiagram({ project, panel, layout, routes, sim, markings, op
             </g>
           );
   };
-  const wiresLayer = options.showWires ? panel.wires.filter((w) => w.id !== frontWire).map(renderWire) : null;
+  // cables from the floor plan end at a floor plan cable box (they go below the patch panel)
+  const isFloorCable = (w: Wire) => [w.from.item, w.to.item].some((id) => layout.placed.get(id)?.def.id === FLOOR_PORT);
+  // network cables (to a switch, a patch panel jack or a cable from the floor plan) cannot run under the rails and devices
+  const isCable = (w: Wire) =>
+    [w.from.item, w.to.item].some((id) => {
+      const d = layout.placed.get(id)?.def;
+      return !!d && (d.role === 'patch' || !!d.network || d.id === FLOOR_PORT);
+    });
+  const renderDevices = (pred: (pl: Placed) => boolean) =>
+    [...placedList]
+      .sort((a, b) => Number(!!a.item.stackOn) - Number(!!b.item.stackOn))
+      .filter(pred)
+      .map((pl) => {
+        if (pl.def.mount === 'free' && !options.showFreeItems) return null;
+        const sel = selItems.has(pl.item.id);
+        const isSim = sim.items[pl.item.id];
+        return (
+          <g key={pl.item.id}>
+           <g {...hit(`i:${pl.item.id}`)}>
+            {pl.item.stackOn && <rect x={pl.x + 1.5} y={pl.y + 2} width={pl.w} height={pl.h} rx={2} fill="#000" opacity={0.28} />}
+            <DeviceView placed={pl} sim={isSim} marking={markings[pl.item.id] ?? ''} />
+            {interactive && <rect x={pl.x} y={pl.y} width={pl.w} height={pl.h} fill="transparent" />}
+            {dropTarget === pl.item.id && <rect x={pl.x - 2.5} y={pl.y - 2.5} width={pl.w + 5} height={pl.h + 5} rx={3} fill="#2563eb" fillOpacity={0.12} stroke="#2563eb" strokeWidth={1.6} />}
+            {sel && <rect x={pl.x - 1.5} y={pl.y - 1.5} width={pl.w + 3} height={pl.h + 3} rx={2.5} fill="none" stroke={SEL} strokeWidth={1.4} strokeDasharray="4 2" />}
+            {interactive && isSim?.overload && !sel && <rect x={pl.x - 1} y={pl.y - 1} width={pl.w + 2} height={pl.h + 2} rx={2.5} fill="none" stroke="#dc2626" strokeWidth={1.2} />}
+           </g>
+           {pl.def.role === 'terminal' && <CombBridges placed={pl} showSlots={!!interactive && sel} interactive={!!interactive} />}
+          </g>
+        );
+      });
+  const wiresLayer = options.showWires ? panel.wires.filter((w) => w.id !== frontWire && !isCable(w)).map(renderWire) : null;
 
   return (
     <g fontFamily={FONT}>
@@ -296,10 +346,44 @@ export function PanelDiagram({ project, panel, layout, routes, sim, markings, op
       {wiresLayer}
       {!us && (panel.rowLinks ?? []).filter((k) => k.id !== selLink).map(renderLink)}
 
-      {/* DIN rails */}
+      {options.showRails && !us && (
+        <defs>
+          <pattern id="plate-holes" width={10} height={10} patternUnits="userSpaceOnUse">
+            <rect width={10} height={10} fill="#b4bcc5" />
+            <circle cx={5} cy={5} r={2.6} fill="#5e6772" />
+            <circle cx={5} cy={4.4} r={2.6} fill="#8a939d" opacity={0.9} />
+          </pattern>
+        </defs>
+      )}
+
+      {/* DIN rails and mounting plates */}
       {options.showRails && !us &&
         layout.sections.flatMap((g) =>
           g.rails.map((r, i) => {
+            if (r.kind === 'plate') {
+              const px = g.x + RAIL_X0 - 6;
+              const py = railTop(i) + PLATE_Y0;
+              const pw = r.modules * MODULE + 12;
+              const sel = selRail === r.id;
+              return (
+                <g key={r.id} {...hit(`r:${r.id}`)}>
+                  {g.rails[i + 1]?.kind === 'plate' && <rect x={px} y={py + PLATE_H - 1} width={Math.min(pw, g.rails[i + 1].modules * MODULE + 12)} height={ROW_PITCH - PLATE_H + 2} fill="#c3cad2" stroke="none"><title>Plates in consecutive rows form one perforated area</title></rect>}
+                  {g.rails[i + 1]?.kind === 'plate' && <rect x={px + 3} y={py + PLATE_H - 1} width={Math.min(pw, g.rails[i + 1].modules * MODULE + 12) - 6} height={ROW_PITCH - PLATE_H + 2} fill="url(#plate-holes)" />}
+                  <rect x={px + 1.5} y={py + 1.5} width={pw} height={PLATE_H} rx={2} fill="#000" opacity={0.12} />
+                  <rect x={px} y={py} width={pw} height={PLATE_H} rx={2} fill="#c3cad2" stroke={sel ? SEL : '#8f99a5'} strokeWidth={sel ? 1.6 : 0.8} />
+                  <rect x={px + 3} y={py + 3} width={pw - 6} height={PLATE_H - 6} fill="url(#plate-holes)" />
+                  {[[px + 5, py + 5], [px + pw - 5, py + 5], [px + 5, py + PLATE_H - 5], [px + pw - 5, py + PLATE_H - 5]].map(([cx, cy], k) => (
+                    <g key={k}>
+                      <circle cx={cx} cy={cy} r={2.6} fill="#e6eaee" stroke="#7d8793" strokeWidth={0.5} />
+                      <path d={`M${cx - 1.5} ${cy}H${cx + 1.5}M${cx} ${cy - 1.5}V${cy + 1.5}`} stroke="#7d8793" strokeWidth={0.5} />
+                    </g>
+                  ))}
+                  <text x={px - 6} y={py + PLATE_H / 2 + 2} fontSize={4} textAnchor="end" fill="#8b95a1">
+                    {i + 1}
+                  </text>
+                </g>
+              );
+            }
             const y = railTop(i) + (DIN_H - 35) / 2;
             const w = r.modules * MODULE;
             const x0 = g.x + RAIL_X0;
@@ -321,27 +405,14 @@ export function PanelDiagram({ project, panel, layout, routes, sim, markings, op
           }),
         )}
 
-      {/* devices */}
-      {placedList.map((pl) => {
-        if (pl.def.mount === 'free' && !options.showFreeItems) return null;
-        const sel = selItems.has(pl.item.id);
-        const isSim = sim.items[pl.item.id];
-        return (
-          <g key={pl.item.id}>
-           <g {...hit(`i:${pl.item.id}`)}>
-            <DeviceView placed={pl} sim={isSim} marking={markings[pl.item.id] ?? ''} />
-            {interactive && <rect x={pl.x} y={pl.y} width={pl.w} height={pl.h} fill="transparent" />}
-            {dropTarget === pl.item.id && <rect x={pl.x - 2.5} y={pl.y - 2.5} width={pl.w + 5} height={pl.h + 5} rx={3} fill="#2563eb" fillOpacity={0.12} stroke="#2563eb" strokeWidth={1.6} />}
-            {sel && <rect x={pl.x - 1.5} y={pl.y - 1.5} width={pl.w + 3} height={pl.h + 3} rx={2.5} fill="none" stroke={SEL} strokeWidth={1.4} strokeDasharray="4 2" />}
-            {interactive && isSim?.overload && !sel && <rect x={pl.x - 1} y={pl.y - 1} width={pl.w + 2} height={pl.h + 2} rx={2.5} fill="none" stroke="#dc2626" strokeWidth={1.2} />}
-           </g>
-           {pl.def.role === 'terminal' && <CombBridges placed={pl} showSlots={!!interactive && sel} interactive={!!interactive} />}
-          </g>
-        );
-      })}
+      {/* devices; the patch panels come after the cables from the floor plan, the cables to the devices after the patch panels */}
+      {renderDevices((pl) => pl.def.role !== 'patch' && !pl.item.link)}
+      {options.showWires && panel.wires.filter((w) => w.id !== frontWire && isFloorCable(w)).map(renderWire)}
+      {renderDevices((pl) => pl.def.role === 'patch')}
+      {options.showWires && panel.wires.filter((w) => w.id !== frontWire && isCable(w) && !isFloorCable(w)).map(renderWire)}
+      {/* the devices made from the floor plan lie over all the cables (a selected cable is above them) */}
+      {renderDevices((pl) => !!pl.item.link && pl.def.role !== 'patch')}
 
-      {/* the wire being moved is drawn over everything */}
-      {options.showWires && frontWire && panel.wires.filter((w) => w.id === frontWire).map(renderWire)}
 
       {/* comb bars along the line or load side of neighbouring devices */}
       {!us &&
@@ -373,6 +444,61 @@ export function PanelDiagram({ project, panel, layout, routes, sim, markings, op
       {/* the selected row connector is drawn over the devices, like a selected wire */}
       {!us && selLink && (panel.rowLinks ?? []).filter((k) => k.id === selLink).map(renderLink)}
 
+      {/* PoE of network switches: the watts at each port and the sum above the switch */}
+      {placedList.map((pl) => {
+        const rep = pl.def.network ? poeReports(project, panel)[pl.item.id] : undefined;
+        if (!rep || !rep.hasPoe) return null;
+        return (
+          <g key={`poe-${pl.item.id}`} pointerEvents="none" fontFamily={FONT}>
+            {pl.terminals.map((t) => {
+              const w = rep.ports[t.id]?.watts ?? 0;
+              if (w <= 0) return null;
+              // the figure sits inside the switch, next to its port
+              return (
+                <text key={t.id} x={t.x - t.dir.x * 7} y={t.y - t.dir.y * 7 + 1.2} fontSize={3.4} textAnchor="middle" fontWeight={700} fill={rep.ports[t.id]?.tooMuch ? '#dc2626' : '#0b6b3a'}>
+                  {Math.round(w * 10) / 10}W
+                </text>
+              );
+            })}
+          </g>
+        );
+      })}
+      {(() => {
+        // the PoE sum of every switch, on a box above it; a stacked pair puts its two boxes one above the other, the switch on
+        // top with a white box and the one underneath with a light grey one (it is further back)
+        const H = 12.5;
+        const GAP = 1.5;
+        const boxes: ReactNode[] = [];
+        const done = new Set<string>();
+        const reports = poeReports(project, panel);
+        for (const pl of placedList) {
+          if (!pl.def.network || done.has(pl.item.id) || (pl.item.stackOn && placedList.some((o) => o.item.id === pl.item.stackOn && o.def.network))) continue; // a stacked switch is drawn with the switch under it
+          const top = placedList.find((o) => o.item.stackOn === pl.item.id && o.def.network);
+          const group = top ? [pl, top] : [pl];
+          group.forEach((g) => done.add(g.item.id));
+          const pairTop = Math.min(...group.map((g) => g.y)) - 3;
+          // only the switches that have PoE get a box: the one under first (nearest to the pair), then the one on top above it
+          const shown = group.filter((g) => reports[g.item.id]?.hasPoe);
+          shown.forEach((g, k) => {
+            const r = reports[g.item.id];
+            const base = pairTop - k * (H + GAP);
+            const text = `PoE ${r.total} / ${r.budget} W`;
+            const w = text.length * 5.3 + 8;
+            const cx = g.x + g.w / 2;
+            const isUnder = group.length > 1 && g === pl;
+            boxes.push(
+              <g key={`poesum-${g.item.id}`} pointerEvents="none" fontFamily={FONT}>
+                <rect x={cx - w / 2} y={base - H + 2.4} width={w} height={H} rx={2} fill={isUnder ? '#e3e6ea' : '#ffffff'} stroke={r.over ? '#dc2626' : '#9aa4af'} strokeWidth={0.5} />
+                <text x={cx} y={base} fontSize={9} textAnchor="middle" fontWeight={700} fill={r.over ? '#dc2626' : '#0b6b3a'}>
+                  {text}
+                </text>
+              </g>,
+            );
+          });
+        }
+        return boxes;
+      })()}
+
       {/* label strips */}
       {placedList.map((pl) => {
         if (pl.def.mount === 'free' && !options.showFreeItems) return null;
@@ -380,13 +506,17 @@ export function PanelDiagram({ project, panel, layout, routes, sim, markings, op
         if (pl.item.bar?.edge === 'top') return null; // no room above a top bar: it is told apart by its colour
         const lines = labelLines(panel, pl.item, pl.def, markingOf(pl.item, markings), options);
         const pos = railPos(panel, pl.item.railId, layout.sections);
-        const y = pl.def.mount === 'din' && !pl.item.bar ? (pos?.top ?? 0) + DIN_H + 3 : pl.def.role === 'source' ? pl.y - 28 : pl.y + pl.h + 3;
+        const onPlate = pos?.section.rails[pos.row]?.kind === 'plate';
+        const y = pl.def.mount === 'din' && !pl.item.bar && !onPlate ? (pos?.top ?? 0) + DIN_H + 3 : pl.def.role === 'source' ? pl.y - 28 : pl.y + pl.h + 3;
         return (
           <g key={pl.item.id} {...hit(`i:${pl.item.id}`)}>
             <LabelStrip placed={pl} lines={lines} y={y} />
           </g>
         );
       })}
+
+      {/* the selected or moved wire is drawn over everything, labels included */}
+      {options.showWires && frontWire && panel.wires.filter((w) => w.id === frontWire).map(renderWire)}
 
       {/* selected wire handles */}
       {interactive &&

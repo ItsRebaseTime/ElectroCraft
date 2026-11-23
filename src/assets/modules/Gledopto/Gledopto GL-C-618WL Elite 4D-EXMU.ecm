@@ -1,0 +1,67 @@
+{
+  "format": "electrocraft-modules",
+  "version": 1,
+  "modules": [
+    {
+      "id": "gledopto-gl-c-618wl",
+      "name": "Gledopto GL-C-618WL Elite 4D-EXMU",
+      "description": "4 digital LED outputs (IO16, IO12, IO4, IO2) on Wago levers, IO13 GPIO, Ethernet, Type-C, mic, relay. 5-24 V DC, 15 A total. 129 x 50 x 23 mm, screw ears. White or black shell.",
+      "designation": "A",
+      "widthModules": 2,
+      "heightMm": 90,
+      "color": "#eceff3",
+      "stroke": "#69747f",
+      "rating": {
+        "In": 16,
+        "Un": 230
+      },
+      "behaviour": "isolated",
+      "switchable": false,
+      "trips": false,
+      "switches": [],
+      "inputs": [],
+      "top": {
+        "rows": 0,
+        "cols": 0
+      },
+      "bottom": {
+        "rows": 0,
+        "cols": 0
+      },
+      "terminals": [],
+      "shapes": [],
+      "device": {
+        "category": "library",
+        "role": "bus",
+        "icon": "terminal",
+        "mount": "din",
+        "mounting": "plate",
+        "poleMode": "none",
+        "params": [
+          {
+            "key": "shell",
+            "label": "Shell",
+            "type": "select",
+            "default": "white",
+            "group": "config",
+            "options": [
+              {
+                "value": "white",
+                "label": "White",
+                "hex": "#f1f3f5"
+              },
+              {
+                "value": "black",
+                "label": "Black",
+                "hex": "#1b1c1f"
+              }
+            ]
+          }
+        ],
+        "svg": [
+          "<svg xmlns=\"http://www.w3.org/2000/svg\" viewBox=\"0 0 129 50\" width=\"129\" height=\"50\"><g data-layer=\"body\" data-show=\"shell==white\"><rect x=\"0.4\" y=\"0.4\" width=\"128.2\" height=\"49.2\" rx=\"3.5\" fill=\"#f1f3f5\" stroke=\"#aeb6bf\" stroke-width=\"0.8\"/><circle cx=\"62\" cy=\"6\" r=\"2.4\" fill=\"none\" stroke=\"#aeb6bf\" stroke-width=\"0.6\"/><text x=\"40\" y=\"14.5\" font-size=\"3.6\" fill=\"#e0457b\" font-family=\"Helvetica, Arial, sans-serif\" font-weight=\"700\">GLEDOPTO</text><text x=\"40\" y=\"22\" font-size=\"5.2\" fill=\"#2a3138\" font-family=\"Helvetica, Arial, sans-serif\" font-weight=\"700\">Elite 4D-EXMU</text><text x=\"40\" y=\"26.6\" font-size=\"2.6\" fill=\"#2a3138\" font-family=\"Helvetica, Arial, sans-serif\">Advanced WLED Controller</text><text x=\"40\" y=\"32\" font-size=\"1.9\" fill=\"#6b7480\" font-family=\"Helvetica, Arial, sans-serif\">Model: GL-C-618WL   Input: DC 5-12-24V   15A max</text><text x=\"40\" y=\"35\" font-size=\"1.9\" fill=\"#6b7480\" font-family=\"Helvetica, Arial, sans-serif\">Type-C 5V 3A max (USB wall adapter, not PC USB)</text><rect x=\"1.2\" y=\"3.8\" width=\"6.4\" height=\"5.4\" rx=\"0.8\" fill=\"#b3343f\"/><text x=\"12\" y=\"7.4\" font-size=\"2.4\" fill=\"#2a3138\" font-family=\"Helvetica, Arial, sans-serif\">V+</text><rect x=\"1.2\" y=\"10.8\" width=\"6.4\" height=\"5.4\" rx=\"0.8\" fill=\"#23282f\"/><text x=\"12\" y=\"14.4\" font-size=\"2.4\" fill=\"#2a3138\" font-family=\"Helvetica, Arial, sans-serif\">V-</text><text x=\"21\" y=\"12\" font-size=\"2\" fill=\"#6b7480\" font-family=\"Helvetica, Arial, sans-serif\" transform=\"rotate(-90 21 12)\">15A max</text><rect x=\"0.6\" y=\"25.5\" width=\"6\" height=\"5\" rx=\"2\" fill=\"#0e0f11\" stroke=\"#6b7480\" stroke-width=\"0.4\"/><text x=\"9\" y=\"28.9\" font-size=\"2.2\" fill=\"#6b7480\" font-family=\"Helvetica, Arial, sans-serif\">USB-C</text><rect x=\"0.6\" y=\"34\" width=\"9\" height=\"9\" rx=\"0.8\" fill=\"#0e0f11\" stroke=\"#6b7480\" stroke-width=\"0.4\"/><text x=\"12\" y=\"39.5\" font-size=\"2.2\" fill=\"#6b7480\" font-family=\"Helvetica, Arial, sans-serif\">Ethernet</text><circle cx=\"40\" cy=\"44\" r=\"1.3\" fill=\"#0e0f11\" stroke=\"#6b7480\" stroke-width=\"0.3\"/><text x=\"43\" y=\"44.8\" font-size=\"2\" fill=\"#6b7480\" font-family=\"Helvetica, Arial, sans-serif\">mic</text><circle cx=\"62\" cy=\"43.5\" r=\"2.4\" fill=\"#0e0f11\" stroke=\"#6b7480\" stroke-width=\"0.4\"/><circle cx=\"84\" cy=\"43.5\" r=\"2.6\" fill=\"#d7dbe0\" stroke=\"#6b7480\" stroke-width=\"0.5\"/><text x=\"84\" y=\"48.6\" font-size=\"2\" text-anchor=\"middle\" fill=\"#6b7480\" font-family=\"Helvetica, Arial, sans-serif\">Function</text><rect x=\"120.6\" y=\"5.25\" width=\"7.6\" height=\"4.5\" rx=\"0.7\" fill=\"#b3343f\"/><text x=\"118.5\" y=\"8.30\" font-size=\"2.3\" text-anchor=\"end\" fill=\"#2a3138\" font-family=\"Helvetica, Arial, sans-serif\">V+</text><rect x=\"120.6\" y=\"10.33\" width=\"7.6\" height=\"4.5\" rx=\"0.7\" fill=\"#23282f\"/><text x=\"118.5\" y=\"13.38\" font-size=\"2.3\" text-anchor=\"end\" fill=\"#2a3138\" font-family=\"Helvetica, Arial, sans-serif\">GND</text><rect x=\"120.6\" y=\"15.41\" width=\"7.6\" height=\"4.5\" rx=\"0.7\" fill=\"#2f6fd1\"/><text x=\"118.5\" y=\"18.46\" font-size=\"2.3\" text-anchor=\"end\" fill=\"#2a3138\" font-family=\"Helvetica, Arial, sans-serif\">IO16</text><rect x=\"120.6\" y=\"20.49\" width=\"7.6\" height=\"4.5\" rx=\"0.7\" fill=\"#2f6fd1\"/><text x=\"118.5\" y=\"23.54\" font-size=\"2.3\" text-anchor=\"end\" fill=\"#2a3138\" font-family=\"Helvetica, Arial, sans-serif\">IO12</text><rect x=\"120.6\" y=\"25.57\" width=\"7.6\" height=\"4.5\" rx=\"0.7\" fill=\"#2f6fd1\"/><text x=\"118.5\" y=\"28.62\" font-size=\"2.3\" text-anchor=\"end\" fill=\"#2a3138\" font-family=\"Helvetica, Arial, sans-serif\">IO4</text><rect x=\"120.6\" y=\"30.65\" width=\"7.6\" height=\"4.5\" rx=\"0.7\" fill=\"#2f6fd1\"/><text x=\"118.5\" y=\"33.70\" font-size=\"2.3\" text-anchor=\"end\" fill=\"#2a3138\" font-family=\"Helvetica, Arial, sans-serif\">IO2</text><rect x=\"120.6\" y=\"35.73\" width=\"7.6\" height=\"4.5\" rx=\"0.7\" fill=\"#9ca5af\"/><text x=\"118.5\" y=\"38.78\" font-size=\"2.3\" text-anchor=\"end\" fill=\"#2a3138\" font-family=\"Helvetica, Arial, sans-serif\">IO13</text><rect x=\"120.6\" y=\"40.81\" width=\"7.6\" height=\"4.5\" rx=\"0.7\" fill=\"#23282f\"/><text x=\"118.5\" y=\"43.86\" font-size=\"2.3\" text-anchor=\"end\" fill=\"#2a3138\" font-family=\"Helvetica, Arial, sans-serif\">GND</text></g><g data-layer=\"body\" data-show=\"shell==black\"><rect x=\"0.4\" y=\"0.4\" width=\"128.2\" height=\"49.2\" rx=\"3.5\" fill=\"#1b1c1f\" stroke=\"#4a4f57\" stroke-width=\"0.8\"/><circle cx=\"62\" cy=\"6\" r=\"2.4\" fill=\"none\" stroke=\"#4a4f57\" stroke-width=\"0.6\"/><text x=\"40\" y=\"14.5\" font-size=\"3.6\" fill=\"#e0457b\" font-family=\"Helvetica, Arial, sans-serif\" font-weight=\"700\">GLEDOPTO</text><text x=\"40\" y=\"22\" font-size=\"5.2\" fill=\"#d9dee4\" font-family=\"Helvetica, Arial, sans-serif\" font-weight=\"700\">Elite 4D-EXMU</text><text x=\"40\" y=\"26.6\" font-size=\"2.6\" fill=\"#d9dee4\" font-family=\"Helvetica, Arial, sans-serif\">Advanced WLED Controller</text><text x=\"40\" y=\"32\" font-size=\"1.9\" fill=\"#9aa4af\" font-family=\"Helvetica, Arial, sans-serif\">Model: GL-C-618WL   Input: DC 5-12-24V   15A max</text><text x=\"40\" y=\"35\" font-size=\"1.9\" fill=\"#9aa4af\" font-family=\"Helvetica, Arial, sans-serif\">Type-C 5V 3A max (USB wall adapter, not PC USB)</text><rect x=\"1.2\" y=\"3.8\" width=\"6.4\" height=\"5.4\" rx=\"0.8\" fill=\"#b3343f\"/><text x=\"12\" y=\"7.4\" font-size=\"2.4\" fill=\"#d9dee4\" font-family=\"Helvetica, Arial, sans-serif\">V+</text><rect x=\"1.2\" y=\"10.8\" width=\"6.4\" height=\"5.4\" rx=\"0.8\" fill=\"#23282f\"/><text x=\"12\" y=\"14.4\" font-size=\"2.4\" fill=\"#d9dee4\" font-family=\"Helvetica, Arial, sans-serif\">V-</text><text x=\"21\" y=\"12\" font-size=\"2\" fill=\"#9aa4af\" font-family=\"Helvetica, Arial, sans-serif\" transform=\"rotate(-90 21 12)\">15A max</text><rect x=\"0.6\" y=\"25.5\" width=\"6\" height=\"5\" rx=\"2\" fill=\"#0e0f11\" stroke=\"#9aa4af\" stroke-width=\"0.4\"/><text x=\"9\" y=\"28.9\" font-size=\"2.2\" fill=\"#9aa4af\" font-family=\"Helvetica, Arial, sans-serif\">USB-C</text><rect x=\"0.6\" y=\"34\" width=\"9\" height=\"9\" rx=\"0.8\" fill=\"#0e0f11\" stroke=\"#9aa4af\" stroke-width=\"0.4\"/><text x=\"12\" y=\"39.5\" font-size=\"2.2\" fill=\"#9aa4af\" font-family=\"Helvetica, Arial, sans-serif\">Ethernet</text><circle cx=\"40\" cy=\"44\" r=\"1.3\" fill=\"#0e0f11\" stroke=\"#9aa4af\" stroke-width=\"0.3\"/><text x=\"43\" y=\"44.8\" font-size=\"2\" fill=\"#9aa4af\" font-family=\"Helvetica, Arial, sans-serif\">mic</text><circle cx=\"62\" cy=\"43.5\" r=\"2.4\" fill=\"#0e0f11\" stroke=\"#9aa4af\" stroke-width=\"0.4\"/><circle cx=\"84\" cy=\"43.5\" r=\"2.6\" fill=\"#2d3036\" stroke=\"#9aa4af\" stroke-width=\"0.5\"/><text x=\"84\" y=\"48.6\" font-size=\"2\" text-anchor=\"middle\" fill=\"#9aa4af\" font-family=\"Helvetica, Arial, sans-serif\">Function</text><rect x=\"120.6\" y=\"5.25\" width=\"7.6\" height=\"4.5\" rx=\"0.7\" fill=\"#b3343f\"/><text x=\"118.5\" y=\"8.30\" font-size=\"2.3\" text-anchor=\"end\" fill=\"#d9dee4\" font-family=\"Helvetica, Arial, sans-serif\">V+</text><rect x=\"120.6\" y=\"10.33\" width=\"7.6\" height=\"4.5\" rx=\"0.7\" fill=\"#23282f\"/><text x=\"118.5\" y=\"13.38\" font-size=\"2.3\" text-anchor=\"end\" fill=\"#d9dee4\" font-family=\"Helvetica, Arial, sans-serif\">GND</text><rect x=\"120.6\" y=\"15.41\" width=\"7.6\" height=\"4.5\" rx=\"0.7\" fill=\"#2f6fd1\"/><text x=\"118.5\" y=\"18.46\" font-size=\"2.3\" text-anchor=\"end\" fill=\"#d9dee4\" font-family=\"Helvetica, Arial, sans-serif\">IO16</text><rect x=\"120.6\" y=\"20.49\" width=\"7.6\" height=\"4.5\" rx=\"0.7\" fill=\"#2f6fd1\"/><text x=\"118.5\" y=\"23.54\" font-size=\"2.3\" text-anchor=\"end\" fill=\"#d9dee4\" font-family=\"Helvetica, Arial, sans-serif\">IO12</text><rect x=\"120.6\" y=\"25.57\" width=\"7.6\" height=\"4.5\" rx=\"0.7\" fill=\"#2f6fd1\"/><text x=\"118.5\" y=\"28.62\" font-size=\"2.3\" text-anchor=\"end\" fill=\"#d9dee4\" font-family=\"Helvetica, Arial, sans-serif\">IO4</text><rect x=\"120.6\" y=\"30.65\" width=\"7.6\" height=\"4.5\" rx=\"0.7\" fill=\"#2f6fd1\"/><text x=\"118.5\" y=\"33.70\" font-size=\"2.3\" text-anchor=\"end\" fill=\"#d9dee4\" font-family=\"Helvetica, Arial, sans-serif\">IO2</text><rect x=\"120.6\" y=\"35.73\" width=\"7.6\" height=\"4.5\" rx=\"0.7\" fill=\"#9ca5af\"/><text x=\"118.5\" y=\"38.78\" font-size=\"2.3\" text-anchor=\"end\" fill=\"#d9dee4\" font-family=\"Helvetica, Arial, sans-serif\">IO13</text><rect x=\"120.6\" y=\"40.81\" width=\"7.6\" height=\"4.5\" rx=\"0.7\" fill=\"#23282f\"/><text x=\"118.5\" y=\"43.86\" font-size=\"2.3\" text-anchor=\"end\" fill=\"#d9dee4\" font-family=\"Helvetica, Arial, sans-serif\">GND</text></g><g data-layer=\"terminals\"><circle data-terminal=\"VIN\" data-dir=\"left\" data-label=\"V+\" cx=\"1.2\" cy=\"6.5\" r=\"1.4\" fill=\"#9aa4af\" stroke=\"#4c5560\" stroke-width=\"0.4\"/><circle data-terminal=\"GNDIN\" data-dir=\"left\" data-label=\"V-\" cx=\"1.2\" cy=\"13.5\" r=\"1.4\" fill=\"#9aa4af\" stroke=\"#4c5560\" stroke-width=\"0.4\"/><circle data-terminal=\"ETH\" data-dir=\"left\" data-label=\"ETH\" cx=\"1.2\" cy=\"38.5\" r=\"1.4\" fill=\"#9aa4af\" stroke=\"#4c5560\" stroke-width=\"0.4\"/><circle data-terminal=\"V1\" data-dir=\"right\" data-label=\"V+\" cx=\"127.8\" cy=\"7.50\" r=\"1.4\" fill=\"#9aa4af\" stroke=\"#4c5560\" stroke-width=\"0.4\"/><circle data-terminal=\"GND1\" data-dir=\"right\" data-label=\"GND\" cx=\"127.8\" cy=\"12.58\" r=\"1.4\" fill=\"#9aa4af\" stroke=\"#4c5560\" stroke-width=\"0.4\"/><circle data-terminal=\"IO16\" data-dir=\"right\" data-label=\"IO16\" cx=\"127.8\" cy=\"17.66\" r=\"1.4\" fill=\"#9aa4af\" stroke=\"#4c5560\" stroke-width=\"0.4\"/><circle data-terminal=\"IO12\" data-dir=\"right\" data-label=\"IO12\" cx=\"127.8\" cy=\"22.74\" r=\"1.4\" fill=\"#9aa4af\" stroke=\"#4c5560\" stroke-width=\"0.4\"/><circle data-terminal=\"IO4\" data-dir=\"right\" data-label=\"IO4\" cx=\"127.8\" cy=\"27.82\" r=\"1.4\" fill=\"#9aa4af\" stroke=\"#4c5560\" stroke-width=\"0.4\"/><circle data-terminal=\"IO2\" data-dir=\"right\" data-label=\"IO2\" cx=\"127.8\" cy=\"32.90\" r=\"1.4\" fill=\"#9aa4af\" stroke=\"#4c5560\" stroke-width=\"0.4\"/><circle data-terminal=\"IO13\" data-dir=\"right\" data-label=\"IO13\" cx=\"127.8\" cy=\"37.98\" r=\"1.4\" fill=\"#9aa4af\" stroke=\"#4c5560\" stroke-width=\"0.4\"/><circle data-terminal=\"GND2\" data-dir=\"right\" data-label=\"GND\" cx=\"127.8\" cy=\"43.06\" r=\"1.4\" fill=\"#9aa4af\" stroke=\"#4c5560\" stroke-width=\"0.4\"/></g></svg>"
+        ]
+      }
+    }
+  ]
+}

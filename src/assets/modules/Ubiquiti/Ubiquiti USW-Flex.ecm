@@ -1,0 +1,160 @@
+{
+  "format": "electrocraft-modules",
+  "version": 1,
+  "modules": [
+    {
+      "id": "ubiquiti-usw-flex",
+      "name": "Ubiquiti USW-Flex",
+      "description": "5 x GbE: ports 1-4 PoE+ out (25 W each), port 5 PoE++ in. 46 W PoE budget with PoE++ input or a 60 W PoE adapter, less on PoE+ / PoE. Indoor / outdoor. Port order assumed.",
+      "designation": "A",
+      "widthModules": 2,
+      "heightMm": 90,
+      "color": "#eceff3",
+      "stroke": "#69747f",
+      "rating": {
+        "In": 16,
+        "Un": 230
+      },
+      "behaviour": "isolated",
+      "switchable": false,
+      "trips": false,
+      "switches": [],
+      "inputs": [],
+      "top": {
+        "rows": 0,
+        "cols": 0
+      },
+      "bottom": {
+        "rows": 0,
+        "cols": 0
+      },
+      "terminals": [],
+      "shapes": [],
+      "device": {
+        "category": "library",
+        "role": "bus",
+        "icon": "terminal",
+        "mount": "din",
+        "mounting": "plate",
+        "poleMode": "none",
+        "params": [
+          {
+            "key": "power",
+            "label": "Power",
+            "type": "select",
+            "default": "poe++",
+            "group": "config",
+            "options": [
+              {
+                "value": "poe++",
+                "label": "PoE++ input (port 5)"
+              },
+              {
+                "value": "adapter60",
+                "label": "60 W PoE adapter (port 5)"
+              },
+              {
+                "value": "poe+",
+                "label": "PoE+ input (port 5)"
+              },
+              {
+                "value": "poe",
+                "label": "PoE input (port 5)"
+              }
+            ]
+          }
+        ],
+        "svg": [
+          "<svg xmlns=\"http://www.w3.org/2000/svg\" viewBox=\"0 0 122.5 107.1\" width=\"122.5\" height=\"107.1\"><g data-layer=\"body\"><rect x=\"0.4\" y=\"0.4\" width=\"121.7\" height=\"106.3\" rx=\"4\" fill=\"#c9ced4\" stroke=\"#6b7480\" stroke-width=\"0.8\"/><text x=\"61.25\" y=\"57.55\" font-size=\"10.2\" text-anchor=\"middle\" fill=\"#8b95a1\" font-family=\"Helvetica, Arial, sans-serif\" font-weight=\"700\">Flex</text></g><g data-layer=\"ports\"><circle data-terminal=\"P1\" data-dir=\"down\" data-label=\"1\" cx=\"18.6\" cy=\"102.6\" r=\"1.9\" fill=\"#9aa4af\" stroke=\"#4c5560\" stroke-width=\"0.5\"/><circle data-terminal=\"P2\" data-dir=\"down\" data-label=\"2\" cx=\"40.0\" cy=\"102.6\" r=\"1.9\" fill=\"#9aa4af\" stroke=\"#4c5560\" stroke-width=\"0.5\"/><circle data-terminal=\"P3\" data-dir=\"down\" data-label=\"3\" cx=\"61.2\" cy=\"102.6\" r=\"1.9\" fill=\"#9aa4af\" stroke=\"#4c5560\" stroke-width=\"0.5\"/><circle data-terminal=\"P4\" data-dir=\"down\" data-label=\"4\" cx=\"82.5\" cy=\"102.6\" r=\"1.9\" fill=\"#9aa4af\" stroke=\"#4c5560\" stroke-width=\"0.5\"/><circle data-terminal=\"P5\" data-dir=\"down\" data-label=\"5\" cx=\"103.9\" cy=\"102.6\" r=\"1.9\" fill=\"#9aa4af\" stroke=\"#4c5560\" stroke-width=\"0.5\"/></g></svg>"
+        ],
+        "network": {
+          "widthMm": 122.5,
+          "depthMm": 107.1,
+          "heightMm": 28,
+          "color": "#c9ced4",
+          "ports": [
+            {
+              "id": "P1",
+              "label": "1",
+              "kind": "rj45",
+              "speed": "1G",
+              "x": 18.6,
+              "poe": {
+                "std": "at",
+                "maxW": 25
+              }
+            },
+            {
+              "id": "P2",
+              "label": "2",
+              "kind": "rj45",
+              "speed": "1G",
+              "x": 40.0,
+              "poe": {
+                "std": "at",
+                "maxW": 25
+              }
+            },
+            {
+              "id": "P3",
+              "label": "3",
+              "kind": "rj45",
+              "speed": "1G",
+              "x": 61.2,
+              "poe": {
+                "std": "at",
+                "maxW": 25
+              }
+            },
+            {
+              "id": "P4",
+              "label": "4",
+              "kind": "rj45",
+              "speed": "1G",
+              "x": 82.5,
+              "poe": {
+                "std": "at",
+                "maxW": 25
+              }
+            },
+            {
+              "id": "P5",
+              "label": "5",
+              "kind": "rj45",
+              "speed": "1G",
+              "x": 103.9,
+              "poeIn": true
+            }
+          ],
+          "back": [],
+          "power": [
+            {
+              "id": "poe++",
+              "label": "PoE++ input (port 5)",
+              "source": "poe",
+              "budgetW": 46
+            },
+            {
+              "id": "adapter60",
+              "label": "60 W PoE adapter (port 5)",
+              "source": "external",
+              "budgetW": 46
+            },
+            {
+              "id": "poe+",
+              "label": "PoE+ input (port 5)",
+              "source": "poe",
+              "budgetW": 20
+            },
+            {
+              "id": "poe",
+              "label": "PoE input (port 5)",
+              "source": "poe",
+              "budgetW": 8
+            }
+          ]
+        }
+      }
+    }
+  ]
+}

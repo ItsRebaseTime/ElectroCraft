@@ -56,19 +56,18 @@
           }
         ],
         "svg": [
-          "<svg xmlns=\"http://www.w3.org/2000/svg\" viewBox=\"0 0 70 34\" width=\"70\" height=\"34\">",
+          "<svg xmlns=\"http://www.w3.org/2000/svg\" viewBox=\"0 0 46 22\" width=\"46\" height=\"22\">",
           "  <!-- A cable that comes from the floor plan: a network, coax, fibre or telephone outlet wired to this panel.",
           "       Connect its port to a module of the panel (a terminal block, patch panel ...). See docs/equipment-assets.md. -->",
           "  <g data-layer=\"body\">",
-          "    <rect x=\"0.4\" y=\"0.4\" width=\"69.2\" height=\"33.2\" rx=\"3\" fill=\"#ffffff\" stroke=\"#6b7480\" stroke-width=\"0.8\"/>",
-          "    <rect x=\"0.4\" y=\"0.4\" width=\"69.2\" height=\"9\" rx=\"3\" fill=\"{{medium#hex}}\"/>",
-          "    <rect x=\"0.4\" y=\"6\" width=\"69.2\" height=\"4\" fill=\"{{medium#hex}}\"/>",
-          "    <circle data-terminal=\"port\" data-dir=\"up\" cx=\"35\" cy=\"5\" r=\"2.6\" fill=\"#9aa4af\" stroke=\"#4c5560\" stroke-width=\"0.6\"/>",
-          "    <path d=\"M33.4 5h3.2\" stroke=\"#3b444d\" stroke-width=\"0.8\"/>",
+          "    <rect x=\"0.4\" y=\"0.4\" width=\"45.2\" height=\"21.2\" rx=\"2.4\" fill=\"#ffffff\" stroke=\"#6b7480\" stroke-width=\"0.7\"/>",
+          "    <rect x=\"0.4\" y=\"0.4\" width=\"45.2\" height=\"7.5\" rx=\"2.4\" fill=\"{{medium#hex}}\"/>",
+          "    <rect x=\"0.4\" y=\"4.5\" width=\"45.2\" height=\"3.4\" fill=\"{{medium#hex}}\"/>",
+          "    <circle data-terminal=\"port\" data-dir=\"up\" cx=\"23\" cy=\"3.6\" r=\"2.1\" fill=\"#9aa4af\" stroke=\"#4c5560\" stroke-width=\"0.5\"/>",
+          "    <path d=\"M21.9 3.6h2.2\" stroke=\"#3b444d\" stroke-width=\"0.7\"/>",
           "  </g>",
           "  <g data-layer=\"label\">",
-          "    <text x=\"0\" y=\"20\" font-size=\"5.2\" font-weight=\"bold\" text-anchor=\"middle\" fill=\"#1f2630\" font-family=\"Helvetica, Arial, sans-serif\" data-center-x=\"true\">{{medium#label}}</text>",
-          "    <text x=\"0\" y=\"28.5\" font-size=\"3.8\" text-anchor=\"middle\" fill=\"#5b6672\" font-family=\"Helvetica, Arial, sans-serif\" data-center-x=\"true\">from the floor plan</text>",
+          "    <text x=\"0\" y=\"16.4\" font-size=\"4.6\" font-weight=\"bold\" text-anchor=\"middle\" fill=\"#1f2630\" font-family=\"Helvetica, Arial, sans-serif\" data-center-x=\"true\">{{medium#label}}</text>",
           "  </g>",
           "</svg>"
         ]

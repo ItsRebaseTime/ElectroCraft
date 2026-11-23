@@ -82,6 +82,8 @@ try {
   // the panel planner shows it and protects it
   await click(d, "//span[contains(@class,'view-switch')]//button[contains(., 'Panel')]");
   await d.wait(until.elementLocated(By.css('.canvas g[data-hit^="i:"]')), 5000);
+  await d.actions().sendKeys('f').perform(); // fit the view: the floor plan items are below the enclosure
+  await sleep(400);
   const item = st.panels[0].items.find((i) => i.link);
   const hit = await d.findElement(By.css(`.canvas g[data-hit="i:${item.id}"]`));
   await d.executeScript('arguments[0].scrollIntoView()', hit);
@@ -404,7 +406,7 @@ try {
   const patch = p3.items.find((i) => i.defId === 'keystone');
   check('a keystone panel is added along the bottom of the panel', !!patch && patch.bar?.edge === 'bottom' && patch.params.rows === 2 && patch.params.cols === 12, JSON.stringify(patch?.params));
   const jacks = await d.executeScript(`return document.querySelectorAll('.canvas [data-hit^="t:${patch.id}|"]').length`);
-  check('it has a jack for every row and column', jacks === 24, String(jacks));
+  check('it has two connection points (floor plan and device) for every row and column', jacks === 48, String(jacks));
   await click(d, "//label[contains(., 'Keystone panel bottom')]//button[contains(., 'edit')]");
   await click(d, "//button[contains(., 'Wire floor plan cables to free jacks')]");
   st = await state(d);

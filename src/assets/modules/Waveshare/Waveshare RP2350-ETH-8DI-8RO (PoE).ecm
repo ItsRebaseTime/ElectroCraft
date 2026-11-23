@@ -10,6 +10,7 @@
       "widthModules": 9.5,
       "widthMm": 175,
       "heightMm": 90,
+      "mounting": "both",
       "color": "#18181a",
       "stroke": "#69747f",
       "rating": {

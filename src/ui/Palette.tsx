@@ -120,7 +120,7 @@ export function Palette({ onAdded }: { onAdded?: () => void } = {}) {
                   </div>
                   <div className="entry-text">
                     <span className="entry-name">{d.name}</span>
-                    <span className="entry-sub">{d.mount === 'din' ? 'DIN rail' : d.mount === 'us' ? 'Breaker space' : 'External'}</span>
+                    <span className="entry-sub">{d.mount === 'din' ? (d.mounting === 'plate' ? 'Mounting plate' : d.mounting === 'both' ? 'DIN rail or plate' : 'DIN rail') : d.mount === 'us' ? 'Breaker space' : 'External'}</span>
                   </div>
                   {d.category === 'library' ? (
                     <span className="entry-actions">

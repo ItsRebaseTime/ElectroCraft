@@ -6,7 +6,7 @@ import type { Item } from './types';
 
 export const PATCH_ID = 'keystone';
 export const PATCH_PITCH_X = 14;
-export const PATCH_PITCH_Y = 15;
+export const PATCH_PITCH_Y = 32;
 export const PATCH_PAD = 6;
 export const PATCH_MAX_ROWS = 4;
 export const PATCH_MAX_COLS = 24;
@@ -23,6 +23,10 @@ export function patchDims(item: Pick<Item, 'params'>) {
 
 export const patchSize = (rows: number, cols: number) => ({ w: cols * PATCH_PITCH_X + 2 * PATCH_PAD, h: rows * PATCH_PITCH_Y + 2 * PATCH_PAD });
 export const patchPortId = (row: number, col: number) => `P${row}_${col}`;
+/** The device side of a jack (a switch port, a cable to equipment): `P0_3` is the floor plan side of the same jack, `D0_3` this one. */
+export const patchDevicePort = (id: string) => `D${id.slice(1)}`;
+/** The other side of a jack: the floor plan side of a device terminal and the other way round. */
+export const patchOtherSide = (terminal: string) => (terminal.startsWith('P') ? `D${terminal.slice(1)}` : `P${terminal.slice(1)}`);
 /** Jack ids in reading order (left to right, row by row). */
 export const patchPorts = (rows: number, cols: number): string[] => Array.from({ length: rows * cols }, (_v, i) => patchPortId(Math.floor(i / cols), i % cols));
 /** Number printed on a jack (1 ... rows x columns). */
@@ -32,7 +36,7 @@ export const patchNumber = (id: string, cols: number): number => {
 };
 
 /** SVG of a patch panel; the wire connection of every jack is on the side that faces into the enclosure. */
-export function patchSvg(rows: number, cols: number, edge: 'top' | 'bottom'): string {
+export function patchSvg(rows: number, cols: number, _edge: 'top' | 'bottom' = 'top'): string {
   const { w, h } = patchSize(rows, cols);
   const parts: string[] = [`<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 ${w} ${h}" width="${w}" height="${h}">`];
   parts.push(`<g data-layer="body"><rect x="0.3" y="0.3" width="${w - 0.6}" height="${h - 0.6}" rx="1.6" fill="#cfd5dc" stroke="#6b7480" stroke-width="0.6"/></g>`);
@@ -43,12 +47,17 @@ export function patchSvg(rows: number, cols: number, edge: 'top' | 'bottom'): st
       const y = PATCH_PAD + r * PATCH_PITCH_Y;
       const cx = x + PATCH_PITCH_X / 2;
       const n = r * cols + c + 1;
-      // the jack, its opening, its number, and the terminal on the side of the enclosure
-      parts.push(`<rect x="${x + 1.5}" y="${y + 1}" width="${PATCH_PITCH_X - 3}" height="7.4" rx="0.9" fill="#2d343c"/>`);
-      parts.push(`<rect x="${x + 3.2}" y="${y + 2.6}" width="${PATCH_PITCH_X - 6.4}" height="4.2" rx="0.5" fill="#0f1317"/>`);
-      parts.push(`<text x="${cx}" y="${y + 11.6}" font-size="2.6" text-anchor="middle" fill="#2a3138" font-family="Helvetica, Arial, sans-serif">${n}</text>`);
-      const ty = edge === 'top' ? y + PATCH_PITCH_Y - 1.4 : y + 1.4;
-      parts.push(`<circle data-terminal="${patchPortId(r, c)}" data-dir="${edge === 'top' ? 'down' : 'up'}" data-label="${n}" cx="${cx}" cy="${ty}" r="1.5" fill="#9aa4af" stroke="#4c5560" stroke-width="0.4"/>`);
+      // the jack with its number, and two connection points: the floor plan cable at the bottom and the switch / device at the top
+      parts.push(`<rect x="${x + 1.5}" y="${y + 11}" width="${PATCH_PITCH_X - 3}" height="7.4" rx="0.9" fill="#2d343c"/>`);
+      parts.push(`<rect x="${x + 3.2}" y="${y + 12.6}" width="${PATCH_PITCH_X - 6.4}" height="4.2" rx="0.5" fill="#0f1317"/>`);
+      parts.push(`<text x="${cx}" y="${y + 23.6}" font-size="2.6" text-anchor="middle" fill="#2a3138" font-family="Helvetica, Arial, sans-serif">${n}</text>`);
+      const upY = y + 1.6;
+      const downY = y + PATCH_PITCH_Y - 1.6;
+      // the floor plan cable is always on the bottom side of a jack, the switch / device on the top side
+      const outer = { y: downY, dir: 'down' };
+      const inner = { y: upY, dir: 'up' };
+      parts.push(`<circle data-terminal="${patchPortId(r, c)}" data-dir="${outer.dir}" data-label="${n}" cx="${cx}" cy="${outer.y}" r="1.5" fill="#9aa4af" stroke="#4c5560" stroke-width="0.4"/>`);
+      parts.push(`<circle data-terminal="${patchDevicePort(patchPortId(r, c))}" data-dir="${inner.dir}" data-label="${n}" cx="${cx}" cy="${inner.y}" r="1.5" fill="#cfe0f3" stroke="#4c5560" stroke-width="0.4"/>`);
     }
   }
   parts.push('</g></svg>');

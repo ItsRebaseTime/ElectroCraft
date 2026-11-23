@@ -31,7 +31,8 @@ A project is one plain JSON document, so it diffs well in version control. Open 
   "region": "eu",                                // "eu" (DIN rails, default) or "us" (load center)
   "usPhases": 2,                                 // US only: 2 = split-phase bus, 3 = three-phase bus
   "sections": [ { "id": "main", "name": "Section 1" } ], // optional, EU: enclosures side by side. A rail picks one with "section"
-  "rails": [ { "id": "r1", "modules": 12 } ],    // EU: DIN rail length in modules of 18 mm. US: two rails = the two columns, "modules" = spaces per column
+  // a section in "sections" may have "innerWidth" (mm): the internal width of its enclosure when wider than the rails need
+  "rails": [ { "id": "r1", "modules": 12 } ],    // EU: DIN rail length in modules of 18 mm. US: two rails = the two columns, "modules" = spaces per column. "kind": "plate" makes it a perforated mounting plate (EU): its devices use "slot" (x, modules) and "plateY" (mm from the plate top)
   "items": [ /* Item */ ],
   "wires": [ /* Wire */ ],
   "combs": [ { "id": "c1", "railId": "r1", "slot": 0, "modules": 3, "phases": 3, "side": "top" } ],   // optional (EU)
@@ -79,7 +80,7 @@ Terminal blocks use `params.count` (number of terminals) and `params.bridges` (`
 ```jsonc
 {
   "id": "mod-k3j2h1", "name": "Fused distribution block", "description": "", "designation": "Q",
-  "widthModules": 4, "heightMm": 90,   // optional "widthMm": 19 = an exact width in mm (a Shelly Pro unit); widthModules is then the rounded number of modules
+  "widthModules": 4, "heightMm": 90,   // optional "network": { widthMm, depthMm, heightMm, color, ports: [{ id, label, kind: "rj45" | "sfp", speed, x, row?, poe?: { std, maxW }, poeIn? }], back: [...], power: [{ id, label, source, budgetW }] } on a device module = a network switch (ports are terminals of its artwork, the choice of power is its "power" parameter); items on a plate may have "rot" (90, 180, 270) and "stackOn" (the id of the device under it); floor plan network outlets may have "poeWatts"; optional "mounting": "plate" | "both" = may sit on a mounting plate (rail with "kind": "plate"), default DIN rail only; optional "widthMm": 19 = an exact width in mm (a Shelly Pro unit); widthModules is then the rounded number of modules
   "color": "#dfe6ee", "stroke": "#69747f",
   "rating": { "In": 40, "Un": 400 },
   "behaviour": "columns",                        // isolated | columns | bus | custom

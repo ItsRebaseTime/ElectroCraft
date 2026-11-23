@@ -579,6 +579,16 @@ function ModuleEditorInner({ initial }: { initial: CustomModule }) {
             <Field label="Height">
               <NumberField value={m.heightMm} min={30} max={90} step={5} unit="mm" onCommit={(v) => patch({ heightMm: Math.round(v) })} />
             </Field>
+            <Field label="Mounting" hint="A DIN clip, or screws / cable ties on a perforated mounting plate">
+              <select
+                value={m.mounting ?? 'din'}
+                onChange={(e) => patch({ mounting: e.target.value === 'din' ? undefined : (e.target.value as 'plate' | 'both') })}
+              >
+                <option value="din">DIN rail</option>
+                <option value="plate">Mounting plate</option>
+                <option value="both">DIN rail or plate</option>
+              </select>
+            </Field>
             <Field label="Body colour">
               <ColorField value={m.color} onChange={(v) => patch({ color: v })} />
             </Field>

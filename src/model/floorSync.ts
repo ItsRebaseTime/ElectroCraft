@@ -7,9 +7,11 @@ import { createItem } from './project';
 import type { FloorCircuit, FloorPlan, Item, Panel, Project } from './types';
 
 export const FLOOR_PORT = 'floor_port';
-const CELL_W = 130;
-const CELL_H = 130;
-const COLS = 8;
+// items made from the floor plans are laid out on a grid as wide as the enclosure, below it; a cell has room for a compact
+// cable box and its label, a load takes several cells
+const CELL_W = 52;
+const CELL_H = 48;
+const LABEL_H = 22;
 
 interface Wanted {
   key: string;
@@ -55,29 +57,57 @@ function loadKind(plan: FloorPlan, c: FloorCircuit, point?: string): string {
   return 'generic';
 }
 
-function freeCell(panel: Panel, taken: Set<string>): { x: number; y: number } {
+/** The grid the floor plan items are laid out on: its origin and the number of columns (as many as fit the width of the enclosure). */
+function gridOf(panel: Panel) {
   const e = enclosureRect(panel);
-  const baseY = e.y + e.h + 60;
-  for (let n = 0; n < 4000; n++) {
-    const col = n % COLS;
-    const row = Math.floor(n / COLS);
-    const key = `${col},${row}`;
-    if (!taken.has(key)) {
-      taken.add(key);
-      return { x: 60 + col * CELL_W, y: baseY + row * CELL_H };
-    }
-  }
-  return { x: 60, y: baseY };
+  const cols = Math.max(2, Math.floor(e.w / CELL_W));
+  return { x0: e.x + (e.w - cols * CELL_W) / 2, y0: e.y + e.h + 120, cols };
 }
 
-/** Which grid cell of the free-item area an item occupies (to find a gap for new ones). */
-function cellOf(panel: Panel, it: Item): string | null {
-  const e = enclosureRect(panel);
-  const baseY = e.y + e.h + 60;
-  if (it.y < baseY - CELL_H / 2) return null;
-  const col = Math.round((it.x - 60) / CELL_W);
-  const row = Math.round((it.y - baseY) / CELL_H);
-  return col >= 0 && col < COLS && row >= 0 ? `${col},${row}` : null;
+/** Size in grid cells of an item with its label strip. */
+function cellsFor(defId: string): { w: number; h: number } {
+  const a = getAsset(defId);
+  return { w: Math.max(1, Math.ceil((a?.width ?? 70) / CELL_W)), h: Math.max(1, Math.ceil(((a?.height ?? 34) + LABEL_H) / CELL_H)) };
+}
+
+/** The grid cells (`col,row`) an item below the enclosure covers. */
+function cellsOf(panel: Panel, it: Item): string[] {
+  const g = gridOf(panel);
+  if (it.y < g.y0 - CELL_H / 2) return [];
+  const sz = cellsFor(it.defId);
+  const c0 = Math.floor((it.x - g.x0) / CELL_W);
+  const r0 = Math.round((it.y - g.y0) / CELL_H);
+  const out: string[] = [];
+  for (let r = 0; r < sz.h; r++) for (let c = 0; c < sz.w; c++) if (c0 + c >= 0 && r0 + r >= 0) out.push(`${c0 + c},${r0 + r}`);
+  return out;
+}
+
+/** A free place for an item of this kind on the grid (marks its cells as taken). */
+function freeCell(panel: Panel, taken: Set<string>, defId: string): { x: number; y: number } {
+  const g = gridOf(panel);
+  const sz = cellsFor(defId);
+  const cols = Math.max(g.cols, sz.w);
+  for (let r = 0; r < 4000; r++) {
+    for (let c = 0; c + sz.w <= cols; c++) {
+      const cells: string[] = [];
+      for (let dr = 0; dr < sz.h; dr++) for (let dc = 0; dc < sz.w; dc++) cells.push(`${c + dc},${r + dr}`);
+      if (cells.some((k) => taken.has(k))) continue;
+      cells.forEach((k) => taken.add(k));
+      return { x: g.x0 + c * CELL_W + (sz.w * CELL_W - (getAsset(defId)?.width ?? 70)) / 2, y: g.y0 + r * CELL_H };
+    }
+  }
+  return { x: g.x0, y: g.y0 };
+}
+
+/** Put every item made from a floor plan back on the grid, in order (cable boxes and loads as the floor plans list them). */
+export function arrangeFloorItems(panel: Panel) {
+  const taken = new Set<string>();
+  for (const it of panel.items) {
+    if (!it.link) continue;
+    const at = freeCell(panel, taken, it.defId);
+    it.x = at.x;
+    it.y = at.y;
+  }
 }
 
 /**
@@ -127,8 +157,7 @@ export function syncFloorLinks(project: Project): boolean {
     for (const it of panel.items) {
       const k = linkKey(it);
       if (k) have.set(k, it);
-      const cell = cellOf(panel, it);
-      if (cell && (k || getAsset(it.defId) !== undefined)) taken.add(cell);
+      if (k || getAsset(it.defId) !== undefined) for (const cell of cellsOf(panel, it)) taken.add(cell);
     }
     for (const [key, w] of want) {
       const pointObj = w.point ? w.plan.points.find((p) => p.id === w.point) : undefined;
@@ -142,7 +171,7 @@ export function syncFloorLinks(project: Project): boolean {
           ? { kind: loadKind(w.plan, w.circuit, w.point), phases: w.point ? (pointObj ? pointPhases(pointObj) : 1) : circuitPhases(w.plan, w.circuit), P: Math.round(w.point ? (pointObj ? pointWatts(pointObj) : 0) : circuitWatts(w.plan, w.circuit)) }
           : { medium: w.circuit.medium };
       if (!item) {
-        const at = freeCell(panel, taken);
+        const at = freeCell(panel, taken, w.defId);
         item = createItem(w.defId, { x: at.x, y: at.y, description: name, note, link: { circuit: w.circuit.id, ...(w.point ? { point: w.point } : {}), ...(w.port !== undefined ? { port: w.port } : {}) } });
         item.params = { ...item.params, ...params };
         panel.items.push(item);

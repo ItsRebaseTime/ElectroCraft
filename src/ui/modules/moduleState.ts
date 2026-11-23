@@ -2,7 +2,7 @@ import { create } from 'zustand';
 import { libraryModuleList, moduleById, syncCustomModules } from '../../model/defs';
 import { cloneModule, reidentify, parseModules, serializeModules } from '../../model/customModule';
 import { MODULE_FORMAT } from '../../model/customModule';
-import { findSlot, itemWidthModules } from '../../model/geometry';
+import { seatOnRail } from '../../model/geometry';
 import { getDef } from '../../model/defs';
 import type { CustomModule, Panel } from '../../model/types';
 import { ECM_FILE, openTextFile, saveFile } from '../../io/files';
@@ -37,24 +37,18 @@ function revalidate(panel: Panel, moduleId: string): { removed: number } {
     if (item.defId !== moduleId) continue;
     const def = getDef(moduleId);
     if (!def || !item.railId) continue;
-    const width = itemWidthModules(item, def);
-    let slot = findSlot(panel, item.railId, item.slot ?? 0, width, item.id);
-    let rail = item.railId;
-    if (slot === null) {
+    let seated = seatOnRail(panel, item, item.railId, item.slot ?? 0, item.plateY ?? 0);
+    if (!seated) {
       for (const r of panel.rails) {
-        slot = findSlot(panel, r.id, 0, width, item.id);
-        if (slot !== null) {
-          rail = r.id;
+        if (seatOnRail(panel, item, r.id, 0, 0)) {
+          seated = true;
           break;
         }
       }
     }
-    if (slot === null) {
+    if (!seated) {
       panel.items = panel.items.filter((i) => i.id !== item.id);
       removed++;
-    } else {
-      item.railId = rail;
-      item.slot = slot;
     }
   }
   return { removed };

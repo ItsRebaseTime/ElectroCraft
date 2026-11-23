@@ -1,0 +1,191 @@
+{
+  "format": "electrocraft-modules",
+  "version": 1,
+  "modules": [
+    {
+      "id": "ubiquiti-usw-pro-xg-8-poe",
+      "name": "Ubiquiti USW-Pro-XG-8-PoE",
+      "description": "8 x 10GbE PoE++ (802.3bt) and 2 x 10G SFP+; 155 W PoE budget, 210 W external adapter included. Port order assumed: RJ45 in two rows of 4, SFP+ at the right.",
+      "designation": "A",
+      "widthModules": 2,
+      "heightMm": 90,
+      "color": "#eceff3",
+      "stroke": "#69747f",
+      "rating": {
+        "In": 16,
+        "Un": 230
+      },
+      "behaviour": "isolated",
+      "switchable": false,
+      "trips": false,
+      "switches": [],
+      "inputs": [],
+      "top": {
+        "rows": 0,
+        "cols": 0
+      },
+      "bottom": {
+        "rows": 0,
+        "cols": 0
+      },
+      "terminals": [],
+      "shapes": [],
+      "device": {
+        "category": "library",
+        "role": "bus",
+        "icon": "terminal",
+        "mount": "din",
+        "mounting": "plate",
+        "poleMode": "none",
+        "params": [
+          {
+            "key": "power",
+            "label": "Power",
+            "type": "select",
+            "default": "adapter210",
+            "group": "config",
+            "options": [
+              {
+                "value": "adapter210",
+                "label": "210 W external adapter"
+              }
+            ]
+          }
+        ],
+        "svg": [
+          "<svg xmlns=\"http://www.w3.org/2000/svg\" viewBox=\"0 0 210.4 173.8\" width=\"210.4\" height=\"173.8\"><g data-layer=\"body\"><rect x=\"0.4\" y=\"0.4\" width=\"209.6\" height=\"173.0\" rx=\"4\" fill=\"#c9ced4\" stroke=\"#6b7480\" stroke-width=\"0.8\"/><text x=\"105.2\" y=\"90.9\" font-size=\"14.0\" text-anchor=\"middle\" fill=\"#8b95a1\" font-family=\"Helvetica, Arial, sans-serif\" font-weight=\"700\">Pro XG 8 PoE</text></g><g data-layer=\"ports\"><circle data-terminal=\"P1\" data-dir=\"down\" data-label=\"1\" cx=\"17.7\" cy=\"169.3\" r=\"1.9\" fill=\"#9aa4af\" stroke=\"#4c5560\" stroke-width=\"0.5\"/><circle data-terminal=\"P2\" data-dir=\"down\" data-label=\"2\" cx=\"37.2\" cy=\"169.3\" r=\"1.9\" fill=\"#9aa4af\" stroke=\"#4c5560\" stroke-width=\"0.5\"/><circle data-terminal=\"P3\" data-dir=\"down\" data-label=\"3\" cx=\"56.6\" cy=\"169.3\" r=\"1.9\" fill=\"#9aa4af\" stroke=\"#4c5560\" stroke-width=\"0.5\"/><circle data-terminal=\"P4\" data-dir=\"down\" data-label=\"4\" cx=\"76.0\" cy=\"169.3\" r=\"1.9\" fill=\"#9aa4af\" stroke=\"#4c5560\" stroke-width=\"0.5\"/><circle data-terminal=\"P5\" data-dir=\"down\" data-label=\"5\" cx=\"95.5\" cy=\"169.3\" r=\"1.9\" fill=\"#9aa4af\" stroke=\"#4c5560\" stroke-width=\"0.5\"/><circle data-terminal=\"P6\" data-dir=\"down\" data-label=\"6\" cx=\"114.9\" cy=\"169.3\" r=\"1.9\" fill=\"#9aa4af\" stroke=\"#4c5560\" stroke-width=\"0.5\"/><circle data-terminal=\"P7\" data-dir=\"down\" data-label=\"7\" cx=\"134.4\" cy=\"169.3\" r=\"1.9\" fill=\"#9aa4af\" stroke=\"#4c5560\" stroke-width=\"0.5\"/><circle data-terminal=\"P8\" data-dir=\"down\" data-label=\"8\" cx=\"153.8\" cy=\"169.3\" r=\"1.9\" fill=\"#9aa4af\" stroke=\"#4c5560\" stroke-width=\"0.5\"/><circle data-terminal=\"P9\" data-dir=\"down\" data-label=\"9\" cx=\"173.2\" cy=\"169.3\" r=\"1.9\" fill=\"#9aa4af\" stroke=\"#4c5560\" stroke-width=\"0.5\"/><circle data-terminal=\"P10\" data-dir=\"down\" data-label=\"10\" cx=\"192.7\" cy=\"169.3\" r=\"1.9\" fill=\"#9aa4af\" stroke=\"#4c5560\" stroke-width=\"0.5\"/></g></svg>"
+        ],
+        "network": {
+          "widthMm": 210.4,
+          "depthMm": 173.8,
+          "heightMm": 43.7,
+          "color": "#c9ced4",
+          "ports": [
+            {
+              "id": "P1",
+              "label": "1",
+              "kind": "rj45",
+              "speed": "10G",
+              "x": 27.4,
+              "poe": {
+                "std": "bt",
+                "maxW": 60
+              }
+            },
+            {
+              "id": "P2",
+              "label": "2",
+              "kind": "rj45",
+              "speed": "10G",
+              "x": 66.3,
+              "poe": {
+                "std": "bt",
+                "maxW": 60
+              }
+            },
+            {
+              "id": "P3",
+              "label": "3",
+              "kind": "rj45",
+              "speed": "10G",
+              "x": 105.2,
+              "poe": {
+                "std": "bt",
+                "maxW": 60
+              }
+            },
+            {
+              "id": "P4",
+              "label": "4",
+              "kind": "rj45",
+              "speed": "10G",
+              "x": 144.1,
+              "poe": {
+                "std": "bt",
+                "maxW": 60
+              }
+            },
+            {
+              "id": "P5",
+              "label": "5",
+              "kind": "rj45",
+              "speed": "10G",
+              "x": 27.4,
+              "row": 1,
+              "poe": {
+                "std": "bt",
+                "maxW": 60
+              }
+            },
+            {
+              "id": "P6",
+              "label": "6",
+              "kind": "rj45",
+              "speed": "10G",
+              "x": 66.3,
+              "row": 1,
+              "poe": {
+                "std": "bt",
+                "maxW": 60
+              }
+            },
+            {
+              "id": "P7",
+              "label": "7",
+              "kind": "rj45",
+              "speed": "10G",
+              "x": 105.2,
+              "row": 1,
+              "poe": {
+                "std": "bt",
+                "maxW": 60
+              }
+            },
+            {
+              "id": "P8",
+              "label": "8",
+              "kind": "rj45",
+              "speed": "10G",
+              "x": 144.1,
+              "row": 1,
+              "poe": {
+                "std": "bt",
+                "maxW": 60
+              }
+            },
+            {
+              "id": "P9",
+              "label": "9",
+              "kind": "sfp",
+              "speed": "10G",
+              "x": 183.0
+            },
+            {
+              "id": "P10",
+              "label": "10",
+              "kind": "sfp",
+              "speed": "10G",
+              "x": 183.0,
+              "row": 1
+            }
+          ],
+          "back": [
+            {
+              "kind": "dc",
+              "label": "DC",
+              "x": 30
+            }
+          ],
+          "power": [
+            {
+              "id": "adapter210",
+              "label": "210 W external adapter",
+              "source": "external",
+              "budgetW": 155
+            }
+          ]
+        }
+      }
+    }
+  ]
+}

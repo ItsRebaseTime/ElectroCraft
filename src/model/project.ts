@@ -34,12 +34,13 @@ function sanitizeSections(raw: unknown): Section[] | undefined {
     const id = typeof s?.id === 'string' && s.id ? s.id : uid('s');
     if (seen.has(id)) continue;
     seen.add(id);
-    out.push({ id, name: typeof s?.name === 'string' && s.name ? s.name.slice(0, 60) : `Section ${out.length + 1}` });
+    out.push({ id, name: typeof s?.name === 'string' && s.name ? s.name.slice(0, 60) : `Section ${out.length + 1}`, ...(typeof s?.innerWidth === 'number' && Number.isFinite(s.innerWidth) && s.innerWidth > 0 ? { innerWidth: Math.min(5000, Math.max(100, Math.round(s.innerWidth))) } : {}) });
   }
   return out.length ? out : undefined;
 }
 
 export const createRail = (modules = 12): Rail => ({ id: uid('r'), modules });
+export const createPlate = (modules = 12): Rail => ({ id: uid('r'), modules, kind: 'plate' });
 
 /** A US load center: two columns of breaker spaces (`rows` per column) either side of the bus. */
 export function createUsPanel(name = 'Load center', rows = 12, init: Partial<Panel> = {}): Panel {
@@ -137,7 +138,7 @@ export function parseProject(text: string): ParseResult {
       notes: typeof rp?.notes === 'string' ? rp.notes : '',
       region: rp?.region === 'us' ? 'us' : 'eu',
       usPhases: rp?.usPhases === 3 ? 3 : 2,
-      rails: Array.isArray(rp?.rails) && rp.rails.length ? rp.rails.map((r) => ({ id: String(r.id ?? uid('r')), modules: Math.max(1, Number(r.modules) || 12), ...(typeof r.section === 'string' ? { section: r.section } : {}) })) : [createRail()],
+      rails: Array.isArray(rp?.rails) && rp.rails.length ? rp.rails.map((r) => ({ id: String(r.id ?? uid('r')), modules: Math.max(1, Number(r.modules) || 12), ...(typeof r.section === 'string' ? { section: r.section } : {}), ...(r.kind === 'plate' ? { kind: 'plate' as const } : {}) })) : [createRail()],
       sections: sanitizeSections(rp?.sections),
       items: [],
       wires: [],

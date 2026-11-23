@@ -20,7 +20,7 @@ file, so you can restyle or add your own.
 
 ![Equipment catalogue](docs/images/equipment.png)
 
-The **equipment catalogue** example (download button in the toolbar) holds every built-in device: a *Generic* panel, a *Generic US* load center and one panel for each manufacturer of the module library, starting with *Shelly*.
+The **equipment catalogue** example (download button in the toolbar) holds every built-in device: a *Generic* panel, a *Generic US* load center and one panel for each manufacturer of the module library, starting with *Shelly* (also *Schneider*, *Ubiquiti*, *Gledopto*, *Mean Well* and *Waveshare*).
 
 ![The Shelly panel of the catalogue](docs/images/catalogue-shelly.png)
 

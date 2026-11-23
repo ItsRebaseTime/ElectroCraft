@@ -115,5 +115,10 @@ export function DeviceView({ placed, sim, marking }: DeviceViewProps) {
       );
     }
   });
+  if (placed.rot) {
+    const w0 = placed.w0 ?? placed.w;
+    const h0 = placed.h0 ?? placed.h;
+    return <g transform={`translate(${placed.x + (placed.w - w0) / 2} ${placed.y + (placed.h - h0) / 2}) rotate(${placed.rot} ${w0 / 2} ${h0 / 2})`}>{out}</g>;
+  }
   return <g transform={`translate(${placed.x} ${placed.y})`}>{out}</g>;
 }

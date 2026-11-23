@@ -50,6 +50,8 @@ export interface FloorKind {
   prefix: string;
   /** Default connected load of power outlets. */
   watts?: number;
+  /** Default PoE power in watts of each network port (an access point, a camera). */
+  poe?: number;
 }
 
 export const FLOOR_KINDS: FloorKind[] = [
@@ -58,8 +60,8 @@ export const FLOOR_KINDS: FloorKind[] = [
   { id: 'switch', label: 'Light switch', medium: 'power', prefix: 'SW', unit: 'switch', icon: 'fkSwitch', layer: 'walls', watts: 0 },
   { id: 'appliance', label: 'Appliance (fixed)', medium: 'power', prefix: 'A', unit: 'appliance', icon: 'fkAppliance', layer: 'floor', phases: true, watts: 1000 },
   { id: 'network', label: 'Network outlet (RJ45)', medium: 'network', prefix: 'RJ', unit: 'port', icon: 'fkNetwork', layer: 'walls' },
-  { id: 'wifi', label: 'Wi-Fi access point', medium: 'network', prefix: 'AP', unit: 'access point', icon: 'fkWifi', layer: 'ceiling' },
-  { id: 'camera', label: 'Camera', medium: 'network', prefix: 'CAM', unit: 'camera', icon: 'fkCamera', layer: 'ceiling' },
+  { id: 'wifi', label: 'Wi-Fi access point', medium: 'network', prefix: 'AP', unit: 'access point', icon: 'fkWifi', layer: 'ceiling', poe: 13 },
+  { id: 'camera', label: 'Camera', medium: 'network', prefix: 'CAM', unit: 'camera', icon: 'fkCamera', layer: 'ceiling', poe: 8 },
   { id: 'tv', label: 'TV / coax outlet', medium: 'coax', prefix: 'TV', unit: 'port', icon: 'fkTv', layer: 'walls' },
   { id: 'speaker', label: 'Speaker', medium: 'audio', prefix: 'SP', unit: 'speaker', icon: 'fkSpeaker', layer: 'walls' },
   { id: 'amp', label: 'Audio receiver / amplifier', medium: 'power', prefix: 'AMP', unit: 'receiver', icon: 'fkAmp', layer: 'floor', watts: 150 },
@@ -167,6 +169,7 @@ export function addFloorPoint(plan: FloorPlan, kindId: string, x: number, y: num
   point.layer = layer && plan.layers.some((l) => l.id === layer) ? layer : defaultLayerFor(plan, kind.id);
   if (count > 1) point.count = Math.min(MAX_POINT_COUNT, Math.round(count));
   if (kind.medium === 'power') point.watts = kind.watts ?? 0;
+  if (kind.medium === 'network' && kind.poe) point.poeWatts = kind.poe;
   if (kind.id === 'amp') point.channels = DEFAULT_AMP_CHANNELS;
   plan.points.push(point);
   return point;
@@ -460,6 +463,8 @@ export function circuitPhases(plan: FloorPlan, c: FloorCircuit): 1 | 2 | 3 {
 }
 
 /** Connected load of one outlet place: the load of each one times how many there are. */
+/** PoE power in watts each port of a network outlet draws from the switch (0 = none). */
+export const pointPoe = (p: FloorPoint): number => p.poeWatts ?? 0;
 export const pointWatts = (p: FloorPoint): number => (p.watts ?? 0) * pointCount(p);
 
 /** Connected load of a circuit in watts: its own figure, or the sum of the outlets. */
@@ -682,6 +687,7 @@ export function sanitizeFloorPlans(raw: unknown): FloorPlan[] {
       const count = Math.round(finite(pt.count, 1, MAX_POINT_COUNT, legacyDouble ? 2 : 1));
       if (count > 1) point.count = count;
       if (kind.medium === 'power') point.watts = finite(pt.watts, 0, 1_000_000, kind.watts ?? 0) / (legacyDouble && typeof pt.watts === 'number' ? 2 : 1);
+      if (kind.medium === 'network' && typeof pt.poeWatts === 'number' && pt.poeWatts > 0) point.poeWatts = finite(pt.poeWatts, 0, 100, 0);
       if (kind.phases && (pt.phases === 2 || pt.phases === 3)) point.phases = pt.phases;
       if (kind.id === 'amp') point.channels = Math.round(finite(pt.channels, 1, MAX_AMP_CHANNELS, DEFAULT_AMP_CHANNELS));
       point.layer = plan.layers.some((l) => l.id === pt.layer) ? pt.layer : defaultLayerFor(plan, kind.id);

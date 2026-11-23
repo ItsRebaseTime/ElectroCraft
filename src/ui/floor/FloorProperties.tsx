@@ -252,6 +252,24 @@ function PointProps({ plan, pointId }: { plan: FloorPlan; pointId: string }) {
           <NumberField value={p.watts ?? 0} min={0} max={100000} step={10} unit="W" onCommit={(v) => edit(plan.id, (pl) => void (pl.points.find((x) => x.id === p.id)!.watts = v))} />
         </Field>
       )}
+      {kind.medium === 'network' && (
+        <Field label={`PoE power per ${kind.unit}`} hint="What it draws from the PoE switch port it is connected to (0 = not powered over the cable)">
+          <NumberField
+            value={p.poeWatts ?? 0}
+            min={0}
+            max={100}
+            step={1}
+            unit="W"
+            onCommit={(v) =>
+              edit(plan.id, (pl) => {
+                const q = pl.points.find((x) => x.id === p.id)!;
+                if (v > 0) q.poeWatts = v;
+                else delete q.poeWatts;
+              })
+            }
+          />
+        </Field>
+      )}
       <Field label="Layer">
         <select value={pointLayer(plan, p)} onChange={(e) => edit(plan.id, (pl) => void (pl.points.find((x) => x.id === p.id)!.layer = e.target.value))}>
           {plan.layers.map((l) => (

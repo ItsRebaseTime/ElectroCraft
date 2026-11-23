@@ -5,7 +5,7 @@
   "author": "ElectroCraft examples",
   "revision": "A",
   "created": "2026-11-20T20:44:49.427Z",
-  "modified": "2026-11-21T09:25:17.516Z",
+  "modified": "2026-11-23T20:59:08.997Z",
   "settings": {
     "markingStandard": "iec81346",
     "phaseColors": {
@@ -137,8 +137,8 @@
         {
           "id": "ir07rtgz",
           "defId": "load",
-          "x": 60,
-          "y": 590,
+          "x": 25,
+          "y": 650,
           "poleConfig": "1P",
           "params": {
             "kind": "lamp",
@@ -159,8 +159,8 @@
         {
           "id": "i701e4lc",
           "defId": "load",
-          "x": 190,
-          "y": 590,
+          "x": 181,
+          "y": 650,
           "poleConfig": "1P",
           "params": {
             "kind": "lamp",
@@ -181,8 +181,8 @@
         {
           "id": "in23a78d",
           "defId": "load",
-          "x": 320,
-          "y": 590,
+          "x": 25,
+          "y": 794,
           "poleConfig": "1P",
           "params": {
             "kind": "lamp",
@@ -203,8 +203,8 @@
         {
           "id": "iy1rjmvy",
           "defId": "load",
-          "x": 450,
-          "y": 590,
+          "x": 181,
+          "y": 794,
           "poleConfig": "1P",
           "params": {
             "kind": "lamp",
@@ -225,8 +225,8 @@
         {
           "id": "imqna7gz",
           "defId": "load",
-          "x": 580,
-          "y": 590,
+          "x": 25,
+          "y": 938,
           "poleConfig": "1P",
           "params": {
             "kind": "generic",
@@ -247,8 +247,8 @@
         {
           "id": "iqc2fr26",
           "defId": "load",
-          "x": 710,
-          "y": 590,
+          "x": 181,
+          "y": 938,
           "poleConfig": "1P",
           "params": {
             "kind": "socket",
@@ -269,8 +269,8 @@
         {
           "id": "iz410zoy",
           "defId": "load",
-          "x": 840,
-          "y": 590,
+          "x": 25,
+          "y": 1082,
           "poleConfig": "1P",
           "params": {
             "kind": "socket",
@@ -291,8 +291,8 @@
         {
           "id": "ijwi2gz3",
           "defId": "load",
-          "x": 970,
-          "y": 590,
+          "x": 181,
+          "y": 1082,
           "poleConfig": "1P",
           "params": {
             "kind": "heater",
@@ -313,8 +313,8 @@
         {
           "id": "iuyfd3gh",
           "defId": "load",
-          "x": 60,
-          "y": 720,
+          "x": 25,
+          "y": 1226,
           "poleConfig": "1P",
           "params": {
             "kind": "heater",
@@ -335,8 +335,8 @@
         {
           "id": "ioyqeofc",
           "defId": "load",
-          "x": 190,
-          "y": 720,
+          "x": 181,
+          "y": 1226,
           "poleConfig": "1P",
           "params": {
             "kind": "heater",
@@ -357,8 +357,8 @@
         {
           "id": "inzaf1zx",
           "defId": "load",
-          "x": 320,
-          "y": 720,
+          "x": 25,
+          "y": 1370,
           "poleConfig": "1P",
           "params": {
             "kind": "heater",
@@ -379,8 +379,8 @@
         {
           "id": "iq3zcg85",
           "defId": "load",
-          "x": 450,
-          "y": 720,
+          "x": 181,
+          "y": 1370,
           "poleConfig": "1P",
           "params": {
             "kind": "socket",
@@ -401,8 +401,8 @@
         {
           "id": "is5x8iyh",
           "defId": "load",
-          "x": 580,
-          "y": 720,
+          "x": 25,
+          "y": 1514,
           "poleConfig": "1P",
           "params": {
             "kind": "heater",
@@ -423,8 +423,8 @@
         {
           "id": "i8fhbdw8",
           "defId": "load",
-          "x": 710,
-          "y": 720,
+          "x": 181,
+          "y": 1514,
           "poleConfig": "1P",
           "params": {
             "kind": "socket",
@@ -1669,8 +1669,8 @@
         {
           "id": "ie8fmkq9",
           "defId": "floor_port",
-          "x": 60,
-          "y": 316,
+          "x": 21,
+          "y": 410,
           "poleConfig": "1P",
           "params": {
             "medium": "network"
@@ -1689,8 +1689,8 @@
         {
           "id": "ia408i4f",
           "defId": "floor_port",
-          "x": 190,
-          "y": 316,
+          "x": 73,
+          "y": 410,
           "poleConfig": "1P",
           "params": {
             "medium": "network"
@@ -1709,8 +1709,8 @@
         {
           "id": "ircxwn4i",
           "defId": "floor_port",
-          "x": 320,
-          "y": 316,
+          "x": 125,
+          "y": 410,
           "poleConfig": "1P",
           "params": {
             "medium": "network"
@@ -1729,8 +1729,8 @@
         {
           "id": "iadh9hfp",
           "defId": "floor_port",
-          "x": 450,
-          "y": 316,
+          "x": 177,
+          "y": 410,
           "poleConfig": "1P",
           "params": {
             "medium": "network"
@@ -1749,8 +1749,8 @@
         {
           "id": "ilyexfuk",
           "defId": "floor_port",
-          "x": 580,
-          "y": 316,
+          "x": 229,
+          "y": 410,
           "poleConfig": "1P",
           "params": {
             "medium": "network"
@@ -1769,8 +1769,8 @@
         {
           "id": "i0eg9u4t",
           "defId": "floor_port",
-          "x": 710,
-          "y": 316,
+          "x": 21,
+          "y": 458,
           "poleConfig": "1P",
           "params": {
             "medium": "network"
@@ -1789,8 +1789,8 @@
         {
           "id": "iubkwwou",
           "defId": "floor_port",
-          "x": 840,
-          "y": 316,
+          "x": 73,
+          "y": 458,
           "poleConfig": "1P",
           "params": {
             "medium": "coax"
@@ -1809,8 +1809,8 @@
         {
           "id": "i1ddmmgn",
           "defId": "floor_port",
-          "x": 970,
-          "y": 316,
+          "x": 125,
+          "y": 458,
           "poleConfig": "1P",
           "params": {
             "medium": "coax"
@@ -1829,8 +1829,8 @@
         {
           "id": "idhxzhou",
           "defId": "floor_port",
-          "x": 60,
-          "y": 446,
+          "x": 177,
+          "y": 458,
           "poleConfig": "1P",
           "params": {
             "medium": "fiber"
@@ -2009,6 +2009,7 @@
     }
   ],
   "modules": [],
+  "connectors": [],
   "floorPlans": [
     {
       "id": "fkx9wzvm",

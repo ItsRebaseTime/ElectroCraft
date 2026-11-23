@@ -95,6 +95,34 @@ fixed-face modules are approximations. Not included because no usable data was f
 contactors and impulse relays, pilot lights and sockets, the Resi9 surge arresters, and the French and German EU catalogues (R9F... with 1P+N / 3P
 variants, RCBOs with curve C, type F RCCBs).
 
+### Ubiquiti
+
+`src/assets/modules/Ubiquiti/` holds the 14 compact UniFi switches of the store's "under 24 ports" list (Lite 8 / 16 PoE, Pro 8 PoE,
+Pro XG 8 PoE, Enterprise 8 PoE, Ultra / Ultra 60W / Ultra 210W, Flex, Flex Mini, Flex Mini 2.5G, Flex 2.5G, Flex 2.5G PoE, Flex XG).
+They are device modules for mounting plates (`"mounting": "plate"`) with a `network` block: size, ports (kind, speed, PoE standard and
+the most a port gives, whether it can take PoE in), back connectors and the power options with the PoE budget each gives. Sizes,
+port counts, PoE standards, budgets and power sources are from Ubiquiti's store and Tech Specs pages; the order of the ports on the
+front, which ports are the PoE ones where not stated, and the case colour are assumed (the three Ultra models were checked against the product pictures: 7 PoE+ ports on the front, the PoE++ in uplink and the DC jack on the back; a `side: "back"` port is wired from the back edge and shown in the back view of the overlay).
+
+### Mean Well
+
+`src/assets/modules/Mean_Well/` holds the **LPV** series (IP67 constant-voltage LED power supplies): LPV-20 (5-24 V), LPV-35 (5-36 V),
+LPV-60 and LPV-100 (5-48 V) and LPV-150 (12-48 V), one device per sub-series with an *Output* choice for the voltage (rated current
+and power of each model in the list; from the Mean Well data sheets). They are device modules for mounting plates (screw ears at two
+opposite corners) drawn from above, with their flying leads as terminals: AC in on the blue N and brown L leads at one end (90-264 V AC,
+180-305 V AC for the LPV-150), DC out on the red +V and black -V leads at the other end. Class II (no earth lead). The input and output
+sides are not connected inside the model, so the simulation does not carry current through them.
+
+### Gledopto
+
+`src/assets/modules/Gledopto/` holds the Elite series WLED controllers with an Ethernet port: **GL-C-616WL** (2D-EXMU, black, 2 digital
+outputs), **GL-C-618WL** (4D-EXMU, white, 4 digital outputs) and **GL-C-620WL** (1D2P-EXMU, white, 1 digital + 2 PWM outputs). They are
+device modules for mounting plates (screw ears, no DIN clip) in a white or a black shell (the *Shell* choice in their properties), 129 x 50 mm, drawn after the manuals: the power input (V+, V-), the
+Type-C and the Ethernet port (a wireable `ETH` terminal) are on the left edge and the eight Wago output levers on the right edge,
+nothing is on the face. The output order is as printed on each controller (616: V+, IO16, GND, V+, IO2, GND, IO13, GND; 618: V+, GND,
+IO16, IO12, IO4, IO2, IO13, GND; 620: V+, IO16, GND, V+, IO4, IO2, IO13, GND). The non-Elite GL-C-016WL-D / 017WL-D and the Elite
+GL-C-615WL have no Ethernet port and are not included.
+
 ### Waveshare
 
 The folder `src/assets/modules/Waveshare/` holds the industrial ESP32 / RP2350 controllers of

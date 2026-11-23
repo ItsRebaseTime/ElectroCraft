@@ -1,0 +1,160 @@
+{
+  "format": "electrocraft-modules",
+  "version": 1,
+  "modules": [
+    {
+      "id": "ubiquiti-usw-lite-8-poe",
+      "name": "Ubiquiti USW-Lite-8-PoE",
+      "description": "8 x GbE, ports 1-4 PoE+ (52 W budget, 60 W external adapter included). Compact desktop / wall switch. Port order assumed: two rows of 4, PoE+ ports first.",
+      "designation": "A",
+      "widthModules": 2,
+      "heightMm": 90,
+      "color": "#eceff3",
+      "stroke": "#69747f",
+      "rating": {
+        "In": 16,
+        "Un": 230
+      },
+      "behaviour": "isolated",
+      "switchable": false,
+      "trips": false,
+      "switches": [],
+      "inputs": [],
+      "top": {
+        "rows": 0,
+        "cols": 0
+      },
+      "bottom": {
+        "rows": 0,
+        "cols": 0
+      },
+      "terminals": [],
+      "shapes": [],
+      "device": {
+        "category": "library",
+        "role": "bus",
+        "icon": "terminal",
+        "mount": "din",
+        "mounting": "plate",
+        "poleMode": "none",
+        "params": [
+          {
+            "key": "power",
+            "label": "Power",
+            "type": "select",
+            "default": "adapter60",
+            "group": "config",
+            "options": [
+              {
+                "value": "adapter60",
+                "label": "60 W external adapter"
+              }
+            ]
+          }
+        ],
+        "svg": [
+          "<svg xmlns=\"http://www.w3.org/2000/svg\" viewBox=\"0 0 99.6 163.7\" width=\"99.6\" height=\"163.7\"><g data-layer=\"body\"><rect x=\"0.4\" y=\"0.4\" width=\"98.8\" height=\"162.89999999999998\" rx=\"4\" fill=\"#e9ecef\" stroke=\"#6b7480\" stroke-width=\"0.8\"/><text x=\"49.8\" y=\"85.85\" font-size=\"8.3\" text-anchor=\"middle\" fill=\"#8b95a1\" font-family=\"Helvetica, Arial, sans-serif\" font-weight=\"700\">Lite 8 PoE</text></g><g data-layer=\"ports\"><circle data-terminal=\"P1\" data-dir=\"down\" data-label=\"1\" cx=\"13.2\" cy=\"159.2\" r=\"1.9\" fill=\"#9aa4af\" stroke=\"#4c5560\" stroke-width=\"0.5\"/><circle data-terminal=\"P2\" data-dir=\"down\" data-label=\"2\" cx=\"23.7\" cy=\"159.2\" r=\"1.9\" fill=\"#9aa4af\" stroke=\"#4c5560\" stroke-width=\"0.5\"/><circle data-terminal=\"P3\" data-dir=\"down\" data-label=\"3\" cx=\"34.1\" cy=\"159.2\" r=\"1.9\" fill=\"#9aa4af\" stroke=\"#4c5560\" stroke-width=\"0.5\"/><circle data-terminal=\"P4\" data-dir=\"down\" data-label=\"4\" cx=\"44.6\" cy=\"159.2\" r=\"1.9\" fill=\"#9aa4af\" stroke=\"#4c5560\" stroke-width=\"0.5\"/><circle data-terminal=\"P5\" data-dir=\"down\" data-label=\"5\" cx=\"55.0\" cy=\"159.2\" r=\"1.9\" fill=\"#9aa4af\" stroke=\"#4c5560\" stroke-width=\"0.5\"/><circle data-terminal=\"P6\" data-dir=\"down\" data-label=\"6\" cx=\"65.5\" cy=\"159.2\" r=\"1.9\" fill=\"#9aa4af\" stroke=\"#4c5560\" stroke-width=\"0.5\"/><circle data-terminal=\"P7\" data-dir=\"down\" data-label=\"7\" cx=\"75.9\" cy=\"159.2\" r=\"1.9\" fill=\"#9aa4af\" stroke=\"#4c5560\" stroke-width=\"0.5\"/><circle data-terminal=\"P8\" data-dir=\"down\" data-label=\"8\" cx=\"86.4\" cy=\"159.2\" r=\"1.9\" fill=\"#9aa4af\" stroke=\"#4c5560\" stroke-width=\"0.5\"/></g></svg>"
+        ],
+        "network": {
+          "widthMm": 99.6,
+          "depthMm": 163.7,
+          "heightMm": 31.7,
+          "color": "#e9ecef",
+          "ports": [
+            {
+              "id": "P1",
+              "label": "1",
+              "kind": "rj45",
+              "speed": "1G",
+              "x": 18.4,
+              "poe": {
+                "std": "at",
+                "maxW": 30
+              }
+            },
+            {
+              "id": "P2",
+              "label": "2",
+              "kind": "rj45",
+              "speed": "1G",
+              "x": 39.3,
+              "poe": {
+                "std": "at",
+                "maxW": 30
+              }
+            },
+            {
+              "id": "P3",
+              "label": "3",
+              "kind": "rj45",
+              "speed": "1G",
+              "x": 60.2,
+              "poe": {
+                "std": "at",
+                "maxW": 30
+              }
+            },
+            {
+              "id": "P4",
+              "label": "4",
+              "kind": "rj45",
+              "speed": "1G",
+              "x": 81.1,
+              "poe": {
+                "std": "at",
+                "maxW": 30
+              }
+            },
+            {
+              "id": "P5",
+              "label": "5",
+              "kind": "rj45",
+              "speed": "1G",
+              "x": 18.4,
+              "row": 1
+            },
+            {
+              "id": "P6",
+              "label": "6",
+              "kind": "rj45",
+              "speed": "1G",
+              "x": 39.3,
+              "row": 1
+            },
+            {
+              "id": "P7",
+              "label": "7",
+              "kind": "rj45",
+              "speed": "1G",
+              "x": 60.2,
+              "row": 1
+            },
+            {
+              "id": "P8",
+              "label": "8",
+              "kind": "rj45",
+              "speed": "1G",
+              "x": 81.1,
+              "row": 1
+            }
+          ],
+          "back": [
+            {
+              "kind": "dc",
+              "label": "DC",
+              "x": 30
+            }
+          ],
+          "power": [
+            {
+              "id": "adapter60",
+              "label": "60 W external adapter",
+              "source": "external",
+              "budgetW": 52
+            }
+          ]
+        }
+      }
+    }
+  ]
+}

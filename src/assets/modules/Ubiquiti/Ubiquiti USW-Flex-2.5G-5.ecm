@@ -1,0 +1,130 @@
+{
+  "format": "electrocraft-modules",
+  "version": 1,
+  "modules": [
+    {
+      "id": "ubiquiti-usw-flex-2-5g-5",
+      "name": "Ubiquiti USW-Flex-2.5G-5",
+      "description": "5 x 2.5GbE, no PoE out. Powered by USB-C (5 V) or by PoE input on port 1 (port assumed). Compact desktop switch.",
+      "designation": "A",
+      "widthModules": 2,
+      "heightMm": 90,
+      "color": "#eceff3",
+      "stroke": "#69747f",
+      "rating": {
+        "In": 16,
+        "Un": 230
+      },
+      "behaviour": "isolated",
+      "switchable": false,
+      "trips": false,
+      "switches": [],
+      "inputs": [],
+      "top": {
+        "rows": 0,
+        "cols": 0
+      },
+      "bottom": {
+        "rows": 0,
+        "cols": 0
+      },
+      "terminals": [],
+      "shapes": [],
+      "device": {
+        "category": "library",
+        "role": "bus",
+        "icon": "terminal",
+        "mount": "din",
+        "mounting": "plate",
+        "poleMode": "none",
+        "params": [
+          {
+            "key": "power",
+            "label": "Power",
+            "type": "select",
+            "default": "usbc",
+            "group": "config",
+            "options": [
+              {
+                "value": "usbc",
+                "label": "USB-C 5 V"
+              },
+              {
+                "value": "poe",
+                "label": "PoE input (port 1)"
+              }
+            ]
+          }
+        ],
+        "svg": [
+          "<svg xmlns=\"http://www.w3.org/2000/svg\" viewBox=\"0 0 117.1 90\" width=\"117.1\" height=\"90\"><g data-layer=\"body\"><rect x=\"0.4\" y=\"0.4\" width=\"116.3\" height=\"89.2\" rx=\"4\" fill=\"#e9ecef\" stroke=\"#6b7480\" stroke-width=\"0.8\"/><text x=\"58.55\" y=\"49.0\" font-size=\"9.8\" text-anchor=\"middle\" fill=\"#8b95a1\" font-family=\"Helvetica, Arial, sans-serif\" font-weight=\"700\">Flex Mini 2.5G</text></g><g data-layer=\"ports\"><circle data-terminal=\"P1\" data-dir=\"down\" data-label=\"1\" cx=\"18.1\" cy=\"85.5\" r=\"1.9\" fill=\"#9aa4af\" stroke=\"#4c5560\" stroke-width=\"0.5\"/><circle data-terminal=\"P2\" data-dir=\"down\" data-label=\"2\" cx=\"38.3\" cy=\"85.5\" r=\"1.9\" fill=\"#9aa4af\" stroke=\"#4c5560\" stroke-width=\"0.5\"/><circle data-terminal=\"P3\" data-dir=\"down\" data-label=\"3\" cx=\"58.5\" cy=\"85.5\" r=\"1.9\" fill=\"#9aa4af\" stroke=\"#4c5560\" stroke-width=\"0.5\"/><circle data-terminal=\"P4\" data-dir=\"down\" data-label=\"4\" cx=\"78.8\" cy=\"85.5\" r=\"1.9\" fill=\"#9aa4af\" stroke=\"#4c5560\" stroke-width=\"0.5\"/><circle data-terminal=\"P5\" data-dir=\"down\" data-label=\"5\" cx=\"99.0\" cy=\"85.5\" r=\"1.9\" fill=\"#9aa4af\" stroke=\"#4c5560\" stroke-width=\"0.5\"/></g></svg>"
+        ],
+        "network": {
+          "widthMm": 117.1,
+          "depthMm": 90,
+          "heightMm": 21.2,
+          "color": "#e9ecef",
+          "ports": [
+            {
+              "id": "P1",
+              "label": "1",
+              "kind": "rj45",
+              "speed": "2.5G",
+              "x": 18.1,
+              "poeIn": true
+            },
+            {
+              "id": "P2",
+              "label": "2",
+              "kind": "rj45",
+              "speed": "2.5G",
+              "x": 38.3
+            },
+            {
+              "id": "P3",
+              "label": "3",
+              "kind": "rj45",
+              "speed": "2.5G",
+              "x": 58.5
+            },
+            {
+              "id": "P4",
+              "label": "4",
+              "kind": "rj45",
+              "speed": "2.5G",
+              "x": 78.8
+            },
+            {
+              "id": "P5",
+              "label": "5",
+              "kind": "rj45",
+              "speed": "2.5G",
+              "x": 99.0
+            }
+          ],
+          "back": [
+            {
+              "kind": "usbc",
+              "label": "USB-C",
+              "x": 20
+            }
+          ],
+          "power": [
+            {
+              "id": "usbc",
+              "label": "USB-C 5 V",
+              "source": "usbc",
+              "budgetW": 0
+            },
+            {
+              "id": "poe",
+              "label": "PoE input (port 1)",
+              "source": "poe",
+              "budgetW": 0
+            }
+          ]
+        }
+      }
+    }
+  ]
+}

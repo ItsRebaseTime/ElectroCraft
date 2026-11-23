@@ -73,6 +73,8 @@ export interface EquipmentDef {
   asset: string;
   /** din = on a DIN rail (EU), us = in a US load-center breaker space, free = placed anywhere. */
   mount: 'din' | 'free' | 'us';
+  /** Where a rail-mounted device can go: a DIN rail (default), a perforated mounting plate, or both. */
+  mounting?: 'din' | 'plate' | 'both';
   /** Which panel types offer this device (default eu). */
   region?: 'eu' | 'us' | 'all';
   /** Poles repeat along x (default, DIN) or y (US breakers, stacked in spaces). */
@@ -94,6 +96,8 @@ export interface EquipmentDef {
   tripsOnOverload?: boolean;
   /** Label strip text, e.g. "{curve}{In}". */
   summary?: string;
+  /** Network switches: ports, PoE and power options. */
+  network?: NetworkInfo;
   /** Custom modules: terminal ids that are joined inside the device, one list per internal net. */
   module?: {
     groups: string[][];
@@ -202,6 +206,7 @@ export interface ModuleDevice {
   /** Key into the icon table. */
   icon: string;
   mount: 'din' | 'free' | 'us';
+  mounting?: 'din' | 'plate' | 'both';
   region?: 'eu' | 'us' | 'all';
   tileAxis?: 'x' | 'y';
   mirrorTerminals?: boolean;
@@ -215,8 +220,59 @@ export interface ModuleDevice {
   tripsOnOverload?: boolean;
   /** Label strip text, e.g. "{curve}{In}". */
   summary?: string;
+  /** Network switches: ports, PoE and power options (the ports are terminals of the artwork). */
+  network?: NetworkInfo;
   /** Artwork: SVG text using the conventions of docs/equipment-assets.md. */
   svg: string;
+}
+
+/** A data port of a network switch (the terminal of the same id is where its wire starts). */
+export interface NetworkPort {
+  id: string;
+  label: string;
+  kind: 'rj45' | 'sfp';
+  /** Speed shown in the overlay, e.g. "1G", "2.5G", "10G". */
+  speed: string;
+  /** Centre along the width of the front panel, mm from the left. */
+  x: number;
+  /** Row of the front panel the port is in (0 = top; missing = 0). */
+  row?: number;
+  /** The port is on the back of the switch (`x` is then as seen from the back). */
+  side?: 'back';
+  /** PoE output on this port: standard (af = 15.4 W, at = 30 W, bt = 60 W) and the most it can deliver, in watts. */
+  poe?: { std: 'af' | 'at' | 'bt'; maxW: number };
+  /** The switch can be powered through this port (PoE input) from this power option. */
+  poeIn?: boolean;
+}
+
+/** A connector on the back of a switch (power inlet, DC jack, USB-C, earth screw ...). */
+export interface NetworkBack {
+  kind: 'ac' | 'dc' | 'usbc' | 'ground' | 'reset';
+  label: string;
+  x: number;
+}
+
+/** How a switch is powered, and how much PoE power it can then give. */
+export interface NetworkPower {
+  id: string;
+  label: string;
+  /** internal PSU, external adapter, powered over PoE through a port, or USB-C. */
+  source: 'internal' | 'external' | 'poe' | 'usbc';
+  /** Total PoE output available with this power source (0 = none). */
+  budgetW: number;
+}
+
+/** A network switch: footprint, ports (with PoE) and power options. Drawn from these numbers in the panel view and the overlay. */
+export interface NetworkInfo {
+  widthMm: number;
+  depthMm: number;
+  heightMm: number;
+  /** Case colour. */
+  color: string;
+  ports: NetworkPort[];
+  back: NetworkBack[];
+  /** The first option is the default; the choice is stored in the device's `power` parameter. */
+  power: NetworkPower[];
 }
 
 /** The terminals of one side of a module: a grid of rows and columns, optionally in a box of its own and with the screw size of each row. */
@@ -239,6 +295,8 @@ export interface CustomModule {
   widthModules: number;
   /** Exact width in mm for a device that is not a whole number of modules wide (a Shelly Pro is 19 mm); overrides `widthModules`. */
   widthMm?: number;
+  /** Where the module can be mounted: only on a DIN rail (default), only on a perforated mounting plate, or both. */
+  mounting?: 'din' | 'plate' | 'both';
   heightMm: number;
   color: string;
   stroke: string;
@@ -266,6 +324,8 @@ export interface Item {
   /** DIN items: rail and horizontal position in modules (multiples of 0.5). */
   railId?: string;
   slot?: number;
+  /** Devices on a mounting plate: distance in mm from the top edge of the plate (the horizontal position is `slot`). */
+  plateY?: number;
   /** Free items (supply, loads): top-left position in mm. DIN items: derived. */
   x: number;
   y: number;
@@ -274,6 +334,10 @@ export interface Item {
   on: boolean;
   /** Custom modules: which of the module's switches are actuated (default released). */
   switchStates?: Record<string, boolean>;
+  /** Devices on a mounting plate: turned clockwise by this many degrees (missing = 0). */
+  rot?: 90 | 180 | 270;
+  /** Devices on a mounting plate: stacked on top of this device (at most one per device). */
+  stackOn?: string;
   /** Custom modules: per-device override of how an input (by id) actuates its switches; missing = the module's own mode. */
   inputModes?: Record<string, InputMode>;
   /** Created from the floor plan: this item stands for a circuit (or one of its points) and is kept in sync with it. */
@@ -312,6 +376,8 @@ export interface Wire {
 export interface Section {
   id: string;
   name: string;
+  /** Internal width of the enclosure in mm when wider than its rails and bars need; missing = as wide as the longest rail. */
+  innerWidth?: number;
 }
 
 export interface Rail {
@@ -320,6 +386,8 @@ export interface Rail {
   section?: string;
   /** Usable length in modules (18 mm each). */
   modules: number;
+  /** `plate` = a perforated mounting plate instead of a DIN rail: devices without a DIN clip are screwed or tied down anywhere on it. */
+  kind?: 'plate';
 }
 
 /**
@@ -446,6 +514,8 @@ export interface FloorPoint {
   count?: number;
   /** Power points: connected load in watts of each one. */
   watts?: number;
+  /** Network outlets: PoE power in watts each port draws from the switch (a camera, access point ...). */
+  poeWatts?: number;
   /** Sockets and appliances: single phase (missing), two or three phases. */
   phases?: 1 | 2 | 3;
   /** Audio receivers: how many speaker channels it has. */

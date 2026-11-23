@@ -1,0 +1,236 @@
+{
+  "format": "electrocraft-modules",
+  "version": 1,
+  "modules": [
+    {
+      "id": "ubiquiti-usw-lite-16-poe",
+      "name": "Ubiquiti USW-Lite-16-PoE",
+      "description": "16 x GbE, ports 1-8 PoE+ (45 W budget, internal power supply). Compact desktop / wall switch. PoE+ on the 8 left ports (two rows); numbering assumed.",
+      "designation": "A",
+      "widthModules": 2,
+      "heightMm": 90,
+      "color": "#eceff3",
+      "stroke": "#69747f",
+      "rating": {
+        "In": 16,
+        "Un": 230
+      },
+      "behaviour": "isolated",
+      "switchable": false,
+      "trips": false,
+      "switches": [],
+      "inputs": [],
+      "top": {
+        "rows": 0,
+        "cols": 0
+      },
+      "bottom": {
+        "rows": 0,
+        "cols": 0
+      },
+      "terminals": [],
+      "shapes": [],
+      "device": {
+        "category": "library",
+        "role": "bus",
+        "icon": "terminal",
+        "mount": "din",
+        "mounting": "plate",
+        "poleMode": "none",
+        "params": [
+          {
+            "key": "power",
+            "label": "Power",
+            "type": "select",
+            "default": "internal",
+            "group": "config",
+            "options": [
+              {
+                "value": "internal",
+                "label": "Internal power supply"
+              }
+            ]
+          }
+        ],
+        "svg": [
+          "<svg xmlns=\"http://www.w3.org/2000/svg\" viewBox=\"0 0 192 185\" width=\"192\" height=\"185\"><g data-layer=\"body\"><rect x=\"0.4\" y=\"0.4\" width=\"191.2\" height=\"184.2\" rx=\"4\" fill=\"#e9ecef\" stroke=\"#6b7480\" stroke-width=\"0.8\"/><text x=\"96.0\" y=\"96.5\" font-size=\"14.0\" text-anchor=\"middle\" fill=\"#8b95a1\" font-family=\"Helvetica, Arial, sans-serif\" font-weight=\"700\">Lite 16 PoE</text></g><g data-layer=\"ports\"><circle data-terminal=\"P1\" data-dir=\"down\" data-label=\"1\" cx=\"13.5\" cy=\"180.5\" r=\"1.9\" fill=\"#9aa4af\" stroke=\"#4c5560\" stroke-width=\"0.5\"/><circle data-terminal=\"P2\" data-dir=\"down\" data-label=\"2\" cx=\"24.5\" cy=\"180.5\" r=\"1.9\" fill=\"#9aa4af\" stroke=\"#4c5560\" stroke-width=\"0.5\"/><circle data-terminal=\"P3\" data-dir=\"down\" data-label=\"3\" cx=\"35.5\" cy=\"180.5\" r=\"1.9\" fill=\"#9aa4af\" stroke=\"#4c5560\" stroke-width=\"0.5\"/><circle data-terminal=\"P4\" data-dir=\"down\" data-label=\"4\" cx=\"46.5\" cy=\"180.5\" r=\"1.9\" fill=\"#9aa4af\" stroke=\"#4c5560\" stroke-width=\"0.5\"/><circle data-terminal=\"P5\" data-dir=\"down\" data-label=\"5\" cx=\"57.5\" cy=\"180.5\" r=\"1.9\" fill=\"#9aa4af\" stroke=\"#4c5560\" stroke-width=\"0.5\"/><circle data-terminal=\"P6\" data-dir=\"down\" data-label=\"6\" cx=\"68.5\" cy=\"180.5\" r=\"1.9\" fill=\"#9aa4af\" stroke=\"#4c5560\" stroke-width=\"0.5\"/><circle data-terminal=\"P7\" data-dir=\"down\" data-label=\"7\" cx=\"79.5\" cy=\"180.5\" r=\"1.9\" fill=\"#9aa4af\" stroke=\"#4c5560\" stroke-width=\"0.5\"/><circle data-terminal=\"P8\" data-dir=\"down\" data-label=\"8\" cx=\"90.5\" cy=\"180.5\" r=\"1.9\" fill=\"#9aa4af\" stroke=\"#4c5560\" stroke-width=\"0.5\"/><circle data-terminal=\"P9\" data-dir=\"down\" data-label=\"9\" cx=\"101.5\" cy=\"180.5\" r=\"1.9\" fill=\"#9aa4af\" stroke=\"#4c5560\" stroke-width=\"0.5\"/><circle data-terminal=\"P10\" data-dir=\"down\" data-label=\"10\" cx=\"112.5\" cy=\"180.5\" r=\"1.9\" fill=\"#9aa4af\" stroke=\"#4c5560\" stroke-width=\"0.5\"/><circle data-terminal=\"P11\" data-dir=\"down\" data-label=\"11\" cx=\"123.5\" cy=\"180.5\" r=\"1.9\" fill=\"#9aa4af\" stroke=\"#4c5560\" stroke-width=\"0.5\"/><circle data-terminal=\"P12\" data-dir=\"down\" data-label=\"12\" cx=\"134.5\" cy=\"180.5\" r=\"1.9\" fill=\"#9aa4af\" stroke=\"#4c5560\" stroke-width=\"0.5\"/><circle data-terminal=\"P13\" data-dir=\"down\" data-label=\"13\" cx=\"145.5\" cy=\"180.5\" r=\"1.9\" fill=\"#9aa4af\" stroke=\"#4c5560\" stroke-width=\"0.5\"/><circle data-terminal=\"P14\" data-dir=\"down\" data-label=\"14\" cx=\"156.5\" cy=\"180.5\" r=\"1.9\" fill=\"#9aa4af\" stroke=\"#4c5560\" stroke-width=\"0.5\"/><circle data-terminal=\"P15\" data-dir=\"down\" data-label=\"15\" cx=\"167.5\" cy=\"180.5\" r=\"1.9\" fill=\"#9aa4af\" stroke=\"#4c5560\" stroke-width=\"0.5\"/><circle data-terminal=\"P16\" data-dir=\"down\" data-label=\"16\" cx=\"178.5\" cy=\"180.5\" r=\"1.9\" fill=\"#9aa4af\" stroke=\"#4c5560\" stroke-width=\"0.5\"/></g></svg>"
+        ],
+        "network": {
+          "widthMm": 192,
+          "depthMm": 185,
+          "heightMm": 44,
+          "color": "#e9ecef",
+          "ports": [
+            {
+              "id": "P1",
+              "label": "1",
+              "kind": "rj45",
+              "speed": "1G",
+              "x": 19.0,
+              "poe": {
+                "std": "at",
+                "maxW": 32
+              }
+            },
+            {
+              "id": "P2",
+              "label": "2",
+              "kind": "rj45",
+              "speed": "1G",
+              "x": 19.0,
+              "row": 1,
+              "poe": {
+                "std": "at",
+                "maxW": 32
+              }
+            },
+            {
+              "id": "P3",
+              "label": "3",
+              "kind": "rj45",
+              "speed": "1G",
+              "x": 41.0,
+              "poe": {
+                "std": "at",
+                "maxW": 32
+              }
+            },
+            {
+              "id": "P4",
+              "label": "4",
+              "kind": "rj45",
+              "speed": "1G",
+              "x": 41.0,
+              "row": 1,
+              "poe": {
+                "std": "at",
+                "maxW": 32
+              }
+            },
+            {
+              "id": "P5",
+              "label": "5",
+              "kind": "rj45",
+              "speed": "1G",
+              "x": 63.0,
+              "poe": {
+                "std": "at",
+                "maxW": 32
+              }
+            },
+            {
+              "id": "P6",
+              "label": "6",
+              "kind": "rj45",
+              "speed": "1G",
+              "x": 63.0,
+              "row": 1,
+              "poe": {
+                "std": "at",
+                "maxW": 32
+              }
+            },
+            {
+              "id": "P7",
+              "label": "7",
+              "kind": "rj45",
+              "speed": "1G",
+              "x": 85.0,
+              "poe": {
+                "std": "at",
+                "maxW": 32
+              }
+            },
+            {
+              "id": "P8",
+              "label": "8",
+              "kind": "rj45",
+              "speed": "1G",
+              "x": 85.0,
+              "row": 1,
+              "poe": {
+                "std": "at",
+                "maxW": 32
+              }
+            },
+            {
+              "id": "P9",
+              "label": "9",
+              "kind": "rj45",
+              "speed": "1G",
+              "x": 107.0
+            },
+            {
+              "id": "P10",
+              "label": "10",
+              "kind": "rj45",
+              "speed": "1G",
+              "x": 107.0,
+              "row": 1
+            },
+            {
+              "id": "P11",
+              "label": "11",
+              "kind": "rj45",
+              "speed": "1G",
+              "x": 129.0
+            },
+            {
+              "id": "P12",
+              "label": "12",
+              "kind": "rj45",
+              "speed": "1G",
+              "x": 129.0,
+              "row": 1
+            },
+            {
+              "id": "P13",
+              "label": "13",
+              "kind": "rj45",
+              "speed": "1G",
+              "x": 151.0
+            },
+            {
+              "id": "P14",
+              "label": "14",
+              "kind": "rj45",
+              "speed": "1G",
+              "x": 151.0,
+              "row": 1
+            },
+            {
+              "id": "P15",
+              "label": "15",
+              "kind": "rj45",
+              "speed": "1G",
+              "x": 173.0
+            },
+            {
+              "id": "P16",
+              "label": "16",
+              "kind": "rj45",
+              "speed": "1G",
+              "x": 173.0,
+              "row": 1
+            }
+          ],
+          "back": [
+            {
+              "kind": "ac",
+              "label": "AC",
+              "x": 40
+            }
+          ],
+          "power": [
+            {
+              "id": "internal",
+              "label": "Internal power supply",
+              "source": "internal",
+              "budgetW": 45
+            }
+          ]
+        }
+      }
+    }
+  ]
+}

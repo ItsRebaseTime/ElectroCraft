@@ -2,12 +2,12 @@
 // either the created object or an error message, so the store can toast what went wrong.
 import { bridgesOf, getAsset, getDef, poleKinds } from '../model/defs';
 import {
-  MODULE, STUB, RAIL_X0, barSectionId, sectionGeometry, sectionIdOfRail, sectionsOf, US_BAR_TILE, US_MAIN_Y, US_SPACE_H, enclosureRect, findSlot, isRailMounted, isUs, itemWidthModules, layoutPanel,
+  centreStacked, MODULE, STUB, RAIL_X0, barSectionId, sectionGeometry, sectionIdOfRail, sectionsOf, US_BAR_TILE, US_MAIN_Y, US_SPACE_H, enclosureRect, findSlot, canMountOn, isPlate, seatOnRail, PLATE_H, PLATE_Y0, DIN_H, railTop, isRailMounted, isUs, itemWidthModules, layoutPanel,
   nearestRail, nearestUsColumn, railIndex, termKey, usRowTop,
 } from '../model/geometry';
-import { createItem, createPanel, createRail, createUsPanel, uid } from '../model/project';
+import { createItem, createPanel, createPlate, createRail, createUsPanel, uid } from '../model/project';
 import { FLOOR_PORT } from '../model/floorSync';
-import { PATCH_ID, PATCH_PITCH_X, patchDims, patchPorts } from '../model/patch';
+import { PATCH_ID, PATCH_PITCH_X, patchDims, patchOtherSide, patchPorts } from '../model/patch';
 import { autoRowSide, isCombDef, railBelow, rowLinkOverlaps } from '../model/comb';
 import { allConnectors } from '../model/connectors';
 import type { CombBar, ConnectorDef, RowLink, InputMode, Item, Panel, Project, Section, TerminalRef, Vec, Wire } from '../model/types';
@@ -81,14 +81,17 @@ export function addEquipment(panel: Panel, defId: string, at?: Vec, preferredRai
   for (const railId of new Set(order)) {
     // a rail in another section than the drop point has its own origin
     const sec = us ? null : sectionGeometry(panel).find((g) => g.rails.some((r) => r.id === railId));
-    const slot = findSlot(panel, railId, sec && at && railId !== order[0] ? (at.x - (sec.x + RAIL_X0)) / MODULE - width / 2 : desired, width);
-    if (slot !== null) {
-      item.railId = railId;
-      item.slot = slot;
+    const want = sec && at && railId !== order[0] ? (at.x - (sec.x + RAIL_X0)) / MODULE - width / 2 : desired;
+    const rail = panel.rails.find((r) => r.id === railId);
+    if (!us && !canMountOn(def, rail)) continue;
+    // on a mounting plate the drop point also sets the height
+    const wantY = at && sec && rail ? at.y - railTop(sec.rails.indexOf(rail)) - PLATE_Y0 - (getAsset(def.id)?.height ?? 0) / 2 : (PLATE_H - (getAsset(def.id)?.height ?? 0)) / 2;
+    if (seatOnRail(panel, item, railId, want, wantY)) {
       panel.items.push(item);
       return item;
     }
   }
+  if (!us && def.mounting === 'plate') return 'No free space on a mounting plate. Add a mounting plate (panel settings) or make one larger.';
   return us ? 'No free breaker space. Add spaces to the panel or remove a breaker.' : 'No free space on the DIN rails. Add a rail or lengthen one.';
 }
 
@@ -104,6 +107,7 @@ export function removeItems(panel: Panel, ids: string[]): number {
   const keep = new Set(panel.items.filter((i) => i.link).map((i) => i.id));
   const s = new Set(ids.filter((id) => !keep.has(id)));
   panel.items = panel.items.filter((i) => !s.has(i.id));
+  for (const i of panel.items) if (i.stackOn && s.has(i.stackOn)) delete i.stackOn; // what was on a removed device stays where it is
   panel.wires = panel.wires.filter((w) => !s.has(w.from.item) && !s.has(w.to.item));
   return ids.filter((id) => keep.has(id)).length;
 }
@@ -126,13 +130,39 @@ export function updateItem(panel: Panel, id: string, patch: Partial<Item>): stri
   if (isRailMounted(def) && !item.bar) {
     const kinds = poleKinds(next, def);
     if (def.poleMode !== 'none' && kinds.length === 0) return 'A device needs at least one pole.';
-    const slot = findSlot(panel, next.railId ?? '', next.slot ?? 0, itemWidthModules(next, def), item.id);
-    if (slot === null) return 'Not enough free space on the rail for that size.';
-    if (Math.abs(slot - (next.slot ?? 0)) > 1e-6) next.slot = slot;
+    const seated = { ...next };
+    if (!seatOnRail(panel, seated, next.railId ?? '', next.slot ?? 0, next.plateY ?? 0)) return 'Not enough free space on the rail for that size.';
+    next.slot = seated.slot;
+    if (seated.plateY !== undefined) next.plateY = seated.plateY;
   }
   Object.assign(item, next);
   const removed = pruneWires(panel);
   return removed ? `${removed} wire${removed > 1 ? 's' : ''} removed because their terminals no longer exist.` : null;
+}
+
+/** Turn a device on a mounting plate by 90 degrees (clockwise: +1, anticlockwise: -1). */
+export function rotateItem(panel: Panel, id: string, dir: 1 | -1): string | null {
+  const item = panel.items.find((i) => i.id === id);
+  const def = item && getDef(item.defId);
+  if (!item || !def) return 'Device not found.';
+  const rail = panel.rails.find((r) => r.id === item.railId);
+  if (!isPlate(rail) || def.mount !== 'din') return 'Only devices on a mounting plate can be turned.';
+  const old = item.rot;
+  const next = ((((item.rot ?? 0) + dir * 90) % 360) + 360) % 360;
+  if (next) item.rot = next as 90 | 180 | 270;
+  else delete item.rot;
+  if (item.stackOn) {
+    // the device on top: it stays on its base, which only has to stay under it
+    const base = panel.items.find((i) => i.id === item.stackOn);
+    if (base) centreStacked(panel, base);
+    return null;
+  }
+  if (!seatOnRail(panel, item, item.railId ?? '', item.slot ?? 0, item.plateY ?? 0)) {
+    if (old) item.rot = old;
+    else delete item.rot;
+    return 'No room to turn it there.';
+  }
+  return null;
 }
 
 export function duplicateItems(panel: Panel, ids: string[]): string[] {
@@ -142,11 +172,14 @@ export function duplicateItems(panel: Panel, ids: string[]): string[] {
     const def = src && getDef(src.defId);
     if (!src || !def || src.bar || src.link) continue; // a section bar exists once per edge: switch it on or off in the panel settings
     const copy: Item = { ...structuredClone(src), id: uid('i'), marking: undefined };
+    delete copy.stackOn;
     if (isRailMounted(def)) {
       const w = itemWidthModules(src, def);
-      const slot = findSlot(panel, src.railId ?? '', (src.slot ?? 0) + w, w);
-      if (slot === null) continue;
-      copy.slot = slot;
+      const rail = panel.rails.find((r) => r.id === src.railId);
+      if (!seatOnRail(panel, copy, src.railId ?? '', (src.slot ?? 0) + w, src.plateY ?? 0)) {
+        // a plate with no room beside the device: try below it
+        if (!(isPlate(rail) && seatOnRail(panel, copy, src.railId ?? '', src.slot ?? 0, (src.plateY ?? 0) + (getAsset(def.id)?.height ?? 0)))) continue;
+      }
     } else {
       copy.x += 130;
     }
@@ -180,10 +213,55 @@ export function orthogonalize(a1: Vec, nodes: Vec[], b1: Vec): Vec[] {
   return out;
 }
 
+/** A fibre cable can only end at an SFP / SFP+ port (through a patch panel jack or straight): the message if this wire would break that. */
+export function fibreConflict(panel: Panel, from: TerminalRef, to: TerminalRef): string | null {
+  const key = (r: TerminalRef) => `${r.item}|${r.terminal}`;
+  const adj = new Map<string, TerminalRef[]>();
+  const link = (a: TerminalRef, b: TerminalRef) => {
+    adj.set(key(a), [...(adj.get(key(a)) ?? []), b]);
+    adj.set(key(b), [...(adj.get(key(b)) ?? []), a]);
+  };
+  for (const w of panel.wires) link(w.from, w.to);
+  link(from, to);
+  const seen = new Set<string>();
+  const queue: TerminalRef[] = [from];
+  let fibre = false;
+  let copper = false;
+  while (queue.length) {
+    const cur = queue.shift()!;
+    if (seen.has(key(cur))) continue;
+    seen.add(key(cur));
+    const it = panel.items.find((i) => i.id === cur.item);
+    const def = it && getDef(it.defId);
+    if (it && def) {
+      if (def.id === FLOOR_PORT && it.params.medium === 'fiber') fibre = true;
+      const port = def.network?.ports.find((q) => q.id === cur.terminal);
+      if (port?.kind === 'rj45') copper = true;
+      // a jack carries the cable on from one of its sides to the other
+      if (def.role === 'patch') queue.push({ item: cur.item, terminal: patchOtherSide(cur.terminal) });
+    }
+    queue.push(...(adj.get(key(cur)) ?? []));
+  }
+  return fibre && copper ? 'A fibre cable can only be connected to an SFP / SFP+ port.' : null;
+}
+
 export function addWire(panel: Panel, from: TerminalRef, to: TerminalRef, nodes: Vec[] | null = null): Wire | string {
   if (from.item === to.item && from.terminal === to.terminal) return 'Pick a different terminal to finish the wire.';
   const layout = layoutPanel(panel);
   if (!layout.terminals.has(termKey(from.item, from.terminal)) || !layout.terminals.has(termKey(to.item, to.terminal))) return 'Terminal not found.';
+  // a network port (a switch port, a patch panel connection, a floor plan cable) takes one cable
+  const isNetwork = (ref: TerminalRef) => {
+    const it = panel.items.find((i) => i.id === ref.item);
+    const d = it && getDef(it.defId);
+    return !!d && (!!d.network || d.role === 'patch' || d.id === FLOOR_PORT);
+  };
+  for (const ref of [from, to]) {
+    if (isNetwork(ref) && panel.wires.some((w) => (w.from.item === ref.item && w.from.terminal === ref.terminal) || (w.to.item === ref.item && w.to.terminal === ref.terminal))) {
+      return 'That network port already has a cable. Remove it first, or use another port.';
+    }
+  }
+  const fibre = fibreConflict(panel, from, to);
+  if (fibre) return fibre;
   const dup = panel.wires.some(
     (w) => (w.from.item === from.item && w.from.terminal === from.terminal && w.to.item === to.item && w.to.terminal === to.terminal) || (w.from.item === to.item && w.from.terminal === to.terminal && w.to.item === from.item && w.to.terminal === from.terminal),
   );
@@ -236,8 +314,8 @@ export function duplicatePanel(project: Project, panelId: string): Panel | null 
   return copy;
 }
 
-export function addRail(panel: Panel, modules = 12, sectionId?: string) {
-  const rail = createRail(modules);
+export function addRail(panel: Panel, modules = 12, sectionId?: string, plate = false) {
+  const rail = plate ? createPlate(modules) : createRail(modules);
   if (sectionId && panel.sections?.length) rail.section = sectionId;
   keepOutside(panel, () => void panel.rails.push(rail));
   return rail;
@@ -308,6 +386,17 @@ export function addSection(panel: Panel, modules = 12): Section {
     panel.rails.push(rail);
   });
   return sec;
+}
+
+/** Set the internal width of a section's enclosure in mm; a width the rails and bars already need (or 0) means automatic. */
+export function setSectionWidth(panel: Panel, sectionId: string, mm: number) {
+  if (!panel.sections?.length) panel.sections = [{ id: sectionId, name: panel.name }];
+  const s = panel.sections.find((x) => x.id === sectionId);
+  if (!s) return;
+  delete s.innerWidth;
+  const auto = sectionGeometry(panel).find((g) => g.id === sectionId);
+  const needed = auto ? auto.w - 2 * RAIL_X0 : 0;
+  if (mm > needed + 0.5) s.innerWidth = Math.min(5000, Math.round(mm));
 }
 
 export function renameSection(panel: Panel, sectionId: string, name: string) {
@@ -675,15 +764,15 @@ export function pasteItems(panel: Panel, clip: PanelClipEntry[], at: Vec): strin
     const def = getDef(e.item.defId);
     if (!def || e.item.bar || e.item.link) continue;
     const copy: Item = { ...structuredClone(e.item), id: uid('i'), marking: undefined };
+    delete copy.stackOn;
     if (def.mount === 'din') {
       if (!near || !sec) continue;
       const w = itemWidthModules(e.item, def);
       if (anchorSlot === null) anchorSlot = Math.round(((at.x - near.x0) / MODULE - w / 2) * 2) / 2;
       const rail = sec.rails[Math.max(0, Math.min(sec.rails.length - 1, near.index + e.dRow))];
-      const slot = findSlot(panel, rail.id, anchorSlot + e.dSlot, w);
-      if (slot === null) continue;
-      copy.railId = rail.id;
-      copy.slot = slot;
+      const hh = getAsset(def.id)?.height ?? DIN_H;
+      const wantY = at.y - railTop(sec.rails.indexOf(rail)) - PLATE_Y0 - hh / 2;
+      if (!seatOnRail(panel, copy, rail.id, anchorSlot + e.dSlot, wantY)) continue;
     } else if (def.mount === 'us') {
       const col = nearestUsColumn(panel, at.x);
       if (!col) continue;

@@ -5,7 +5,7 @@
   "author": "",
   "revision": "A",
   "created": "2026-11-18T20:40:21.485Z",
-  "modified": "2026-11-22T19:45:40.269Z",
+  "modified": "2026-11-23T17:53:51.792Z",
   "settings": {
     "markingStandard": "iec81346",
     "phaseColors": {
@@ -2089,7 +2089,486 @@
         }
       ],
       "wires": [],
-      "notes": "Every module of the Waveshare folder of the module library (industrial ESP32 / RP2350 controllers)."
+      "notes": "Every module of the Waveshare folder of the module library (industrial ESP32 / RP2350 controllers).",
+      "region": "eu",
+      "usPhases": 2
+    },
+    {
+      "id": "p60ercrl",
+      "name": "Ubiquiti",
+      "floor": "Ground floor",
+      "room": "",
+      "code": "",
+      "rails": [
+        {
+          "id": "rux51qos",
+          "modules": 60,
+          "kind": "plate"
+        },
+        {
+          "id": "r8fhk3ua",
+          "modules": 60,
+          "kind": "plate"
+        },
+        {
+          "id": "r95q55f9",
+          "modules": 60,
+          "kind": "plate"
+        },
+        {
+          "id": "rup6qmi0",
+          "modules": 60,
+          "kind": "plate"
+        }
+      ],
+      "items": [
+        {
+          "id": "ippqvm3u",
+          "defId": "ubiquiti-usw-enterprise-8-poe",
+          "x": 0,
+          "y": 0,
+          "poleConfig": "1P",
+          "params": {
+            "power": "internal"
+          },
+          "on": true,
+          "description": "",
+          "manufacturer": "",
+          "model": "",
+          "railId": "rux51qos",
+          "slot": 0,
+          "plateY": 15
+        },
+        {
+          "id": "ivtmdytx",
+          "defId": "ubiquiti-usw-pro-8-poe",
+          "x": 0,
+          "y": 0,
+          "poleConfig": "1P",
+          "params": {
+            "power": "internal"
+          },
+          "on": true,
+          "description": "",
+          "manufacturer": "",
+          "model": "",
+          "railId": "rux51qos",
+          "slot": 12.5,
+          "plateY": 15
+        },
+        {
+          "id": "ihs9k48r",
+          "defId": "ubiquiti-usw-pro-xg-8-poe",
+          "x": 0,
+          "y": 0,
+          "poleConfig": "1P",
+          "params": {
+            "power": "adapter210"
+          },
+          "on": true,
+          "description": "",
+          "manufacturer": "",
+          "model": "",
+          "railId": "rux51qos",
+          "slot": 25,
+          "plateY": 15
+        },
+        {
+          "id": "i15yrh3e",
+          "defId": "ubiquiti-usw-lite-16-poe",
+          "x": 0,
+          "y": 0,
+          "poleConfig": "1P",
+          "params": {
+            "power": "internal"
+          },
+          "on": true,
+          "description": "",
+          "manufacturer": "",
+          "model": "",
+          "railId": "rux51qos",
+          "slot": 37.5,
+          "plateY": 15
+        },
+        {
+          "id": "it1tndai",
+          "defId": "ubiquiti-usw-flex-2-5g-8-poe",
+          "x": 0,
+          "y": 0,
+          "poleConfig": "1P",
+          "params": {
+            "power": "ac210"
+          },
+          "on": true,
+          "description": "",
+          "manufacturer": "",
+          "model": "",
+          "railId": "r8fhk3ua",
+          "slot": 0,
+          "plateY": 120
+        },
+        {
+          "id": "iflzsiz6",
+          "defId": "ubiquiti-usw-flex-2-5g-8",
+          "x": 0,
+          "y": 0,
+          "poleConfig": "1P",
+          "params": {
+            "power": "usbc"
+          },
+          "on": true,
+          "description": "",
+          "manufacturer": "",
+          "model": "",
+          "railId": "r8fhk3ua",
+          "slot": 12.5,
+          "plateY": 120
+        },
+        {
+          "id": "ij6fn0rp",
+          "defId": "ubiquiti-usw-flex-xg",
+          "x": 0,
+          "y": 0,
+          "poleConfig": "1P",
+          "params": {
+            "power": "usbc"
+          },
+          "on": true,
+          "description": "",
+          "manufacturer": "",
+          "model": "",
+          "railId": "r8fhk3ua",
+          "slot": 25,
+          "plateY": 120
+        },
+        {
+          "id": "i39k7fzm",
+          "defId": "ubiquiti-usw-lite-8-poe",
+          "x": 0,
+          "y": 0,
+          "poleConfig": "1P",
+          "params": {
+            "power": "adapter60"
+          },
+          "on": true,
+          "description": "",
+          "manufacturer": "",
+          "model": "",
+          "railId": "r8fhk3ua",
+          "slot": 34,
+          "plateY": 120
+        },
+        {
+          "id": "i3lq4cun",
+          "defId": "ubiquiti-usw-flex",
+          "x": 0,
+          "y": 0,
+          "poleConfig": "1P",
+          "params": {
+            "power": "poe++"
+          },
+          "on": true,
+          "description": "",
+          "manufacturer": "",
+          "model": "",
+          "railId": "r8fhk3ua",
+          "slot": 41,
+          "plateY": 120
+        },
+        {
+          "id": "ievy6q0h",
+          "defId": "ubiquiti-usw-ultra-210w",
+          "x": 0,
+          "y": 0,
+          "poleConfig": "1P",
+          "params": {
+            "power": "ac210"
+          },
+          "on": true,
+          "description": "",
+          "manufacturer": "",
+          "model": "",
+          "railId": "rup6qmi0",
+          "slot": 0,
+          "plateY": 5
+        },
+        {
+          "id": "iqr6e1nr",
+          "defId": "ubiquiti-usw-ultra-60w",
+          "x": 0,
+          "y": 0,
+          "poleConfig": "1P",
+          "params": {
+            "power": "ac60"
+          },
+          "on": true,
+          "description": "",
+          "manufacturer": "",
+          "model": "",
+          "railId": "rup6qmi0",
+          "slot": 12.5,
+          "plateY": 5
+        },
+        {
+          "id": "i60fvb62",
+          "defId": "ubiquiti-usw-ultra",
+          "x": 0,
+          "y": 0,
+          "poleConfig": "1P",
+          "params": {
+            "power": "poe++"
+          },
+          "on": true,
+          "description": "",
+          "manufacturer": "",
+          "model": "",
+          "railId": "rup6qmi0",
+          "slot": 25,
+          "plateY": 5
+        },
+        {
+          "id": "ih4ll0er",
+          "defId": "ubiquiti-usw-flex-2-5g-5",
+          "x": 0,
+          "y": 0,
+          "poleConfig": "1P",
+          "params": {
+            "power": "usbc"
+          },
+          "on": true,
+          "description": "",
+          "manufacturer": "",
+          "model": "",
+          "railId": "rup6qmi0",
+          "slot": 37.5,
+          "plateY": 5
+        },
+        {
+          "id": "i05dcbbj",
+          "defId": "ubiquiti-usw-flex-mini",
+          "x": 0,
+          "y": 0,
+          "poleConfig": "1P",
+          "params": {
+            "power": "usbc"
+          },
+          "on": true,
+          "description": "",
+          "manufacturer": "",
+          "model": "",
+          "railId": "rup6qmi0",
+          "slot": 45,
+          "plateY": 5
+        }
+      ],
+      "wires": [],
+      "notes": "",
+      "region": "eu",
+      "usPhases": 2
+    },
+    {
+      "id": "ptdln53r",
+      "name": "Gledopto",
+      "floor": "Ground floor",
+      "room": "",
+      "code": "",
+      "rails": [
+        {
+          "id": "rhakrmg6",
+          "modules": 9,
+          "kind": "plate"
+        },
+        {
+          "id": "rlf8sztr",
+          "modules": 9,
+          "kind": "plate"
+        },
+        {
+          "id": "rn9sy758",
+          "modules": 9,
+          "kind": "plate"
+        }
+      ],
+      "items": [
+        {
+          "id": "ics3ol03",
+          "defId": "gledopto-gl-c-616wl",
+          "x": 0,
+          "y": 0,
+          "poleConfig": "1P",
+          "params": {
+            "shell": "black"
+          },
+          "on": true,
+          "description": "",
+          "manufacturer": "",
+          "model": "",
+          "railId": "rhakrmg6",
+          "slot": 0.5,
+          "plateY": 25
+        },
+        {
+          "id": "ic3beqfq",
+          "defId": "gledopto-gl-c-618wl",
+          "x": 0,
+          "y": 0,
+          "poleConfig": "1P",
+          "params": {
+            "shell": "white"
+          },
+          "on": true,
+          "description": "",
+          "manufacturer": "",
+          "model": "",
+          "railId": "rlf8sztr",
+          "slot": 0.5,
+          "plateY": 25
+        },
+        {
+          "id": "i04szyo6",
+          "defId": "gledopto-gl-c-620wl",
+          "x": 0,
+          "y": 0,
+          "poleConfig": "1P",
+          "params": {
+            "shell": "white"
+          },
+          "on": true,
+          "description": "",
+          "manufacturer": "",
+          "model": "",
+          "railId": "rn9sy758",
+          "slot": 0.5,
+          "plateY": 25
+        }
+      ],
+      "wires": [],
+      "notes": "",
+      "region": "eu",
+      "usPhases": 2
+    },
+    {
+      "id": "pxxpl22j",
+      "name": "Mean Well",
+      "floor": "Ground floor",
+      "room": "",
+      "code": "",
+      "rails": [
+        {
+          "id": "rcqe7rj9",
+          "modules": 14,
+          "kind": "plate"
+        },
+        {
+          "id": "rqlfg1n8",
+          "modules": 14,
+          "kind": "plate"
+        },
+        {
+          "id": "r84mmkrr",
+          "modules": 14,
+          "kind": "plate"
+        },
+        {
+          "id": "r4jpm9gq",
+          "modules": 14,
+          "kind": "plate"
+        },
+        {
+          "id": "r0yo6f5l",
+          "modules": 14,
+          "kind": "plate"
+        }
+      ],
+      "items": [
+        {
+          "id": "iuq2yzh2",
+          "defId": "meanwell-lpv-20",
+          "x": 0,
+          "y": 0,
+          "poleConfig": "1P",
+          "params": {
+            "voltage": "24"
+          },
+          "on": true,
+          "description": "",
+          "manufacturer": "",
+          "model": "",
+          "railId": "rcqe7rj9",
+          "slot": 0.5,
+          "plateY": 35
+        },
+        {
+          "id": "ismrnid3",
+          "defId": "meanwell-lpv-35",
+          "x": 0,
+          "y": 0,
+          "poleConfig": "1P",
+          "params": {
+            "voltage": "24"
+          },
+          "on": true,
+          "description": "",
+          "manufacturer": "",
+          "model": "",
+          "railId": "rqlfg1n8",
+          "slot": 0.5,
+          "plateY": 35
+        },
+        {
+          "id": "i3emvj2z",
+          "defId": "meanwell-lpv-60",
+          "x": 0,
+          "y": 0,
+          "poleConfig": "1P",
+          "params": {
+            "voltage": "24"
+          },
+          "on": true,
+          "description": "",
+          "manufacturer": "",
+          "model": "",
+          "railId": "r84mmkrr",
+          "slot": 0.5,
+          "plateY": 35
+        },
+        {
+          "id": "ilrhzllh",
+          "defId": "meanwell-lpv-100",
+          "x": 0,
+          "y": 0,
+          "poleConfig": "1P",
+          "params": {
+            "voltage": "24"
+          },
+          "on": true,
+          "description": "",
+          "manufacturer": "",
+          "model": "",
+          "railId": "r4jpm9gq",
+          "slot": 0.5,
+          "plateY": 35
+        },
+        {
+          "id": "is1mpwxg",
+          "defId": "meanwell-lpv-150",
+          "x": 0,
+          "y": 0,
+          "poleConfig": "1P",
+          "params": {
+            "voltage": "24"
+          },
+          "on": true,
+          "description": "",
+          "manufacturer": "",
+          "model": "",
+          "railId": "r0yo6f5l",
+          "slot": 0.5,
+          "plateY": 35
+        }
+      ],
+      "wires": [],
+      "notes": ""
     }
   ],
   "modules": [],

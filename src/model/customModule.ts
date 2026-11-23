@@ -1,6 +1,6 @@
 // Custom (user-designed) modules: data model helpers, generation of the equipment SVG + definition used by the
 // rest of the app, validation, and the .ecm import/export format.
-import type { Category, CustomModule, ModuleTerminalBlock, EquipmentDef, InputMode, Item, ModuleDevice, ParamDef, ParamValue, Role, ModuleBehaviour, ModuleInput, ModuleShape, ModuleShapeShow, ModuleSwitch, ModuleTerminal } from './types';
+import type { NetworkBack, NetworkInfo, NetworkPort, NetworkPower, Category, CustomModule, ModuleTerminalBlock, EquipmentDef, InputMode, Item, ModuleDevice, ParamDef, ParamValue, Role, ModuleBehaviour, ModuleInput, ModuleShape, ModuleShapeShow, ModuleSwitch, ModuleTerminal } from './types';
 
 export const MODULE_MM = 18;
 export const ROW_PITCH_MM = 10.5;
@@ -91,6 +91,38 @@ function sanitizeParam(raw: unknown): ParamDef | null {
   return out;
 }
 
+function sanitizeNetwork(raw: unknown): NetworkInfo | null {
+  if (!raw || typeof raw !== 'object') return null;
+  const r = raw as Partial<NetworkInfo>;
+  const num = (v: unknown, lo: number, hi: number, fb: number) => Math.round(clamp(v, lo, hi, fb) * 10) / 10;
+  const ports: NetworkPort[] = (Array.isArray(r.ports) ? r.ports : [])
+    .filter((p): p is NetworkPort => !!p && typeof p === 'object' && typeof (p as NetworkPort).id === 'string' && /^\w{1,12}$/.test((p as NetworkPort).id))
+    .slice(0, 48)
+    .map((p) => {
+      const out: NetworkPort = { id: p.id, label: str(p.label, 8, p.id), kind: p.kind === 'sfp' ? 'sfp' : 'rj45', speed: str(p.speed, 8, '1G'), x: num(p.x, 0, 600, 0), ...(p.side === 'back' ? { side: 'back' as const } : {}), ...(p.row ? { row: Math.max(0, Math.min(3, Math.round(Number(p.row)))) } : {}) };
+      if (p.poe && typeof p.poe === 'object') out.poe = { std: p.poe.std === 'bt' ? 'bt' : p.poe.std === 'af' ? 'af' : 'at', maxW: num(p.poe.maxW, 0, 100, 30) };
+      if (p.poeIn) out.poeIn = true;
+      return out;
+    });
+  if (!ports.length) return null;
+  const power: NetworkPower[] = (Array.isArray(r.power) ? r.power : [])
+    .filter((o): o is NetworkPower => !!o && typeof o === 'object' && typeof (o as NetworkPower).id === 'string' && /^[\w.+-]{1,16}$/.test((o as NetworkPower).id))
+    .slice(0, 8)
+    .map((o) => ({ id: o.id, label: str(o.label, 48, o.id), source: (['internal', 'external', 'poe', 'usbc'] as const).includes(o.source) ? o.source : 'internal', budgetW: num(o.budgetW, 0, 2000, 0) }));
+  return {
+    widthMm: num(r.widthMm, 20, 600, 100),
+    depthMm: num(r.depthMm, 20, 600, 100),
+    heightMm: num(r.heightMm, 5, 200, 30),
+    color: color(r.color, '#e8ebef'),
+    ports,
+    back: (Array.isArray(r.back) ? r.back : [])
+      .filter((b): b is NetworkBack => !!b && typeof b === 'object')
+      .slice(0, 8)
+      .map((b) => ({ kind: (['ac', 'dc', 'usbc', 'ground', 'reset'] as const).includes(b.kind) ? b.kind : 'dc', label: str(b.label, 12, ''), x: num(b.x, 0, 600, 0) })),
+    power: power.length ? power : [{ id: 'none', label: 'No PoE', source: 'internal', budgetW: 0 }],
+  };
+}
+
 /** Validate the device part of a module; null when it cannot be used. */
 export function sanitizeDevice(raw: unknown): ModuleDevice | null {
   if (!raw || typeof raw !== 'object') return null;
@@ -107,6 +139,7 @@ export function sanitizeDevice(raw: unknown): ModuleDevice | null {
     role,
     icon: str(r.icon, 24, 'flashOutline'),
     mount,
+    ...(r.mounting === 'plate' || r.mounting === 'both' ? { mounting: r.mounting } : {}),
     poleMode,
     params: (Array.isArray(r.params) ? r.params : []).map(sanitizeParam).filter((p): p is ParamDef => p !== null).slice(0, 40),
     svg,
@@ -119,6 +152,8 @@ export function sanitizeDevice(raw: unknown): ModuleDevice | null {
   if (r.stateful) d.stateful = true;
   if (r.tripsOnOverload) d.tripsOnOverload = true;
   if (typeof r.summary === 'string' && r.summary) d.summary = r.summary.slice(0, 80);
+  const net = sanitizeNetwork(r.network);
+  if (net) d.network = net;
   if (poleMode === 'config') {
     const cfgs = (Array.isArray(r.poleConfigs) ? r.poleConfigs : []).filter((c): c is string => typeof c === 'string' && POLE_CONFIG_KEYS.includes(c));
     d.poleConfigs = cfgs.length ? Array.from(new Set(cfgs)) : ['1P'];
@@ -145,6 +180,7 @@ function buildDeviceDef(m: CustomModule, category: Category): { def: EquipmentDe
     icon: d.icon,
     asset: `${m.id}.svg`,
     mount: d.mount,
+    ...(d.mounting ? { mounting: d.mounting } : {}),
     ...(d.region ? { region: d.region } : {}),
     ...(d.tileAxis ? { tileAxis: d.tileAxis } : {}),
     ...(d.mirrorTerminals ? { mirrorTerminals: true } : {}),
@@ -157,6 +193,7 @@ function buildDeviceDef(m: CustomModule, category: Category): { def: EquipmentDe
     ...(d.stateful ? { stateful: true } : {}),
     ...(d.tripsOnOverload ? { tripsOnOverload: true } : {}),
     ...(d.summary ? { summary: d.summary } : {}),
+    ...(d.network ? { network: d.network } : {}),
   };
   return { def, svg: d.svg };
 }
@@ -192,6 +229,7 @@ export function deviceModuleFrom(def: EquipmentDef, svg: string, base: { name: s
       role: def.role as ModuleDevice['role'],
       icon: def.icon,
       mount: def.mount,
+      ...(def.mounting ? { mounting: def.mounting } : {}),
       ...(def.region ? { region: def.region } : {}),
       ...(def.tileAxis ? { tileAxis: def.tileAxis } : {}),
       ...(def.mirrorTerminals ? { mirrorTerminals: true } : {}),
@@ -539,6 +577,7 @@ export function buildModuleDef(m: CustomModule, category: Category = 'custom'): 
     icon: 'module',
     asset: `${m.id}.svg`,
     mount: 'din',
+    ...(m.mounting ? { mounting: m.mounting } : {}),
     poleMode: 'none',
     stateful: m.switchable,
     tripsOnOverload: m.trips && (m.switchable || m.switches.length > 0),
@@ -618,6 +657,7 @@ export function sanitizeModule(raw: unknown): CustomModule | null {
     designation: str(r.designation, 3, 'X') || 'X',
     widthModules: Math.round(clamp(r.widthModules, 0.5, 36, 2) * 2) / 2,
     ...(r.widthMm !== undefined && Number.isFinite(Number(r.widthMm)) ? { widthMm: Math.round(clamp(r.widthMm, 9, 648, 18) * 10) / 10 } : {}),
+    ...(r.mounting === 'plate' || r.mounting === 'both' ? { mounting: r.mounting } : {}),
     heightMm: Math.round(clamp(r.heightMm, 30, 90, 90)),
     color: color(r.color, base.color),
     stroke: color(r.stroke, base.stroke),

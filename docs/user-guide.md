@@ -21,6 +21,27 @@ a **floor** and a **room**. The Project tree groups panels by floor.
 * **+** next to *Project* adds a panel on the current floor; the folder button adds one on a new floor.
 * Hover a panel to **duplicate** or **delete** it.
 * Rename a panel, change its floor or room, or edit the DIN rails in the properties panel (click empty canvas to see it).
+* **Mounting plates.** *Add mounting plate* (panel properties, under the rails of a section) puts a perforated galvanised plate in a
+  row instead of a DIN rail, for devices that have no DIN clip and are screwed or cable-tied down. Devices go anywhere on it (drag,
+  arrow keys move them 0.5 module / 5 mm), and several can stand side by side or stacked. Only devices whose *Mounting* is
+  *Mounting plate* or *DIN rail or plate* are accepted (the Waveshare controllers; set it for your own modules in the module
+  designer); breakers and other DIN devices stay on DIN rails. The plate is as wide as you set and 150 mm high. Plates in
+  consecutive rows (no DIN rail between) form one perforated area, and a large device can lie across them. A device does not have to
+  fit on the plate: it can reach over the edge or be larger than the plate, as long as its middle is on the plate and it stays
+  inside the enclosure and clear of other devices. The enclosure is as wide as the longest rail; raise its **Internal width** (panel
+  properties, under the rails of a section) to make room for wider devices.
+* **Turn and stack.** Select a device on a plate and press **R** (clockwise) or **Shift+R** (anticlockwise), or use the *Turn*
+  buttons in its properties: it turns in steps of 90 degrees with its terminals. Drop a device onto another one on the plate to
+  stack it (one on top at most); the top one follows its base, *Unstack* in its properties puts it next to it again.
+* **Network switches.** The **Ubiquiti** group of the equipment list has the compact UniFi switches (Lite, Pro, Pro XG,
+  Enterprise, Ultra, Flex ...), all for mounting plates. Each port is a terminal on the front edge of the switch. Select a switch
+  and an overlay shows its **front** (ports, PoE ports in amber, port numbers) and its **back** (power connectors), with its
+  *Power* choice (internal supply, external adapter, PoE or USB-C input: the PoE budget follows it). Click a port in the overlay,
+  then a jack of the patch panel (or any other terminal), to wire it. Give a network outlet on the floor plan its **PoE power**
+  (properties of the outlet: access points and cameras start with 13 W and 8 W). The watts of every outlet that reaches a PoE port
+  through the patch panel are shown next to the port, and the sum against the budget above the switch (red when it is over the
+  budget or a port is asked for more than it can give). Port numbering and the position of the PoE ports are assumed where
+  Ubiquiti's data sheets do not state them.
 * **Rails:** each panel starts with two 12-module rails. Add more, change their length, or reorder them there.
   A rail cannot be shortened below the devices on it.
 * **Sections:** *Add section* puts a second enclosure to the right of the first, with its own rails. Every section
@@ -32,7 +53,7 @@ a **floor** and a **room**. The Project tree groups panels by floor.
   and its wires.
 * **Keystone patch panels:** *Keystone panel top* and *Keystone panel bottom* (below the bus bar choices) add a **patch panel**
   along that edge of the section: a grid of keystone jacks whose size you set with **rows** (1 to 4) and **columns** (1 to 24)
-  right in the section settings. Every jack is a terminal of its own (jacks are never joined), numbered 1, 2, 3 ... row by row.
+  right in the section settings. Every jack has two connection points (jacks are never joined with each other), numbered 1, 2, 3 ... row by row: the **floor plan** cable always goes to the bottom one (the cable boxes are below the enclosure) and a switch or other device to the top one. Each network port (a jack's connection point, a switch port, a floor plan cable) takes one cable only. A **fibre** cable can only end at an SFP / SFP+ port, straight or through a jack (Ethernet goes to any port).
   It sits next to the bus bars of the same edge (neutral bar, patch panel, earth bar from left to right) and the enclosure
   grows, and widens, to fit it. Reduce the size and the wires to jacks that disappear are removed. The cables that come from the
   floor plan (see *Floor plans*) are items of the panel; **select the patch panel** (*edit*) and press **Wire floor plan cables
@@ -300,8 +321,9 @@ leave the earth wiring out. A selected wire is always drawn.
 
 ### Routing
 
-Routes are automatic and orthogonal. Wires leave a terminal straight up or down, run in the channels between the
-rails, and use side channels to go around the panel. Wires in the same channel are given separate lanes.
+Routes are automatic and orthogonal. A wire leaves its terminal in the direction of the terminal and takes the shortest way
+to the other one with as few bends as possible, avoiding crossings of other wires and running along them; the shortest wires
+are placed first and the longer ones go around them.
 
 To adjust a route, **select the wire**:
 

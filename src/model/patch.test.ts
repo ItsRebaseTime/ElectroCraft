@@ -9,7 +9,7 @@ import { autoWirePatch, findSectionPatch, setSectionBar, setSectionPatch, update
 import type { FloorCircuit, Project } from './types';
 
 describe('keystone patch panel', () => {
-  it('sits along the top or bottom edge with one terminal per jack, sized by rows and columns', () => {
+  it('sits along the top or bottom edge with two connection points per jack, sized by rows and columns', () => {
     const p = createPanel('P');
     const sid = sectionGeometry(p)[0].id;
     setSectionPatch(p, sid, 'top', true, 3, 8);
@@ -19,9 +19,12 @@ describe('keystone patch panel', () => {
     const pl = l.placed.get(item.id)!;
     const { w, h } = patchSize(3, 8);
     expect([pl.w, pl.h]).toEqual([w, h]);
-    expect(pl.terminals).toHaveLength(24);
-    expect(pl.terminals.map((t) => t.id)).toEqual(patchPorts(3, 8));
-    expect(pl.terminals.every((t) => t.dir.y > 0)).toBe(true); // facing into the enclosure
+    // per jack: the floor plan cable (P) at the bottom and the switch / device (D) at the top
+    expect(pl.terminals).toHaveLength(48);
+    expect(pl.terminals.filter((t) => t.id.startsWith('P')).map((t) => t.id)).toEqual(patchPorts(3, 8));
+    expect(pl.terminals.filter((t) => t.id.startsWith('D')).map((t) => t.id)).toEqual(patchPorts(3, 8).map((id) => `D${id.slice(1)}`));
+    expect(pl.terminals.filter((t) => t.id.startsWith('P')).every((t) => t.dir.y > 0)).toBe(true); // the floor plan side is always the bottom one
+    expect(pl.terminals.filter((t) => t.id.startsWith('D')).every((t) => t.dir.y < 0)).toBe(true);
     const g = sectionGeometry(p)[0];
     expect(g.topBand).toBe(24 + h); // the enclosure grows by the height of the panel
     expect(g.y).toBe(ENCL_TOP - g.topBand);
@@ -32,7 +35,8 @@ describe('keystone patch panel', () => {
     // the bottom edge: jacks wired from above
     setSectionPatch(p, sid, 'bottom', true);
     const bottom = layoutPanel(p).placed.get(findSectionPatch(p, sid, 'bottom')!.id)!;
-    expect(bottom.terminals.every((t) => t.dir.y < 0)).toBe(true);
+    expect(bottom.terminals.filter((t) => t.id.startsWith('P')).every((t) => t.dir.y > 0)).toBe(true);
+    expect(bottom.terminals.filter((t) => t.id.startsWith('D')).every((t) => t.dir.y < 0)).toBe(true);
     expect(bottom.y + bottom.h).toBeLessThan(sectionGeometry(p)[0].y + sectionGeometry(p)[0].h);
     setSectionPatch(p, sid, 'top', false);
     expect(findSectionPatch(p, sid, 'top')).toBeUndefined();
@@ -92,7 +96,7 @@ describe('keystone patch panel', () => {
     expect(p.wires).toHaveLength(1); // the jack still exists
     expect(updateItem(p, patch.id, { params: { rows: 1, cols: 3 } })).toMatch(/removed/);
     expect(p.wires).toHaveLength(0);
-    expect(layoutPanel(p).placed.get(patch.id)!.terminals).toHaveLength(3);
+    expect(layoutPanel(p).placed.get(patch.id)!.terminals).toHaveLength(6);
   });
 
   it('jacks are never joined to each other', () => {

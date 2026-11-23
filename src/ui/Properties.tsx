@@ -7,7 +7,8 @@ import { colorByKey, potentialColorKey, WIRE_COLORS } from '../model/colors';
 import { floorsOf } from '../model/project';
 import { evalShow } from '../model/expr';
 import type { InputMode, Item, Panel, ParamDef, ParamValue, TerminalRef, Wire } from '../model/types';
-import { addRail, addSection, removeComb, removeRowLink, updateComb, updateRowLink, autoWirePatch, duplicateItems, findSectionBar, findSectionPatch, hasSectionBusBar, setSectionPatch, removeSection, renameSection, setRailSection, setSectionBar, moveRail, LINKED_ITEM_MESSAGE, removeItems, removeRail, removeWires, setBridges, setInputMode, setRailLength, setUsPhases, setUsRows, toggleBridge, toggleSwitch, updateItem } from '../store/actions';
+import { RAIL_X0, seatOnRail } from '../model/geometry';
+import { addRail, addSection, removeComb, removeRowLink, updateComb, updateRowLink, autoWirePatch, duplicateItems, findSectionBar, findSectionPatch, hasSectionBusBar, setSectionPatch, removeSection, renameSection, setSectionWidth, setRailSection, setSectionBar, moveRail, LINKED_ITEM_MESSAGE, removeItems, removeRail, removeWires, rotateItem, setBridges, setInputMode, setRailLength, setUsPhases, setUsRows, toggleBridge, toggleSwitch, updateItem } from '../store/actions';
 import { selectActivePanel, useStore } from '../store/store';
 import { useDiagram } from './DiagramContext';
 import { Field, NumberField, TextField } from './fields';
@@ -95,6 +96,13 @@ function ItemProps({ itemId }: { itemId: string }) {
     if (msg) notify(msg, 'error');
   };
   const setParam = (key: string, v: ParamValue) => patch({ params: { [key]: v } });
+  const turn = (dir: 1 | -1) => {
+    let msg: string | null = null;
+    mutate((d) => {
+      msg = rotateItem(panelIn(d, panel.id), item.id, dir);
+    });
+    if (msg) notify(msg, 'error');
+  };
   const ctx = { flags: {}, params: item.params, vars: {}, paramDefs: def.params };
   const link = floorLinkOf(project, item);
   // the load, kind and phases of a floor plan circuit come from the plan; changing them here would be undone
@@ -326,6 +334,31 @@ function ItemProps({ itemId }: { itemId: string }) {
         {poleKinds(item, def).length ? `${poleKinds(item, def).length} pole${poleKinds(item, def).length > 1 ? 's' : ''}` : 'No poles'} - id {item.id}
       </p>
 
+      {panel.rails.find((r) => r.id === item.railId)?.kind === 'plate' && (
+        <Field label="Turn" hint={`${item.rot ?? 0} degrees${item.stackOn ? ', stacked on another device' : ''} (key R, Shift+R); drop a device on another one on the plate to stack it`}>
+          <div className="row gap">
+            <button aria-label="Turn anticlockwise" onClick={() => turn(-1)}>
+              90&deg; &#8634;
+            </button>
+            <button aria-label="Turn clockwise" onClick={() => turn(1)}>
+              90&deg; &#8635;
+            </button>
+            {item.stackOn && (
+              <button
+                onClick={() =>
+                  mutate((d) => {
+                    const pn = panelIn(d, panel.id);
+                    const it = pn.items.find((i) => i.id === item.id);
+                    if (it && !seatOnRail(pn, it, it.railId ?? '', (it.slot ?? 0) + 1, it.plateY ?? 0)) notify('No free place on the plate next to it.', 'error');
+                  })
+                }
+              >
+                Unstack
+              </button>
+            )}
+          </div>
+        </Field>
+      )}
       <div className="row gap">
         <button
           onClick={() => {
@@ -461,7 +494,7 @@ function RailProps({ railId }: { railId: string }) {
   return (
     <div className="props">
       <h3>
-        DIN rail {i + 1}
+        {rail.kind === 'plate' ? 'Mounting plate' : 'DIN rail'} {i + 1}
         {sections.length > 1 ? ` of ${sec.name}` : ''}
       </h3>
       {sections.length > 1 && (
@@ -475,7 +508,7 @@ function RailProps({ railId }: { railId: string }) {
           </select>
         </Field>
       )}
-      <Field label="Length (modules)" hint={`${rail.modules * 18} mm`}>
+      <Field label={rail.kind === 'plate' ? 'Width (modules)' : 'Length (modules)'} hint={`${rail.modules * 18} mm`}>
         <NumberField value={rail.modules} min={1} max={60} step={1} onCommit={(v) => mutate((d) => fail(setRailLength(panelIn(d, panel.id), rail.id, v)))} />
       </Field>
       <div className="row gap">
@@ -520,7 +553,7 @@ function SectionsEditor({ panel }: { panel: Panel }) {
   const fail = (m: string | null) => m && notify(m, 'error');
   return (
     <>
-      <h4>{geoms.length > 1 ? 'Sections (side by side)' : 'DIN rails'}</h4>
+      <h4>{geoms.length > 1 ? 'Sections (side by side)' : 'DIN rails and plates'}</h4>
       {geoms.map((g) => (
         <div key={g.id} className="section-box">
           {geoms.length > 1 && (
@@ -534,13 +567,19 @@ function SectionsEditor({ panel }: { panel: Panel }) {
           {g.rails.map((r, i) => (
             <div key={r.id} className="rail-row">
               <button className="link" onClick={() => select({ kind: 'rail', ids: [r.id] })}>
-                Rail {i + 1}
+                {r.kind === 'plate' ? 'Plate' : 'Rail'} {i + 1}
               </button>
               <NumberField value={r.modules} min={1} max={60} step={1} unit="modules" onCommit={(v) => mutate((d) => fail(setRailLength(panelIn(d, panel.id), r.id, v)))} />
             </div>
           ))}
+          <Field label="Internal width" hint="mm. Wider than the rails need: devices on a mounting plate may reach over its edge but stay inside the enclosure">
+            <NumberField value={g.w - 2 * RAIL_X0} min={100} max={5000} step={10} unit="mm" onCommit={(v) => mutate((d) => setSectionWidth(panelIn(d, panel.id), g.id, v))} />
+          </Field>
           <button onClick={() => mutate((d) => addRail(panelIn(d, panel.id), 12, g.id))}>
             <Icon name="plus" size={16} /> Add rail
+          </button>
+          <button title="A perforated plate for devices without a DIN clip: screw or cable-tie them anywhere on it" onClick={() => mutate((d) => addRail(panelIn(d, panel.id), 12, g.id, true))}>
+            <Icon name="plus" size={16} /> Add mounting plate
           </button>
           <div className="bar-grid" role="group" aria-label={`Bus bars of ${g.name}`}>
             <span className="meta">Bus bars</span>

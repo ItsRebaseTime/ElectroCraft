@@ -1842,3 +1842,52 @@ button.small {
   border-radius: 8px;
   background: var(--panel-alt, #f6f7f9);
 }
+
+/* network switch overlay */
+.switch-overlay {
+  position: absolute;
+  left: 12px;
+  bottom: 40px;
+  width: min(560px, calc(100% - 24px));
+  padding: 8px 10px;
+  border-radius: 8px;
+  background: var(--panel);
+  border: 1px solid var(--border);
+  box-shadow: 0 4px 16px rgba(0, 0, 0, 0.18);
+  display: flex;
+  flex-direction: column;
+  gap: 4px;
+  font-size: 12px;
+  max-height: calc(100% - 60px);
+  overflow-y: auto;
+}
+.switch-overlay .so-block {
+  display: flex;
+  flex-direction: column;
+  gap: 4px;
+  padding-bottom: 6px;
+  border-bottom: 1px solid var(--border);
+}
+.switch-overlay .so-head {
+  display: flex;
+  justify-content: space-between;
+  gap: 8px;
+}
+.switch-overlay .so-svg {
+  width: 100%;
+  max-height: 90px;
+}
+.switch-overlay .so-power {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  gap: 8px;
+}
+.switch-overlay .so-sum {
+  font-size: 18px;
+  font-weight: 700;
+  color: #0b6b3a;
+}
+.switch-overlay .so-sum.over {
+  color: var(--danger);
+}
